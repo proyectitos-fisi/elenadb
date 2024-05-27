@@ -2,7 +2,7 @@
 
 ## The modules
 
-- The CLI (paolo):
+- The CLI (paolo) ✅ done, see [docs/cli.md](./docs/cli.md):
   - Design the ElenaDB CLI
   - Initially, a DB will be a directory where each file beign a table in the user system, unlike
     sqlite that uses a single file.
@@ -17,7 +17,7 @@
 
 - Query language (rodro):
   - Define the operations
-  - Design the language and document sample queries (docs/queries.md)
+  - Design the language and document sample queries (See [docs/queries.md](./docs/queries.md))
   - First, design (in code) how the parsed AST looks like, so we can mock that result
     and use it on other parts of the code.
   - Then, start making the actual parser from raw strings.
