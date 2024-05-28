@@ -1,5 +1,7 @@
 # ElenaDB
 
+![logo basura](./assets/elenadb.png)
+
 ## The modules
 
 - The CLI (paolo) ✅ done, see [docs/cli.md](./docs/cli.md):
