@@ -84,6 +84,9 @@ func main() {
 				fmt.Println("🚆 Nothing to do. Try passing a [query] or [file.sql]")
 				return nil
 			}
+			if toExecute == "" && !utils.DirExists(dbDirectory) && !create {
+				return fmt.Errorf("database %s does not exist", dbDirectory)
+			}
 
 			if create {
 				err := elenaCreate(ctx, dbDirectory)
