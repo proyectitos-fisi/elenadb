@@ -1,10 +1,12 @@
 package storage
 
+import "fmt"
+
 // Just a test with a simple btree in go
 // This is similar in Rust, Struct and an implementation
 // A node in a btree
 type BPTreeNode struct {
-	keys     []int         // slice of an int
+	Keys     []int         // slice of an int
 	children []*BPTreeNode // childens
 	isLeaf   bool
 	parent   *BPTreeNode
@@ -13,51 +15,51 @@ type BPTreeNode struct {
 
 func NewBPTreeNode(isLeaf bool) *BPTreeNode {
 	return &BPTreeNode{
-		keys:     []int{},
+		Keys:     []int{},
 		children: []*BPTreeNode{},
 		isLeaf:   isLeaf,
 	}
 }
 
 type BPTree struct {
-	root *BPTreeNode
-	t    int // Minimum degree (defines the range for number of keys)
+	Root *BPTreeNode
+	t    int // Minimum degree (defines the range for number of Keys)
 }
 
 func NewBPTree(t int) *BPTree {
-	root := NewBPTreeNode(true)
-	return &BPTree{root: root, t: t}
+	Root := NewBPTreeNode(true)
+	return &BPTree{Root: Root, t: t}
 }
 
 // This is the insertion
 func (tree *BPTree) Insert(key int) {
-	root := tree.root
-	if len(root.keys) == 2*tree.t-1 {
+	Root := tree.Root
+	if len(Root.Keys) == 2*tree.t-1 {
 		newRoot := NewBPTreeNode(false)
-		newRoot.children = append(newRoot.children, root)
+		newRoot.children = append(newRoot.children, Root)
 		tree.splitChild(newRoot, 0)
-		tree.root = newRoot
+		tree.Root = newRoot
 	}
-	tree.insertNonFull(tree.root, key)
+	tree.insertNonFull(tree.Root, key)
 }
 
 func (tree *BPTree) insertNonFull(node *BPTreeNode, key int) {
-	i := len(node.keys) - 1
+	i := len(node.Keys) - 1
 	if node.isLeaf {
-		node.keys = append(node.keys, 0)
-		for i >= 0 && key < node.keys[i] {
-			node.keys[i+1] = node.keys[i]
+		node.Keys = append(node.Keys, 0)
+		for i >= 0 && key < node.Keys[i] {
+			node.Keys[i+1] = node.Keys[i]
 			i--
 		}
-		node.keys[i+1] = key
+		node.Keys[i+1] = key
 	} else {
-		for i >= 0 && key < node.keys[i] {
+		for i >= 0 && key < node.Keys[i] {
 			i--
 		}
 		i++
-		if len(node.children[i].keys) == 2*tree.t-1 {
+		if len(node.children[i].Keys) == 2*tree.t-1 {
 			tree.splitChild(node, i)
-			if key > node.keys[i] {
+			if key > node.Keys[i] {
 				i++
 			}
 		}
@@ -74,12 +76,12 @@ func (tree *BPTree) splitChild(parent *BPTreeNode, i int) {
 	copy(parent.children[i+2:], parent.children[i+1:])
 	parent.children[i+1] = z
 
-	parent.keys = append(parent.keys, 0)
-	copy(parent.keys[i+1:], parent.keys[i:])
-	parent.keys[i] = y.keys[t-1]
+	parent.Keys = append(parent.Keys, 0)
+	copy(parent.Keys[i+1:], parent.Keys[i:])
+	parent.Keys[i] = y.Keys[t-1]
 
-	z.keys = append(z.keys, y.keys[t:]...)
-	y.keys = y.keys[:t-1]
+	z.Keys = append(z.Keys, y.Keys[t:]...)
+	y.Keys = y.Keys[:t-1]
 
 	if !y.isLeaf {
 		z.children = append(z.children, y.children[t:]...)
@@ -94,19 +96,31 @@ func (tree *BPTree) splitChild(parent *BPTreeNode, i int) {
 
 // this is the search
 func (tree *BPTree) Search(key int) (*BPTreeNode, int) {
-	return tree.search(tree.root, key)
+	return tree.search(tree.Root, key)
 }
 
 func (tree *BPTree) search(node *BPTreeNode, key int) (*BPTreeNode, int) {
 	i := 0
-	for i < len(node.keys) && key > node.keys[i] {
+	for i < len(node.Keys) && key > node.Keys[i] {
 		i++
 	}
-	if i < len(node.keys) && key == node.keys[i] {
+	if i < len(node.Keys) && key == node.Keys[i] {
 		return node, i
 	}
 	if node.isLeaf {
 		return nil, -1
 	}
 	return tree.search(node.children[i], key)
+}
+
+// print the tree
+func PrintTree(node *BPTreeNode, level int) {
+	if node != nil {
+		fmt.Printf("Level %d: %v\n", level, node.Keys)
+		if !node.isLeaf {
+			for _, child := range node.children {
+				PrintTree(child, level+1)
+			}
+		}
+	}
 }
