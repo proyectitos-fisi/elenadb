@@ -48,23 +48,26 @@ func run(_ *cli.Context, dbDir string, query string) error {
 
 func main() {
 	// just testing
-	t := 3
-	tree := storage.NewBPTree(t)
+	// t := 3
+	// tree := storage.NewBPTree(t)
 
-	keys := []int{10, 20, 5, 6, 12, 30, 7, 17, 8, 9, 40, 24}
-	for _, key := range keys {
-		tree.Insert(key)
-	}
+	// keys := []int{10, 20, 5, 6, 12, 30, 7, 17, 8, 9, 40, 24}
+	// for _, key := range keys {
+	// 	tree.Insert(key)
+	// }
 
-	key := 17
-	node, index := tree.Search(key)
-	if node != nil {
-		fmt.Printf("Found key %d at index %d in node with keys %v\n", key, index, node.Keys)
-	} else {
-		fmt.Printf("Key %d not found\n", key)
-	}
+	// key := 17
+	// node, index := tree.Search(key)
+	// if node != nil {
+	// 	fmt.Printf("Found key %d at index %d in node with keys %v\n", key, index, node.Keys)
+	// } else {
+	// 	fmt.Printf("Key %d not found\n", key)
+	// }
 
-	storage.PrintTree(tree.Root, 0)
+	// storage.PrintTree(tree.Root, 0)
+
+	// another testing
+	storage.Testing()
 
 	// cli
 

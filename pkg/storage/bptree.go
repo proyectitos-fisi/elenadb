@@ -1,6 +1,10 @@
 package storage
 
-import "fmt"
+import (
+	"fmt"
+	"io"
+	"os"
+)
 
 // Just a test with a simple btree in go
 // This is similar in Rust, Struct and an implementation
@@ -9,8 +13,9 @@ type BPTreeNode struct {
 	Keys     []int         // slice of an int
 	children []*BPTreeNode // childens
 	isLeaf   bool
-	parent   *BPTreeNode
+	_        *BPTreeNode
 	next     *BPTreeNode
+	pageIDs  []int
 }
 
 func NewBPTreeNode(isLeaf bool) *BPTreeNode {
@@ -18,6 +23,7 @@ func NewBPTreeNode(isLeaf bool) *BPTreeNode {
 		Keys:     []int{},
 		children: []*BPTreeNode{},
 		isLeaf:   isLeaf,
+		pageIDs:  []int{},
 	}
 }
 
@@ -32,7 +38,7 @@ func NewBPTree(t int) *BPTree {
 }
 
 // This is the insertion
-func (tree *BPTree) Insert(key int) {
+func (tree *BPTree) Insert(key, pageID int) {
 	Root := tree.Root
 	if len(Root.Keys) == 2*tree.t-1 {
 		newRoot := NewBPTreeNode(false)
@@ -40,18 +46,21 @@ func (tree *BPTree) Insert(key int) {
 		tree.splitChild(newRoot, 0)
 		tree.Root = newRoot
 	}
-	tree.insertNonFull(tree.Root, key)
+	tree.insertNonFull(tree.Root, key, pageID)
 }
 
-func (tree *BPTree) insertNonFull(node *BPTreeNode, key int) {
+func (tree *BPTree) insertNonFull(node *BPTreeNode, key, pageID int) {
 	i := len(node.Keys) - 1
 	if node.isLeaf {
 		node.Keys = append(node.Keys, 0)
+		node.pageIDs = append(node.pageIDs, 0)
 		for i >= 0 && key < node.Keys[i] {
 			node.Keys[i+1] = node.Keys[i]
+			node.pageIDs[i+1] = node.pageIDs[i]
 			i--
 		}
 		node.Keys[i+1] = key
+		node.pageIDs[i+1] = pageID
 	} else {
 		for i >= 0 && key < node.Keys[i] {
 			i--
@@ -63,7 +72,7 @@ func (tree *BPTree) insertNonFull(node *BPTreeNode, key int) {
 				i++
 			}
 		}
-		tree.insertNonFull(node.children[i], key)
+		tree.insertNonFull(node.children[i], key, pageID)
 	}
 }
 
@@ -83,14 +92,14 @@ func (tree *BPTree) splitChild(parent *BPTreeNode, i int) {
 	z.Keys = append(z.Keys, y.Keys[t:]...)
 	y.Keys = y.Keys[:t-1]
 
-	if !y.isLeaf {
-		z.children = append(z.children, y.children[t:]...)
-		y.children = y.children[:t]
-	}
-
 	if y.isLeaf {
+		z.pageIDs = append(z.pageIDs, y.pageIDs[t:]...)
+		y.pageIDs = y.pageIDs[:t-1]
 		z.next = y.next
 		y.next = z
+	} else {
+		z.children = append(z.children, y.children[t:]...)
+		y.children = y.children[:t]
 	}
 }
 
@@ -111,6 +120,51 @@ func (tree *BPTree) search(node *BPTreeNode, key int) (*BPTreeNode, int) {
 		return nil, -1
 	}
 	return tree.search(node.children[i], key)
+}
+
+// inserting pages id and keys
+func (tree *BPTree) InsertKeyValue(file *os.File, key, value int) {
+	// Find or create a page for the new tuple
+	pageID := findOrCreatePage(file)
+
+	// Insert the tuple into the page
+	page, err := ReadPage(file, pageID)
+	if err != nil {
+		fmt.Println("Error reading page:", err)
+		return
+	}
+	page.Tuples = append(page.Tuples, Tuple{Key: key, Value: value})
+	page.NumTuples++
+
+	err = WritePage(file, page)
+	if err != nil {
+		fmt.Println("Error writing page:", err)
+		return
+	}
+
+	// Insert the key and pageID into the B+Tree
+	tree.Insert(key, pageID)
+}
+
+func findOrCreatePage(file *os.File) int {
+	// For simplicity, always use page 0 in this example.
+	pageID := 0
+	page, err := ReadPage(file, pageID)
+	if err != nil && err != io.EOF {
+		fmt.Println("Error reading page:", err)
+		return -1
+	}
+	if err == io.EOF {
+		// Initialize the page if it doesn't exist
+		page = &Page{
+			PageID:          pageID,
+			NumTuples:       0,
+			FreeSpaceOffset: 10, // Start after the header
+			Tuples:          []Tuple{},
+		}
+		WritePage(file, page)
+	}
+	return pageID
 }
 
 // print the tree

@@ -25,6 +25,6 @@
   - Then, start making the actual parser from raw strings.
 
 - The storage (eduardo + damaris)
-  - B+tree implementation
+  - B+tree implementation ✅
   - Design how the binary layout of the 'table' data structure looks like (eduardo)
   - Start thinking on how to apply operations to the db

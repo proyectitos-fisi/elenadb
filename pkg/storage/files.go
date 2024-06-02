@@ -1,78 +1,102 @@
 package storage
 
 import (
+	"encoding/binary"
 	"fmt"
-	"math/rand"
 	"os"
-	"time"
 )
 
-func randomInt() int {
-	rand.Seed(time.Now().UnixNano())
-	return rand.Intn(1000000) // Generates a random integer between 0 and 999999
+const PageSize = 4096 // 4KB pages
+
+type Page struct {
+	PageID          int
+	NumTuples       int
+	FreeSpaceOffset int
+	Tuples          []Tuple
 }
 
-// Trying files for the first time in go
-// WriteToFile writes text to a file.
-func WriteToFile(filename, text string) error {
-	file, err := os.Create(filename)
+type Tuple struct {
+	Key   int
+	Value int
+}
+
+func ReadPage(file *os.File, pageID int) (*Page, error) {
+	offset := int64(pageID * PageSize)
+	buf := make([]byte, PageSize)
+	_, err := file.ReadAt(buf, offset)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	page := &Page{
+		PageID:          pageID,
+		NumTuples:       int(binary.LittleEndian.Uint32(buf[4:8])),
+		FreeSpaceOffset: int(binary.LittleEndian.Uint16(buf[8:10])),
+		Tuples:          []Tuple{},
+	}
+
+	pos := 10
+	for i := 0; i < page.NumTuples; i++ {
+		key := int(binary.LittleEndian.Uint32(buf[pos : pos+4]))
+		value := int(binary.LittleEndian.Uint32(buf[pos+4 : pos+8]))
+		page.Tuples = append(page.Tuples, Tuple{Key: key, Value: value})
+		pos += 8
+	}
+
+	return page, nil
+}
+
+func WritePage(file *os.File, page *Page) error {
+	offset := int64(page.PageID * PageSize)
+	buf := make([]byte, PageSize)
+
+	binary.LittleEndian.PutUint32(buf[0:4], uint32(page.PageID))
+	binary.LittleEndian.PutUint32(buf[4:8], uint32(page.NumTuples))
+	binary.LittleEndian.PutUint16(buf[8:10], uint16(page.FreeSpaceOffset))
+
+	pos := 10
+	for _, tuple := range page.Tuples {
+		binary.LittleEndian.PutUint32(buf[pos:pos+4], uint32(tuple.Key))
+		binary.LittleEndian.PutUint32(buf[pos+4:pos+8], uint32(tuple.Value))
+		pos += 8
+	}
+
+	_, err := file.WriteAt(buf, offset)
+	return err
+}
+
+func Testing() {
+	// Create a new B+Tree with minimum degree 2
+	tree := NewBPTree(2)
+
+	// Create or open the file to store pages
+	file, err := os.OpenFile("pages.dat", os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		return
 	}
 	defer file.Close()
 
-	_, err = file.WriteString(text)
-	if err != nil {
-		return err
+	// Insert some key-value pairs into the B+Tree
+	// tree.InsertKeyValue(file, 50, 1000)
+	// tree.InsertKeyValue(file, 161, 1000)
+	// tree.InsertKeyValue(file, 166, 1000)
+	// tree.InsertKeyValue(file, 265, 1000)
+
+	PrintTree(tree.Root, 0)
+
+	page, err := ReadPage(file, 0)
+
+	fmt.Printf("%+v\n", page)
+	if page == nil {
+		fmt.Println("Error reading the file:", err)
 	}
 
-	return nil
-}
-
-func SaveData1(path string, data []byte) error {
-	fp, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0664)
-	if err != nil {
-		return err
+	// Search for a key
+	node, index := tree.Search(30)
+	if node != nil {
+		fmt.Printf("Found key 30 at node: %v at index: %d\n", node.Keys, index)
+	} else {
+		fmt.Println("Key 30 not found")
 	}
-	defer fp.Close()
-
-	_, err = fp.Write(data)
-	if err != nil {
-		return err
-	}
-	return fp.Sync() // fsync
-}
-
-func SaveData2(path string, data []byte) error {
-	tmp := fmt.Sprintf("%s.tmp.%d", path, randomInt())
-	fp, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0664)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if closeErr := fp.Close(); closeErr != nil {
-			fmt.Printf("Error closing file: %v\n", closeErr)
-		}
-		if err != nil {
-			os.Remove(tmp)
-		}
-	}()
-
-	_, err = fp.Write(data)
-	if err != nil {
-		return err
-	}
-	err = fp.Sync() // fsync
-	if err != nil {
-		return err
-	}
-
-	// Close the file before renaming
-	if closeErr := fp.Close(); closeErr != nil {
-		fmt.Printf("Error closing file: %v\n", closeErr)
-		return closeErr
-	}
-
-	return os.Rename(tmp, path)
 }
