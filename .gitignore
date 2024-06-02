@@ -1,1 +1,7 @@
 /.vscode/
+go.sum
+
+build/
+
+log/
+

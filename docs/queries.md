@@ -1,38 +1,58 @@
 # Elenadb queries
 
+## Table creation queries
+
 ```elenaql
 creame tabla usuario {
     id     int       @id @incremental pe
     nombre char(255) pe
 } pe
+```
 
+```elenaql
 creame tabla doctor {
-    id            int           @id @incremental pe
-    id_user       fkey(user.id)?                 pe
-    document_type char(4)                        pe
-    document_num  char(10)                       pe
-    salary        float                          pe
-    inactive      bool                           pe
+    id            int               @id @incremental pe
+    id_user       fkey(usuario.id)?                  pe
+    document_type char(4)                            pe
+    document_num  char(10)                           pe
+    salary        float                              pe
+    inactive      bool                               pe
 } pe
-
-dame todo de doctor pe
-dame { id, salary } de doctor donde (salary>200 y inactive =! falso) pe
-borra de doctor donde (inactive=verdad) pe;
 ```
 
-## compound queries
+## Table retrieval queries
 
 ```elenaql
-let usuario = dame { id } de usuario donde (nombre=="pedro") pe
+dame todo de doctor pe
+dame { id, salary } de doctor donde (salary>200 y inactive =! falso) pe
+dame todo de doctor pe
+dame { id, salary } de doctor donde (salary>200 y inactive =! falso) pe
+```
 
+## Register creation queries
+
+### Compund queries
+
+```elenaql
+let pedro = dame { id } de usuario donde (nombre=="pedro") pe
 mete {
-    id_user: usuario, document_type: 'DNI', document_number: '72016572',
-} en doctor;
-
--> expected 'pe' got ';'
+    id_user: pedro.id,
+    document_type: 'DNI',
+    document_number: '72016572',
+} en doctor pe
 ```
+
+## Table deletion
 
 ```elenaql
-dame todo de doctor pe
-dame { id, salary } de doctor donde (salary>200 y inactive =! falso) pe
+borra de doctor donde (inactive=verdad) pe
 ```
+
+## Table update
+
+```elenaql
+cambia en users {
+  nombre: "otro nombre",
+} si (id=10) pe
+```
+
