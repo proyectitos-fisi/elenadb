@@ -1,6 +1,4 @@
-# ElenaDB
-
-![logo basura](./assets/elenadb.png)
+![Blue and Yellow Modern Artisan Parties and Celebrations X-Frame Banner (2)](https://github.com/proyectitos-fisi/elenadb/assets/153166342/d2b8bed7-f8b1-4d73-aff8-4dad1ec8f8ea)
 
 ## The modules
 
