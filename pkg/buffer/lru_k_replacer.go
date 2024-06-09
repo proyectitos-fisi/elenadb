@@ -8,6 +8,8 @@ import (
 
 const infinity = int64(^uint64(0) >> 1)
 
+type FrameID = common.FrameID
+
 // As part of the ElenaDB ® buffer replacement policy we use a LRU-K replacer.
 //
 // An LRU-K replacer is a generalization of the least recently used (LRU), where
@@ -18,9 +20,9 @@ const infinity = int64(^uint64(0) >> 1)
 type LRUKReplacer struct {
 	// contains filtered or unexported fields
 	K          int
-	max_frames int16
-	len_frames int16
-	nodes      map[common.FrameID]*LRUKNode
+	max_frames int
+	size       int // number of evictable frames
+	nodes      map[FrameID]*LRUKNode
 }
 
 // Records how often a page (frame) is being accessed.
@@ -30,15 +32,16 @@ type LRUKReplacer struct {
 type LRUKNode struct {
 	K         int
 	accesses  list.List
-	frame_id  common.FrameID
+	frame_id  FrameID
 	evictable bool
 }
 
-func New(n_frames int16, k int) *LRUKReplacer {
+func New(n_frames int, k int) *LRUKReplacer {
 	return &LRUKReplacer{
 		K:          k,
 		max_frames: n_frames,
-		nodes:      make(map[common.FrameID]*LRUKNode),
+		size:       0,
+		nodes:      make(map[FrameID]*LRUKNode),
 	}
 }
 
@@ -46,40 +49,59 @@ func New(n_frames int16, k int) *LRUKReplacer {
 // to keep track of the page access.
 //
 // Note for @damaris: accessing a page is equivalent to pinning it.
-func (lru *LRUKReplacer) TriggerAccess(frame_id common.FrameID) {
+func (lru *LRUKReplacer) TriggerAccess(frame_id FrameID) {
 	node, found := lru.nodes[frame_id]
 
 	if found {
 		node.registerAccess()
 	} else {
+		// test assertions
+		println("lru.nodes", len(lru.nodes))
+		if len(lru.nodes) >= int(lru.max_frames) {
+			panic(
+				"LRU-K replacer is full. You may not be removing pages correctly with Remove()." +
+					"The LRU-K should map to the same number of frames in the BufferPoolManager",
+			)
+		}
 		lru.nodes[frame_id] = newNode(lru.K, frame_id)
 	}
 }
 
 // This method should be called from the BufferPoolManager when a page is deleted.
-// @TODO: why deleting in the LRU tho? Wouldn't be better if we maintain the access
-// timestamps for future use? @benchmark
-func (lru *LRUKReplacer) Remove(frame_id common.FrameID) {
+func (lru *LRUKReplacer) Remove(frame_id FrameID) {
 	node, found := lru.nodes[frame_id]
 	// We just clean the access list. No need to remove the entry from the map
 	// because we are working with a fixed size buffer pool (i.e. fixed num of frames)
-	if found {
-		node.accesses.Init()
-		node.evictable = false
+	if found && node.evictable {
+		lru.size--
 	}
+	delete(lru.nodes, frame_id)
 }
 
 // MUST be called when the reference count of a page is 0.
 // Other reasons are also ok.
-func (lru *LRUKReplacer) SetEvictable(frame_id common.FrameID) {
+func (lru *LRUKReplacer) SetEvictable(frame_id FrameID, isEvictable bool) {
 	node, found := lru.nodes[frame_id]
 	if found {
-		node.evictable = true
+		if node.evictable == isEvictable {
+			return
+		}
+
+		if isEvictable {
+			lru.size++
+		} else {
+			lru.size--
+		}
+		node.evictable = isEvictable
 	}
 }
 
 // Note that you'll need to check if the returning value is not InvalidFrameID
-func (lru *LRUKReplacer) Evict() common.FrameID {
+func (lru *LRUKReplacer) Evict() FrameID {
+	if lru.size == 0 {
+		return common.InvalidFrameID
+	}
+
 	now := now()
 	evicted_frame := common.InvalidFrameID
 	max_distance := int64(0)
@@ -91,22 +113,24 @@ func (lru *LRUKReplacer) Evict() common.FrameID {
 
 		if d := node.backwardDistance(now); d > max_distance {
 			if d == infinity {
-				return evicted_frame
+				return node.frame_id
 			}
 			evicted_frame = node.frame_id
 			max_distance = d
 
 		}
 	}
-
-	delete(lru.nodes, evicted_frame)
 	return evicted_frame
+}
+
+func (lru *LRUKReplacer) Size() int {
+	return lru.size
 }
 
 // LRU-K Node implementations 🐢
 
 // Creates a new frame node, registering the first access.
-func newNode(k int, frame_id common.FrameID) *LRUKNode {
+func newNode(k int, frame_id FrameID) *LRUKNode {
 	node := &LRUKNode{
 		K:        k,
 		frame_id: frame_id,
