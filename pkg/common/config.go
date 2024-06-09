@@ -1,8 +1,8 @@
 package common
 
 import (
-    "sync/atomic"
-    "time"
+	"sync/atomic"
+	"time"
 )
 
 // Cycle detection is performed every CYCLE_DETECTION_INTERVAL milliseconds.
@@ -15,15 +15,16 @@ var EnableLogging atomic.Value
 var LogTimeout = time.Duration(1000) // en teoría esto es ajustable a lo que deseemos (?)
 
 const (
-    InvalidPageID  = -1
-    InvalidTxnID   = -1
-    InvalidLSN     = -1
-    HeaderPageID   = 0
-    ElenaPageSize = 4096
-    BufferPoolSize = 10
-    LogBufferSize  = (BufferPoolSize + 1) * ElenaPageSize
-    BucketSize     = 50
-    LRUKReplacerK  = 10
+	InvalidPageID  = PageID(-1)
+	InvalidFrameID = FrameID(-1)
+	InvalidTxnID   = TxnID(-1)
+	InvalidLSN     = LSN(-1)
+	HeaderPageID   = 0
+	ElenaPageSize  = 4096
+	BufferPoolSize = 10
+	LogBufferSize  = (BufferPoolSize + 1) * ElenaPageSize
+	BucketSize     = 50
+	LRUKReplacerK  = 10
 )
 
 type FrameID int32
