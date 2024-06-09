@@ -25,6 +25,7 @@ const (
 	LogBufferSize  = (BufferPoolSize + 1) * ElenaPageSize
 	BucketSize     = 50
 	LRUKReplacerK  = 10
+	// Pavlo says more system use K = 2 <https://youtu.be/BS5h8QZHCPk?si=Gsie7D2qB1aPJx1F&t=3389>
 )
 
 type FrameID int32

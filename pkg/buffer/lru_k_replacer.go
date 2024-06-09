@@ -61,9 +61,6 @@ func (lru *LRUKReplacer) TriggerAccess(frame_id FrameID) {
 	if found {
 		node.registerAccess()
 	} else {
-		// test assertions
-		println("--------", len(lru.nodes))
-
 		if len(lru.nodes) >= int(lru.max_frames) {
 			panic(
 				"LRU-K replacer is full. You may not be removing pages correctly with Remove()." +
