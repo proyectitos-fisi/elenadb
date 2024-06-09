@@ -3,6 +3,8 @@ package lruk_replacer
 import (
 	"container/list"
 	"fisi/elenadb/pkg/common"
+	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -21,8 +23,9 @@ type LRUKReplacer struct {
 	// contains filtered or unexported fields
 	K          int
 	max_frames int
-	size       int // number of evictable frames
+	size       atomic.Int32 // number of evictable frames
 	nodes      map[FrameID]*LRUKNode
+	latch      sync.RWMutex
 }
 
 // Records how often a page (frame) is being accessed.
@@ -40,8 +43,9 @@ func New(n_frames int, k int) *LRUKReplacer {
 	return &LRUKReplacer{
 		K:          k,
 		max_frames: n_frames,
-		size:       0,
+		size:       atomic.Int32{},
 		nodes:      make(map[FrameID]*LRUKNode),
+		latch:      sync.RWMutex{},
 	}
 }
 
@@ -50,13 +54,16 @@ func New(n_frames int, k int) *LRUKReplacer {
 //
 // Note for @damaris: accessing a page is equivalent to pinning it.
 func (lru *LRUKReplacer) TriggerAccess(frame_id FrameID) {
+	lru.latch.Lock()
+	defer lru.latch.Unlock()
 	node, found := lru.nodes[frame_id]
 
 	if found {
 		node.registerAccess()
 	} else {
 		// test assertions
-		println("lru.nodes", len(lru.nodes))
+		println("--------", len(lru.nodes))
+
 		if len(lru.nodes) >= int(lru.max_frames) {
 			panic(
 				"LRU-K replacer is full. You may not be removing pages correctly with Remove()." +
@@ -69,11 +76,13 @@ func (lru *LRUKReplacer) TriggerAccess(frame_id FrameID) {
 
 // This method should be called from the BufferPoolManager when a page is deleted.
 func (lru *LRUKReplacer) Remove(frame_id FrameID) {
+	lru.latch.Lock()
+	defer lru.latch.Unlock()
 	node, found := lru.nodes[frame_id]
 	// We just clean the access list. No need to remove the entry from the map
 	// because we are working with a fixed size buffer pool (i.e. fixed num of frames)
 	if found && node.evictable {
-		lru.size--
+		lru.size.Add(-1)
 	}
 	delete(lru.nodes, frame_id)
 }
@@ -81,6 +90,9 @@ func (lru *LRUKReplacer) Remove(frame_id FrameID) {
 // MUST be called when the reference count of a page is 0.
 // Other reasons are also ok.
 func (lru *LRUKReplacer) SetEvictable(frame_id FrameID, isEvictable bool) {
+	lru.latch.Lock()
+	defer lru.latch.Unlock()
+
 	node, found := lru.nodes[frame_id]
 	if found {
 		if node.evictable == isEvictable {
@@ -88,9 +100,9 @@ func (lru *LRUKReplacer) SetEvictable(frame_id FrameID, isEvictable bool) {
 		}
 
 		if isEvictable {
-			lru.size++
+			lru.size.Add(1)
 		} else {
-			lru.size--
+			lru.size.Add(-1)
 		}
 		node.evictable = isEvictable
 	}
@@ -98,7 +110,7 @@ func (lru *LRUKReplacer) SetEvictable(frame_id FrameID, isEvictable bool) {
 
 // Note that you'll need to check if the returning value is not InvalidFrameID
 func (lru *LRUKReplacer) Evict() FrameID {
-	if lru.size == 0 {
+	if lru.size.Load() == 0 {
 		return common.InvalidFrameID
 	}
 
@@ -106,6 +118,8 @@ func (lru *LRUKReplacer) Evict() FrameID {
 	evicted_frame := common.InvalidFrameID
 	max_distance := int64(0)
 
+	lru.latch.RLock()
+	defer lru.latch.RUnlock()
 	for _, node := range lru.nodes {
 		if !node.evictable {
 			continue
@@ -124,7 +138,7 @@ func (lru *LRUKReplacer) Evict() FrameID {
 }
 
 func (lru *LRUKReplacer) Size() int {
-	return lru.size
+	return int(lru.size.Load())
 }
 
 // LRU-K Node implementations 🐢
