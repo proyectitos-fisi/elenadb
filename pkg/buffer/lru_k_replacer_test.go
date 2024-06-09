@@ -74,23 +74,24 @@ func TestLRUKPreventsSequentialFlooding(t *testing.T) {
 	// Simulating three concurrent full scans
 	fullScan := func() {
 		for i := 1; i <= n_disk_pages; i++ {
-			// if int(buffer_pool.Len()) >= pool_size {
 			mutex.Lock()
 			buffer_len := len(buffer_pool)
 
 			if buffer_len >= pool_size {
-				to_remove := lruk.Evict()
-
-				lruk.Remove(Frame(to_remove))
-				// buffer_pool.Remove(Frame(to_remove))
-				delete(buffer_pool, Frame(to_remove))
+				// Halt until there is a frame to evict (i.e. Evict() != InvalidFrame)
+				evicted := lruk.Evict()
+				for evicted == InvalidFrame {
+					evicted = lruk.Evict()
+				}
+				delete(buffer_pool, Frame(evicted))
+				lruk.Remove(Frame(evicted))
 			}
 
 			lruk.TriggerAccess(Frame(i))
 			buffer_pool[Frame(i)] = struct{}{}
 			mutex.Unlock()
 			// Do i/o stuff...
-			// done!
+			// Done! Release the pin.
 			lruk.SetEvictable(Frame(i), true)
 		}
 		wg.Done()
@@ -105,4 +106,71 @@ func TestLRUKPreventsSequentialFlooding(t *testing.T) {
 
 	// wait for the full scans to finish
 	wg.Wait()
+}
+
+func TestAccessFurther(t *testing.T) {
+	lruk := lruk_replacer.New(7, 2)
+
+	// Scenario: add six elements to the replacer. We have [1,2,3,4,5]. Frame 6 is non-evictable.
+	lruk.TriggerAccess(1)
+	lruk.TriggerAccess(2)
+	lruk.TriggerAccess(3)
+	lruk.TriggerAccess(4)
+	lruk.TriggerAccess(5)
+	lruk.TriggerAccess(6)
+	lruk.SetEvictable(1, true)
+	lruk.SetEvictable(2, true)
+	lruk.SetEvictable(3, true)
+	lruk.SetEvictable(4, true)
+	lruk.SetEvictable(5, true)
+	lruk.SetEvictable(6, false)
+	assert.Equal(t, lruk.Size(), 5)
+
+	// Scenario: Insert access history for frame 1. Now frame 1 has two access histories.
+	// All other frames have max backward k-dist. The order of eviction is [2,3,4,5,1].
+	lruk.TriggerAccess(1)
+	assert.Equal(t, lruk.Size(), 5)
+
+	assert.Equal(t, lruk.Evict(), Frame(2))
+	assert.Equal(t, lruk.Evict(), Frame(3))
+	assert.Equal(t, lruk.Evict(), Frame(4))
+
+	assert.Equal(t, lruk.Size(), 2)
+
+	// Scenario: Evict three pages from the replacer. Elements with max k-distance should be popped
+	// first based on LRU.
+	lruk.TriggerAccess(3)
+	lruk.TriggerAccess(4)
+	lruk.TriggerAccess(5)
+	lruk.TriggerAccess(4)
+	lruk.SetEvictable(3, true)
+	lruk.SetEvictable(4, true)
+	assert.Equal(t, lruk.Size(), 4)
+
+	// Scenario: continue looking for victims. We expect 3 to be evicted next.
+	assert.Equal(t, lruk.Evict(), Frame(3))
+	assert.Equal(t, lruk.Size(), 3)
+
+	lruk.SetEvictable(6, true)
+	assert.Equal(t, lruk.Size(), 4)
+	assert.Equal(t, lruk.Evict(), Frame(6))
+	assert.Equal(t, lruk.Size(), 3)
+
+	lruk.SetEvictable(1, false)
+	assert.Equal(t, lruk.Size(), 2)
+	assert.Equal(t, lruk.Evict(), Frame(5))
+	assert.Equal(t, lruk.Size(), 1)
+
+	lruk.TriggerAccess(1)
+	lruk.TriggerAccess(1)
+	lruk.SetEvictable(1, true)
+	assert.Equal(t, lruk.Size(), 2)
+	assert.Equal(t, lruk.Evict(), Frame(4))
+
+	assert.Equal(t, lruk.Size(), 1)
+	assert.Equal(t, lruk.Evict(), Frame(1))
+	assert.Equal(t, lruk.Size(), 0)
+
+	assert.Equal(t, lruk.Evict(), InvalidFrame)
+	assert.Equal(t, lruk.Size(), 0)
 }

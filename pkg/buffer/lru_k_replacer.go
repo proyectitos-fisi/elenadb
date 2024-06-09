@@ -80,8 +80,9 @@ func (lru *LRUKReplacer) Remove(frame_id FrameID) {
 	// because we are working with a fixed size buffer pool (i.e. fixed num of frames)
 	if found && node.evictable {
 		lru.size.Add(-1)
+		node.accesses.Init()
+		node.evictable = false
 	}
-	delete(lru.nodes, frame_id)
 }
 
 // MUST be called when the reference count of a page is 0.
@@ -113,7 +114,7 @@ func (lru *LRUKReplacer) Evict() FrameID {
 
 	now := now()
 	evicted_frame := common.InvalidFrameID
-	max_distance := int64(0)
+	max_distance := uint64(0)
 
 	lru.latch.RLock()
 	defer lru.latch.RUnlock()
@@ -123,13 +124,14 @@ func (lru *LRUKReplacer) Evict() FrameID {
 		}
 
 		if d := node.backwardDistance(now); d > max_distance {
-			if d == infinity {
-				return node.frame_id
-			}
 			evicted_frame = node.frame_id
 			max_distance = d
-
 		}
+	}
+
+	if evicted_frame != common.InvalidFrameID {
+		delete(lru.nodes, evicted_frame)
+		lru.size.Add(-1)
 	}
 	return evicted_frame
 }
@@ -157,11 +159,11 @@ func (node *LRUKNode) registerAccess() {
 	node.accesses.PushBack(now())
 }
 
-func (node *LRUKNode) backwardDistance(t int64) int64 {
+func (node *LRUKNode) backwardDistance(t int64) uint64 {
 	if node.accesses.Len() < node.K {
-		return infinity
+		return uint64(infinity) + uint64(t-node.accesses.Front().Value.(int64))
 	}
-	return t - node.accesses.Front().Value.(int64)
+	return uint64(t - node.accesses.Front().Value.(int64))
 }
 
 // Utils!!!
