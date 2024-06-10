@@ -5,6 +5,13 @@ import (
 	"time"
 )
 
+const (
+	Name        = "elenadb"
+	DisplayName = "🚄 Elena"
+	Description = "🚄 The Elena Database"
+	Version     = "0.0.69-alpha"
+)
+
 // Cycle detection is performed every CYCLE_DETECTION_INTERVAL milliseconds.
 var CycleDetectionInterval = time.Millisecond * 1000
 

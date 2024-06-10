@@ -1,0 +1,8 @@
+go 1.21.6
+
+use (
+	.
+	./cmd/elenadb
+)
+
+replace fisi/elenadb v0.0.0 => ./

@@ -2,31 +2,31 @@ package query
 
 type QueryInstrType uint8
 const (
-    Create QueryInstrType = iota
-    Retrieve
-    Insert
-    Delete
-    Update
+    queryCreate QueryInstrType = iota
+    queryRetrieve
+    queryInsert
+    queryDelete
+    queryUpdate
 )
 
 type QueryField struct {
-    Name  string
-    Type  string
-    Value interface{}
+    Name        string
+    QueryType   string
+    Value       interface{}
+    Annotations []string
 }
 
-type QueryFilter struct {
-    head *filternode
+type QueryFilter struct {}
+func (qf *QueryFilter) Exec(map[string]interface{}) bool {
+    return false
 }
-
-func (qf *QueryFilter) Exec(map[string]interface{}) bool
 
 type Query struct {
-    Type      QueryInstrType
-    TableName string
-    Fields    []QueryField
-    Filter    *QueryFilter
+    QueryType      QueryInstrType
+    QueryTypeStr   string
+    QueryInstrName string
+    QueryDbInstr   bool
+    Fields         []QueryField
+    Filter         *QueryFilter
 }
-
-
 
