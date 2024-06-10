@@ -1,5 +1,16 @@
 package common
 
+//===----------------------------------------------------------------------===//
+//
+//                         🚄 ElenaDB ®
+//
+// channel.go
+//
+// Identification: pkg/common/channel.go
+//
+// Copyright (c) 2024
+//
+//===----------------------------------------------------------------------===//
 /*
  Channels allow for safe sharing of data between threads. This is a multi-producer multi-consumer channel.
 */
