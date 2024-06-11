@@ -47,7 +47,6 @@ func (par *Parser) Test(tk *tokens.Token) error {
         expKeys = append(expKeys, par.fsm.Children[key].ExpectedString)
     }
 
-    fmt.Println(len(expKeys))
     return fmt.Errorf("expected one of %v, got %s instead", expKeys, tk.Data)
 }
 

@@ -147,6 +147,7 @@ var TokenColor = map[TokenType]color.Color{
 	Operator:       *color.New(color.FgRed),
 	Unknown:        *color.New(color.FgWhite),
 	Annotation:     *color.New(color.FgMagenta),
+	DataType:       *color.New(color.FgGreen),
 }
 
 func token(walked WalkedRange, tokenType TokenType) Token {

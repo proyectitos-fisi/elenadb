@@ -23,7 +23,7 @@ func tokenize(input []rune) chan Token {
 				ch <- token(walker.OffsetWalkWhile(isNotQuote, 1).Grow(1), String)
 
 			} else if unicode.IsLetter(walker.Peek()) {
-				ch <- token(walker.WalkWhile(unicode.IsLetter), GenericKeyword)
+				ch <- token(walker.WalkWhile(isAlphanumeric), GenericKeyword)
 
 			} else if unicode.IsNumber(walker.Peek()) {
 				ch <- token(walker.WalkWhile(numberOrDot), Number)
@@ -57,4 +57,8 @@ var isNotQuote = func(r rune) bool {
 
 var numberOrDot = func(r rune) bool {
 	return unicode.IsNumber(r) || r == '.'
+}
+
+var isAlphanumeric = func(r rune) bool {
+	return unicode.IsLetter(r) || unicode.IsNumber(r)
 }
