@@ -2,11 +2,16 @@ package repl
 
 import (
 	"fisi/elenadb/cli/commands"
+	"fisi/elenadb/internal/query"
 	"fisi/elenadb/pkg/common"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/fatih/color"
+	"github.com/go-json-experiment/json"
+	"github.com/hokaccha/go-prettyjson"
 
 	liner "github.com/proyectitos-fisi/elena-prompt"
 )
@@ -53,6 +58,10 @@ func StartREPL(dbName string) error {
 		fmt.Println("creating db", dbName)
 	}
 
+    par := query.NewParser()
+    formatter := prettyjson.NewFormatter()
+    formatter.NullColor = color.New(color.FgRed)
+
 	for {
 		if input, err := repl.Prompt(prompt); err == nil {
 			if input == "" {
@@ -64,6 +73,23 @@ func StartREPL(dbName string) error {
 			}
 			prompt = PromptInitial
 			repl.AppendHistory(input)
+
+            res, err := par.Parse(strings.NewReader(input))
+            if err != nil {
+                return err
+            }
+
+            bytes, err := json.Marshal(res, json.DefaultOptionsV2())
+            if err != nil {
+                return err
+            }
+
+            formattedBytes, formatErr := formatter.Format(bytes)
+            if formatErr != nil {
+                return formatErr
+            }
+
+            fmt.Printf("%s\n", formattedBytes)
 		} else {
 			// End of REPL session
 			fmt.Println()

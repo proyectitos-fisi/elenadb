@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fisi/elenadb/internal/query"
 	"fisi/elenadb/internal/debugutils"
+	"fisi/elenadb/internal/query"
 	"log"
 	"os"
 )
@@ -10,6 +10,7 @@ import (
 
 func main() {
     par := query.NewParser()
+
     qu, err := par.Parse(os.Stdin)
     if err != nil {
         log.Println(err)

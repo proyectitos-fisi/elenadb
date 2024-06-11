@@ -13,6 +13,7 @@ type QueryField struct {
     Foreign     bool
     Name        string
     Type        string
+    Length      uint8
     Value       interface{}
     ForeignPath string
     Nullable    bool
