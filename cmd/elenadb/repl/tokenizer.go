@@ -15,6 +15,25 @@ var types = []string{
 	"int", "fkey", "char", "float", "bool",
 }
 
+type TokenType int
+
+const (
+	GenericKeyword TokenType = iota
+	Identifier
+	DataType
+	Number
+	String
+	Annotation
+	Operator
+	Whitespace
+	Unknown
+)
+
+type Token struct {
+	Type  TokenType
+	Value []rune
+}
+
 type RunesWalker struct {
 	input []rune
 	pos   int
@@ -54,10 +73,10 @@ func (r *RunesWalker) Chops(expected rune) bool {
 }
 
 func (r *RunesWalker) WalkWhile(verb func(rune) bool) WalkedRange {
-	return r.WalkWhileWithOffset(verb, 0)
+	return r.OffsetWalkWhile(verb, 0)
 }
 
-func (r *RunesWalker) WalkWhileWithOffset(verb func(rune) bool, offset int) WalkedRange {
+func (r *RunesWalker) OffsetWalkWhile(verb func(rune) bool, offset int) WalkedRange {
 	initialPos := r.pos
 	curr := r.pos + offset
 
@@ -107,24 +126,6 @@ func (r WalkedRange) Grow(offset int) WalkedRange {
 	}
 }
 
-type TokenType int
-
-const (
-	GenericKeyword TokenType = iota
-	Identifier
-	DataType
-	Number
-	String
-	Operator
-	Whitespace
-	Unknown
-)
-
-type Token struct {
-	Type  TokenType
-	Value []rune
-}
-
 func (t *Token) Colorized() string {
 	tokenType := t.Type
 	if isIdentifier(t.Value) {
@@ -145,6 +146,7 @@ var TokenColor = map[TokenType]color.Color{
 	String:         *color.New(color.FgGreen),
 	Operator:       *color.New(color.FgRed),
 	Unknown:        *color.New(color.FgWhite),
+	Annotation:     *color.New(color.FgMagenta),
 }
 
 func token(walked WalkedRange, tokenType TokenType) Token {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/fatih/color"
@@ -17,9 +18,8 @@ import (
 )
 
 const (
-	PromptInitial = "elena> "
+	PromptNormal  = "elena> "
 	PromptWaiting = "   ... "
-	PromptEnd     = "pe"
 	HistoryFile   = ".elenadb_repl_history"
 )
 
@@ -48,7 +48,7 @@ func StartREPL(dbName string) error {
 		f.Close()
 	}
 
-	prompt := PromptInitial
+	prompt := PromptNormal
 
 	defer writeHistory(repl)
 
@@ -58,28 +58,67 @@ func StartREPL(dbName string) error {
 	}
 
 	parser := query.NewParser()
-	formatter := prettyjson.NewFormatter()
-	formatter.NullColor = color.New(color.FgRed)
+	formatter := newFormatter()
 
+	symbolStack := stack{}
+
+	fullInput := ""
+
+mainLoop:
 	for {
 		if input, err := repl.Prompt(prompt); err == nil {
 			if input == "" {
 				continue
 			}
-			if !strings.HasSuffix(input, PromptEnd) {
-				prompt = PromptWaiting
+
+			sanitized := removeQuottedStrings(input)
+			end := isEndOfQuery(sanitized)
+			fullInput += input + " "
+
+			for _, c := range input {
+				if c == '{' {
+					symbolStack = symbolStack.Push('{')
+				}
+				if c == '}' {
+					if symbolStack = symbolStack.Pop(); symbolStack == nil {
+						fmt.Println("Syntax error: too many closing brackets")
+						prompt = PromptNormal
+						fullInput = ""
+						continue mainLoop
+					}
+				}
+			}
+
+			if end && symbolStack.Empty() {
+				repl.AppendHistory(strings.TrimSpace(fullInput))
+				err := parseAndPrint(parser, &formatter, fullInput)
+				if err != nil {
+					fmt.Println("Syntax error:", err)
+				}
+				prompt = PromptNormal
+				fullInput = ""
 				continue
 			}
-			prompt = PromptInitial
-			repl.AppendHistory(input)
 
-			parseAndPrint(parser, formatter, input)
+			prompt = PromptWaiting
+
 		} else {
 			// End of REPL session
 			fmt.Println()
 			return nil
 		}
 	}
+}
+
+func newFormatter() prettyjson.Formatter {
+	formatter := prettyjson.NewFormatter()
+	formatter.NullColor = color.New(color.FgRed)
+	formatter.KeyColor = color.New(color.FgMagenta)
+	formatter.StringColor = color.New(color.FgGreen)
+	formatter.BoolColor = color.New(color.FgYellow)
+	formatter.NumberColor = color.New(color.FgRed)
+
+	return *formatter
 }
 
 func parseAndPrint(parser *query.Parser, formatter *prettyjson.Formatter, input string) error {
@@ -109,4 +148,33 @@ func writeHistory(line *liner.State) {
 		line.WriteHistory(f)
 		f.Close()
 	}
+}
+
+var quotesRegex = regexp.MustCompile(`"([^"]*)"`)
+var endOfQueryRegex = regexp.MustCompile(`pe(\s?)+`)
+
+func isEndOfQuery(input string) bool {
+	return endOfQueryRegex.MatchString(input)
+}
+
+func removeQuottedStrings(text string) string {
+	return quotesRegex.ReplaceAllString(text, "")
+}
+
+type stack []rune
+
+func (s stack) Empty() bool {
+	return len(s) == 0
+}
+
+func (s stack) Pop() stack {
+	l := len(s)
+	if l == 0 {
+		return nil
+	}
+	return s[:l-1]
+}
+
+func (s stack) Push(str rune) stack {
+	return append(s, str)
 }

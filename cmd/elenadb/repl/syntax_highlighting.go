@@ -16,27 +16,24 @@ func tokenize(input []rune) chan Token {
 				break
 			}
 
-			if walker.Peek() == '"' {
-				str := walker.WalkWhileWithOffset(func(r rune) bool {
-					return r != '"'
-				}, 1)
-				ch <- token(str.Grow(1), String)
+			if walker.Peek() == '@' {
+				ch <- token(walker.OffsetWalkWhile(unicode.IsLetter, 1), Annotation)
+
+			} else if walker.Peek() == '"' {
+				ch <- token(walker.OffsetWalkWhile(isNotQuote, 1).Grow(1), String)
 
 			} else if unicode.IsLetter(walker.Peek()) {
 				ch <- token(walker.WalkWhile(unicode.IsLetter), GenericKeyword)
 
 			} else if unicode.IsNumber(walker.Peek()) {
-				ch <- token(
-					walker.WalkWhile(func(r rune) bool {
-						return unicode.IsNumber(r) || r == '.'
-					}),
-					Number,
-				)
+				ch <- token(walker.WalkWhile(numberOrDot), Number)
+
 			} else if unicode.IsSpace(walker.Peek()) {
 				ch <- token(walker.WalkWhile(unicode.IsSpace), Whitespace)
 
 			} else if unicode.IsSymbol(walker.Peek()) {
 				ch <- token(walker.WalkWhile(unicode.IsSymbol), Operator)
+
 			} else {
 				ch <- token(walker.WalkN(1), Unknown)
 			}
@@ -52,4 +49,12 @@ func SyntaxHighlighting(input []rune, pos int) []rune {
 		highlighted.WriteString(token.Colorized())
 	}
 	return []rune(highlighted.String())
+}
+
+var isNotQuote = func(r rune) bool {
+	return r != '"'
+}
+
+var numberOrDot = func(r rune) bool {
+	return unicode.IsNumber(r) || r == '.'
 }
