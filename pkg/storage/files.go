@@ -8,7 +8,7 @@ import (
 
 const PageSize = 4096 // 4KB pages
 
-type Page struct {
+type PageKV struct {
 	PageID          int
 	NumTuples       int
 	FreeSpaceOffset int
@@ -20,7 +20,7 @@ type Tuple struct {
 	Value int
 }
 
-func ReadPage(file *os.File, pageID int) (*Page, error) {
+func ReadPage(file *os.File, pageID int) (*PageKV, error) {
 	offset := int64(pageID * PageSize)
 	buf := make([]byte, PageSize)
 	_, err := file.ReadAt(buf, offset)
@@ -28,7 +28,7 @@ func ReadPage(file *os.File, pageID int) (*Page, error) {
 		return nil, err
 	}
 
-	page := &Page{
+	page := &PageKV{
 		PageID:          pageID,
 		NumTuples:       int(binary.LittleEndian.Uint32(buf[4:8])),
 		FreeSpaceOffset: int(binary.LittleEndian.Uint16(buf[8:10])),
@@ -46,7 +46,7 @@ func ReadPage(file *os.File, pageID int) (*Page, error) {
 	return page, nil
 }
 
-func WritePage(file *os.File, page *Page) error {
+func WritePage(file *os.File, page *PageKV) error {
 	offset := int64(page.PageID * PageSize)
 	buf := make([]byte, PageSize)
 
