@@ -60,6 +60,7 @@ func (par *Parser) Parse(rd io.Reader) ([]Query, error) {
     br := bufio.NewReader(rd)
     tokenIter := tokens.Tokenize(br)
     newQuery := NewQueryBuilder()
+    defer par.reset()
 
     for {
         tk, err := tokenIter.Next()
@@ -92,7 +93,6 @@ func (par *Parser) Parse(rd io.Reader) ([]Query, error) {
         }
     }
 
-    par.reset()
     return newQuery.qu, nil
 }
 
