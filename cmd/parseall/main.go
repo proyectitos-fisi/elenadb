@@ -2,37 +2,22 @@ package main
 
 import (
 	"fisi/elenadb/internal/query"
-	"fmt"
+	"fisi/elenadb/internal/debugutils"
+	"log"
+	"os"
 )
 
 
 func main() {
-    //iter := query.Tokenize(bufio.NewReader(os.Stdin))
-    //fmt.Printf("%#v\n", iter)
-    //for {
-    //    tk, err := iter.Next()
-    //    if err != nil {
-    //        break
-    //    }
-//
-    //    fmt.Printf("%v\n", tk)
-    //}
+    par := query.NewParser()
+    qu, err := par.Parse(os.Stdin)
+    if err != nil {
+        log.Println(err)
+        os.Exit(1)
+        return
+    }
 
-    fs := query.NewFsm()
-    fs.AddRule(&query.FsmNode{
-        Step: query.FsmCreateStep,
-        Expect: "creame",
-        Children: map[query.StepType]*query.FsmNode{},
-    }, query.FsmCreateStep)
-
-    fs.AddRule(&query.FsmNode{
-        Step: query.FsmTable,
-        Expect: "tabla",
-        Children: map[query.StepType]*query.FsmNode{},
-    }, query.FsmCreateStep, query.FsmTable)
-
-    fmt.Println((*fs).Children[query.FsmCreateStep])
-    fmt.Println((*((*fs).Children[query.FsmCreateStep])).Children[query.FsmTable])
+    debugutils.PrettyPrint(qu)
 }
 
 

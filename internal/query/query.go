@@ -10,9 +10,12 @@ const (
 )
 
 type QueryField struct {
+    Foreign     bool
     Name        string
-    QueryType   string
+    Type        string
     Value       interface{}
+    ForeignPath string
+    Nullable    bool
     Annotations []string
 }
 
@@ -27,6 +30,8 @@ type Query struct {
     QueryInstrName string
     QueryDbInstr   bool
     Fields         []QueryField
+    GetAllFields   bool
+    GetAllTables   bool
     Filter         *QueryFilter
 }
 
