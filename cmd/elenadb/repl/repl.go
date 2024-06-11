@@ -40,7 +40,6 @@ func StartREPL(dbName string) error {
 	repl.SetMultiLineMode(true)
 	repl.SetCtrlCAborts(false)
 
-	// TODO: syntax highlighting and completions
 	repl.SetProxy(SyntaxHighlighting)
 	repl.SetCompleter(func(line string) (c []string) { return })
 
@@ -58,9 +57,9 @@ func StartREPL(dbName string) error {
 		fmt.Println("creating db", dbName)
 	}
 
-    par := query.NewParser()
-    formatter := prettyjson.NewFormatter()
-    formatter.NullColor = color.New(color.FgRed)
+	parser := query.NewParser()
+	formatter := prettyjson.NewFormatter()
+	formatter.NullColor = color.New(color.FgRed)
 
 	for {
 		if input, err := repl.Prompt(prompt); err == nil {
@@ -74,28 +73,33 @@ func StartREPL(dbName string) error {
 			prompt = PromptInitial
 			repl.AppendHistory(input)
 
-            res, err := par.Parse(strings.NewReader(input))
-            if err != nil {
-                return err
-            }
-
-            bytes, err := json.Marshal(res, json.DefaultOptionsV2())
-            if err != nil {
-                return err
-            }
-
-            formattedBytes, formatErr := formatter.Format(bytes)
-            if formatErr != nil {
-                return formatErr
-            }
-
-            fmt.Printf("%s\n", formattedBytes)
+			parseAndPrint(parser, formatter, input)
 		} else {
 			// End of REPL session
 			fmt.Println()
 			return nil
 		}
 	}
+}
+
+func parseAndPrint(parser *query.Parser, formatter *prettyjson.Formatter, input string) error {
+	res, err := parser.Parse(strings.NewReader(input))
+	if err != nil {
+		return err
+	}
+
+	bytes, err := json.Marshal(res, json.DefaultOptionsV2())
+	if err != nil {
+		return err
+	}
+
+	formattedBytes, formatErr := formatter.Format(bytes)
+	if formatErr != nil {
+		return formatErr
+	}
+
+	fmt.Printf("%s\n", formattedBytes)
+	return nil
 }
 
 func writeHistory(line *liner.State) {
