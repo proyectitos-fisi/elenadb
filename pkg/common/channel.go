@@ -21,7 +21,7 @@ import (
 
 type Channel[T any] struct {
 	mu    sync.Mutex // mutex para manejar la exclusión mutua
-	cond  *sync.Cond // condition variable para manejar la sincronización
+	cond  sync.Cond  // condition variable para manejar la sincronización
 	queue []T        // almacena los elementos
 }
 
@@ -29,15 +29,15 @@ func NewChannel[T any]() *Channel[T] {
 	ch := &Channel[T]{
 		queue: make([]T, 0),
 	}
-	ch.cond = sync.NewCond(&ch.mu)
+	ch.cond = *sync.NewCond(&ch.mu)
 	return ch
 }
 
 // inserta elemento en la cola.
 func (ch *Channel[T]) Put(element T) {
 	ch.mu.Lock()
+	defer ch.mu.Unlock()
 	ch.queue = append(ch.queue, element)
-	ch.mu.Unlock()
 	ch.cond.Broadcast()
 }
 

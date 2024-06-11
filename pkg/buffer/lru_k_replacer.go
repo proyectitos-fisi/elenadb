@@ -1,4 +1,4 @@
-package lruk_replacer
+package buffer
 
 import (
 	"container/list"
@@ -41,7 +41,7 @@ type LRUKNode struct {
 	evictable bool
 }
 
-func New(n_frames int, k int) *LRUKReplacer {
+func NewLRUK(n_frames int, k int) *LRUKReplacer {
 	return &LRUKReplacer{
 		K:          k,
 		max_frames: n_frames,

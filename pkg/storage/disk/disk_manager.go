@@ -177,16 +177,16 @@ func (dm *DiskManager) FlushLogRoutine() {
 		select {
 		case <-time.After(common.LogTimeout * time.Millisecond):
 			dm.mu.Lock()
+			defer dm.mu.Unlock()
 			if dm.logFile != nil {
 				dm.logFile.Sync()
 			}
-			dm.mu.Unlock()
 		case <-dm.flushLogF:
 			dm.mu.Lock()
+			defer dm.mu.Unlock()
 			if dm.logFile != nil {
 				dm.logFile.Sync()
 			}
-			dm.mu.Unlock()
 		}
 	}
 }

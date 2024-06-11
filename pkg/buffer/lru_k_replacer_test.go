@@ -1,4 +1,4 @@
-package lruk_replacer_test
+package buffer_test
 
 import (
 	lruk_replacer "fisi/elenadb/pkg/buffer"
@@ -18,7 +18,7 @@ func TestLRUK1BehavesLikeANormalLRU(t *testing.T) {
 	pool_size := 3
 	k := 1
 
-	lruk := lruk_replacer.New(pool_size, k)
+	lruk := lruk_replacer.NewLRUK(pool_size, k)
 
 	lruk.TriggerAccess(Frame(1))
 	lruk.TriggerAccess(Frame(2))
@@ -67,7 +67,7 @@ func TestLRUKPreventsSequentialFlooding(t *testing.T) {
 	buffer_pool := set{}
 	mutex := sync.RWMutex{}
 
-	lruk := lruk_replacer.New(pool_size, k)
+	lruk := lruk_replacer.NewLRUK(pool_size, k)
 
 	var wg sync.WaitGroup
 
@@ -109,7 +109,7 @@ func TestLRUKPreventsSequentialFlooding(t *testing.T) {
 }
 
 func TestAccessFurther(t *testing.T) {
-	lruk := lruk_replacer.New(7, 2)
+	lruk := lruk_replacer.NewLRUK(7, 2)
 
 	// Scenario: add six elements to the replacer. We have [1,2,3,4,5]. Frame 6 is non-evictable.
 	lruk.TriggerAccess(1)

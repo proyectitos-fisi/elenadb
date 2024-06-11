@@ -49,6 +49,13 @@ type DiskScheduler struct {
 	WaitGroup sync.WaitGroup
 }
 
+func NewScheduler(dm *DiskManager) *DiskScheduler {
+	return &DiskScheduler{
+		DiskManager:  dm,
+		RequestQueue: *common.NewChannel[*DiskRequest](),
+	}
+}
+
 func (ds *DiskScheduler) Schedule(request *DiskRequest) {
 	ds.RequestQueue.Put(request)
 }
