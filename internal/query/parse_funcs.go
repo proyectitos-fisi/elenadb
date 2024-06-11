@@ -94,11 +94,6 @@ func parseFkeyPathFn(qb *QueryBuilder, data string) error {
     return nil
 }
 
-func parseGetAllTablesFn(qb *QueryBuilder, _ string) error {
-    qb.qu[len(qb.qu)-1].GetAllTables = true
-    return nil
-}
-
 func parseGetAllFieldsFn(qb *QueryBuilder, _ string) error {
     qb.qu[len(qb.qu)-1].GetAllFields = true
     return nil
@@ -119,7 +114,6 @@ var defaultParseFnTable map[StepType]ParseFn = map[StepType]ParseFn{
     FsmFieldFkey: parseFkeyFn,
     FsmFieldFkeyPath: parseFkeyPathFn,
     FsmRetrieveFromSome: parseTableNameFn,
-    FsmRetrieveFromAll: parseGetAllTablesFn,
     FsmRetrieveAll: parseGetAllFieldsFn,
 }
 

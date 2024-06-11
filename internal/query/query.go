@@ -32,7 +32,6 @@ type Query struct {
     QueryDbInstr   bool
     Fields         []QueryField
     GetAllFields   bool
-    GetAllTables   bool
     Filter         *QueryFilter
 }
 

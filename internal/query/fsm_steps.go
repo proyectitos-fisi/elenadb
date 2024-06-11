@@ -38,7 +38,6 @@ const (
 
     FsmRetrieveFrom
     FsmRetrieveFromSome
-    FsmRetrieveFromAll
     FsmRetrieveAll
 
     FsmInsertAt
@@ -287,13 +286,8 @@ func defaultParseFsm() *FsmNode {
             ExpectedType: tokens.TkWord,
             ExpectedString: "",
         }, FsmRetrieveStep, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveFromSome).
-        AddRule(&FsmNode{
-            ExpectedString: "todo",
-        }, FsmRetrieveStep, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveFromAll).
         AddRule(beginStep,
             FsmRetrieveStep, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveFromSome, FsmBeginStep).
-        AddRule(beginStep,
-            FsmRetrieveStep, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveFromAll, FsmBeginStep).
         AddRule(&FsmNode{
             ExpectedString: "{",
         }, FsmRetrieveStep, FsmOpenList).

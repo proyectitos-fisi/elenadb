@@ -31,15 +31,23 @@ func (par *Parser) Test(tk *tokens.Token) error {
         return fmt.Errorf("uninitialized tokenizer")
     }
 
+
     expKeys := []string{}
     for key := range par.fsm.Children {
-        expKeys = append(expKeys, par.fsm.Children[key].ExpectedString)
         if par.fsm.Children[key].Eval(tk) {
             par.fsm = par.fsm.Children[key]
             return nil
         }
+
+        if len(par.fsm.Children[key].ExpectedString) == 0 {
+            expKeys = append(expKeys, "any")
+            continue
+        }
+
+        expKeys = append(expKeys, par.fsm.Children[key].ExpectedString)
     }
 
+    fmt.Println(len(expKeys))
     return fmt.Errorf("expected one of %v, got %s instead", expKeys, tk.Data)
 }
 
