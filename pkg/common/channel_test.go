@@ -22,12 +22,13 @@ func TestChannelWorks(t *testing.T) {
 	wg.Add(100)
 
 	for i := 0; i < 100; i++ {
+		j := i
 		go func() {
 			notifier := make(chan bool)
 
 			scheduler.Schedule(
 				&storage_disk.DiskRequest{
-					PageID:   common.PageID(1),
+					PageID:   common.PageID(j),
 					IsWrite:  true,
 					Data:     data,
 					Callback: notifier,
