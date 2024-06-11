@@ -14,6 +14,7 @@ package storage_disk
 
 import (
 	"fisi/elenadb/pkg/common"
+	"fmt"
 	"sync"
 )
 
@@ -46,4 +47,37 @@ type DiskScheduler struct {
 	Mutex sync.Mutex
 	// Wait group for tracking the worker thread. */
 	WaitGroup sync.WaitGroup
+}
+
+func (ds *DiskScheduler) Schedule(request *DiskRequest) {
+	ds.RequestQueue.Put(request)
+}
+
+func (ds *DiskScheduler) StartWorkerThread() {
+	go func() {
+		for {
+			request := ds.RequestQueue.Get()
+			if request == nil {
+				return
+			}
+			if request.IsWrite {
+				err := ds.DiskManager.WritePage(request.PageID, request.Data)
+				if err != nil {
+					fmt.Println("unexpedted I/O error:", err.Error())
+					request.Callback <- false
+				} else {
+					request.Callback <- true
+				}
+			} else {
+				data, err := ds.DiskManager.ReadPage(request.PageID)
+				if err != nil {
+					fmt.Println("unexpected I/O error:", err.Error())
+					request.Callback <- false
+				} else {
+					request.Data = data
+					request.Callback <- true
+				}
+			}
+		}
+	}()
 }

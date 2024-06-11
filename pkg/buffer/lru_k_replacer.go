@@ -14,9 +14,11 @@ type FrameID = common.FrameID
 
 // As part of the ElenaDB ® buffer replacement policy we use a LRU-K replacer.
 //
-// An LRU-K replacer is a generalization of the least recently used (LRU), where
-// LRU = LRU-1. The LRU-K policy keeps track of the order in which the K most
-// recent page references occurred. When a page needs to be replaced, the LRU-K
+// An LRU-K replacer is a generalization of the least recently used (LRU) policy, where
+// LRU = LRU-1. The LRU-K policy keeps track of the order in which the K most recent
+// page references occurred. When a page needs to be replaced, the LRU-K returns the one
+// (evictable) node with the largest backward distance (i.e. the one that was accessed the
+// longest time ago in the recent K accesses).
 //
 // See https://www.wikiwand.com/en/Page_replacement_algorithm.
 type LRUKReplacer struct {

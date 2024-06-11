@@ -37,6 +37,7 @@ type DiskManager struct {
 
 // NewDiskManager creates a new disk manager that writes to the specified database file.
 // @param dbFile: the file name of the database file to write to
+// NOTE: should open a directory instead
 func NewDiskManager(dbFile string) (*DiskManager, error) {
 	db, err := os.OpenFile(dbFile, os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
@@ -93,12 +94,13 @@ func (dm *DiskManager) WritePage(pageID common.PageID, pageData []byte) error {
 // ReadPage: reads a page from the database file.
 // @param pageID: id of the page
 // @param pageData: output buffer
-func (dm *DiskManager) ReadPage(pageID common.PageID, pageData []byte) error {
+func (dm *DiskManager) ReadPage(pageID common.PageID) ([]byte, error) {
 	dm.mu.Lock()
 	defer dm.mu.Unlock()
 	offset := int64(pageID) * common.ElenaPageSize
+	pageData := make([]byte, common.ElenaPageSize)
 	_, err := dm.dbFile.ReadAt(pageData, offset)
-	return err
+	return pageData, err
 }
 
 // WriteLog: flushes the entire log buffer into disk.
@@ -131,7 +133,7 @@ func (dm *DiskManager) ReadLog(logData []byte, size, offset int) (bool, error) {
 // GetNumFlushes returns the number of disk flushes.
 // @return the number of disk flushes
 func (dm *DiskManager) GetNumFlushes() int32 {
-	return atomic.LoadInt32(&dm.numFlushes)
+	return dm.numFlushes
 }
 
 // GetFlushState returns true if the in-memory content has not been flushed yet.
@@ -143,14 +145,14 @@ func (dm *DiskManager) GetFlushState() bool {
 // GetNumWrites returns the number of disk writes.
 // @return the number of disk writes
 func (dm *DiskManager) GetNumWrites() int32 {
-	return atomic.LoadInt32(&dm.numWrites)
+	return dm.numWrites
 }
 
-// SetFlushLogFuture: sets the future which is used to check for non-blocking flushes.
+// ✅ SetFlushLogFuture: sets the future which is used to check for non-blocking flushes.
 // @param ch: the channel to set
-func (dm *DiskManager) SetFlushLogFuture(ch chan struct{}) {
-	dm.flushLogF = ch
-}
+// func (dm *DiskManager) SetFlushLogFuture(ch chan struct{}) {
+// 	dm.flushLogF = ch
+// }
 
 // HasFlushLogFuture: checks if the non-blocking flush future was set.
 // @return true if the non-blocking flush future was set, false otherwise
@@ -158,7 +160,7 @@ func (dm *DiskManager) HasFlushLogFuture() bool {
 	return dm.flushLogF != nil
 }
 
-// GetFileSize: gets the size of the specified file.
+// ✅ GetFileSize: gets the size of the specified file.
 // @param fileName: name of the file
 // @return the size of the file and error if any
 func (dm *DiskManager) GetFileSize(fileName string) (int64, error) {
