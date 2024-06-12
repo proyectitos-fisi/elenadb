@@ -26,6 +26,7 @@ const (
 	Annotation
 	Operator
 	Whitespace
+	Literal
 	Unknown
 )
 
@@ -132,6 +133,8 @@ func (t *Token) Colorized() string {
 		tokenType = Identifier
 	} else if isDataType(t.Value) {
 		tokenType = DataType
+	} else if isLiteral(t.Value) {
+		tokenType = Literal
 	}
 
 	color := TokenColor[tokenType]
@@ -148,6 +151,7 @@ var TokenColor = map[TokenType]color.Color{
 	Unknown:        *color.New(color.FgWhite),
 	Annotation:     *color.New(color.FgMagenta),
 	DataType:       *color.New(color.FgGreen),
+	Literal:        *color.New(color.FgRed),
 }
 
 func token(walked WalkedRange, tokenType TokenType) Token {
@@ -171,6 +175,13 @@ func isDataType(input []rune) bool {
 		if string(input) == id {
 			return true
 		}
+	}
+	return false
+}
+
+func isLiteral(input []rune) bool {
+	if string(input) == "true" || string(input) == "false" {
+		return true
 	}
 	return false
 }
