@@ -157,7 +157,7 @@ func findOrCreatePage(file *os.File) int {
 	}
 	if err == io.EOF {
 		// Initialize the page if it doesn't exist
-		page = &PageKV{
+		page = &Page{
 			PageID:          pageID,
 			NumTuples:       0,
 			FreeSpaceOffset: 10, // Start after the header
