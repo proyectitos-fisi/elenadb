@@ -9,6 +9,12 @@ go run ./cmd/elenadb mydb.elena
 elena>
 ```
 
+![ElenaDB architecture](./assets/architecture.png)
+
+<p align="center">
+ElenaDB internal workflow (spanish)
+</p>
+
 ## The modules
 
 - The Elena CLI:
