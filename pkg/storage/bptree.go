@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"encoding/gob"
 	"fmt"
 	"io"
 	"os"
@@ -128,7 +129,7 @@ func (tree *BPTree) InsertKeyValue(file *os.File, key, value int) {
 	pageID := findOrCreatePage(file)
 
 	// Insert the tuple into the page
-	page, err := ReadPage(file, pageID)
+	page, _, err := ReadPage(file, pageID)
 	if err != nil {
 		fmt.Println("Error reading page:", err)
 		return
@@ -149,7 +150,7 @@ func (tree *BPTree) InsertKeyValue(file *os.File, key, value int) {
 func findOrCreatePage(file *os.File) int {
 	// For simplicity, always use page 0 in this example.
 	pageID := 0
-	page, err := ReadPage(file, pageID)
+	page, _, err := ReadPage(file, pageID)
 	if err != nil && err != io.EOF {
 		fmt.Println("Error reading page:", err)
 		return -1
@@ -167,14 +168,180 @@ func findOrCreatePage(file *os.File) int {
 	return pageID
 }
 
+func (tree *BPTree) Delete(key int) {
+	tree.delete(tree.Root, key)
+	if len(tree.Root.Keys) == 0 && !tree.Root.isLeaf {
+		tree.Root = tree.Root.children[0]
+	}
+}
+
+func (tree *BPTree) delete(node *BPTreeNode, key int) {
+	t := tree.t
+	i := 0
+	for i < len(node.Keys) && key > node.Keys[i] {
+		i++
+	}
+
+	if i < len(node.Keys) && key == node.Keys[i] {
+		if node.isLeaf {
+			// Case 1: The key is in a leaf node
+			node.Keys = append(node.Keys[:i], node.Keys[i+1:]...)
+			node.pageIDs = append(node.pageIDs[:i], node.pageIDs[i+1:]...)
+		} else {
+			// Case 2: The key is in an internal node
+			if len(node.children[i].Keys) >= t {
+				// Case 2a: The left child has at least t keys
+				predKey := node.children[i].Keys[len(node.children[i].Keys)-1]
+				predPageID := node.children[i].pageIDs[len(node.children[i].pageIDs)-1]
+				node.Keys[i] = predKey
+				node.pageIDs[i] = predPageID
+				tree.delete(node.children[i], predKey)
+			} else if len(node.children[i+1].Keys) >= t {
+				// Case 2b: The right child has at least t keys
+				succKey := node.children[i+1].Keys[0]
+				succPageID := node.children[i+1].pageIDs[0]
+				node.Keys[i] = succKey
+				node.pageIDs[i] = succPageID
+				tree.delete(node.children[i+1], succKey)
+			} else {
+				// Case 2c: Both children have t-1 keys
+				tree.merge(node, i)
+				tree.delete(node.children[i], key)
+			}
+		}
+	} else {
+		if node.isLeaf {
+			// Key not found
+			return
+		}
+		if len(node.children[i].Keys) == t-1 {
+			if i > 0 && len(node.children[i-1].Keys) >= t {
+				// Borrow from the left sibling
+				borrowFromLeft(node, i)
+			} else if i < len(node.children)-1 && len(node.children[i+1].Keys) >= t {
+				// Borrow from the right sibling
+				borrowFromRight(node, i)
+			} else {
+				// Merge with a sibling
+				if i < len(node.children)-1 {
+					tree.merge(node, i)
+				} else {
+					tree.merge(node, i-1)
+				}
+			}
+			if len(node.Keys) == 0 {
+				// If the root node becomes empty, update the root
+				tree.Root = node.children[0]
+			}
+		}
+		tree.delete(node.children[i], key)
+	}
+}
+
+func (tree *BPTree) merge(parent *BPTreeNode, i int) {
+	left := parent.children[i]
+	right := parent.children[i+1]
+
+	// Merge right node into left node
+	left.Keys = append(left.Keys, parent.Keys[i])
+	left.Keys = append(left.Keys, right.Keys...)
+	left.pageIDs = append(left.pageIDs, right.pageIDs...)
+
+	if !left.isLeaf {
+		left.children = append(left.children, right.children...)
+	}
+
+	parent.Keys = append(parent.Keys[:i], parent.Keys[i+1:]...)
+	parent.children = append(parent.children[:i+1], parent.children[i+2:]...)
+}
+
+func borrowFromLeft(parent *BPTreeNode, i int) {
+	child := parent.children[i]
+	leftSibling := parent.children[i-1]
+
+	child.Keys = append([]int{parent.Keys[i-1]}, child.Keys...)
+	parent.Keys[i-1] = leftSibling.Keys[len(leftSibling.Keys)-1]
+	leftSibling.Keys = leftSibling.Keys[:len(leftSibling.Keys)-1]
+
+	if !child.isLeaf {
+		child.children = append([]*BPTreeNode{leftSibling.children[len(leftSibling.children)-1]}, child.children...)
+		leftSibling.children = leftSibling.children[:len(leftSibling.children)-1]
+	} else {
+		child.pageIDs = append([]int{leftSibling.pageIDs[len(leftSibling.pageIDs)-1]}, child.pageIDs...)
+		leftSibling.pageIDs = leftSibling.pageIDs[:len(leftSibling.pageIDs)-1]
+	}
+}
+
+func borrowFromRight(parent *BPTreeNode, i int) {
+	child := parent.children[i]
+	rightSibling := parent.children[i+1]
+
+	child.Keys = append(child.Keys, parent.Keys[i])
+	parent.Keys[i] = rightSibling.Keys[0]
+	rightSibling.Keys = rightSibling.Keys[1:]
+
+	if !child.isLeaf {
+		child.children = append(child.children, rightSibling.children[0])
+		rightSibling.children = rightSibling.children[1:]
+	} else {
+		child.pageIDs = append(child.pageIDs, rightSibling.pageIDs[0])
+		rightSibling.pageIDs = rightSibling.pageIDs[1:]
+	}
+}
+
+func LoadBPTreeFromFile(filename string) (*BPTree, error) {
+	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	tree := &BPTree{}
+	decoder := gob.NewDecoder(file)
+	err = decoder.Decode(tree)
+	if err != nil {
+		return nil, err
+	}
+
+	return tree, nil
+}
+
+func (tree *BPTree) SaveToFile(filename string) error {
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := gob.NewEncoder(file)
+	err = encoder.Encode(tree)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // print the tree
-func PrintTree(node *BPTreeNode, level int) {
-	if node != nil {
-		fmt.Printf("Level %d: %v\n", level, node.Keys)
+func (tree *BPTree) PrintTree() {
+	var printSubtree func(node *BPTreeNode, level int)
+	printSubtree = func(node *BPTreeNode, level int) {
+		if node == nil {
+			return
+		}
+
+		fmt.Printf("Level %d: ", level)
+		for _, key := range node.Keys {
+			fmt.Printf("%d ", key)
+		}
+		fmt.Println()
+
 		if !node.isLeaf {
 			for _, child := range node.children {
-				PrintTree(child, level+1)
+				printSubtree(child, level+1)
 			}
 		}
 	}
+
+	printSubtree(tree.Root, 0)
 }
