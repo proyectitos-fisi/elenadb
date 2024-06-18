@@ -28,7 +28,7 @@ func TestChannelWorks(t *testing.T) {
 
 			scheduler.Schedule(
 				&storage_disk.DiskRequest{
-					PageID:   common.PageID(j),
+					PageID:   common.PageID_t(j),
 					IsWrite:  true,
 					Data:     data,
 					Callback: notifier,

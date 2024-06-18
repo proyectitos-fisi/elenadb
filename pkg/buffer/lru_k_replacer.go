@@ -10,7 +10,7 @@ import (
 
 const infinity = int64(^uint64(0) >> 1)
 
-type FrameID = common.FrameID
+type FrameID = common.FrameID_t
 
 // As part of the ElenaDB ® buffer replacement policy we use a LRU-K replacer.
 //

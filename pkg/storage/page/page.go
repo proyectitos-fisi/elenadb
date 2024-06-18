@@ -6,7 +6,7 @@ import (
 )
 
 type Page struct {
-	pageId   common.PageID
+	pageId   common.PageID_t
 	pinCount int
 	isDirty  bool
 	data     []byte

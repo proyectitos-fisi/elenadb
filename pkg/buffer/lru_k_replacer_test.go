@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type Frame = common.FrameID
+type Frame = common.FrameID_t
 
 const InvalidFrame = common.InvalidFrameID
 

@@ -34,10 +34,10 @@ var EnableLogging atomic.Value
 var LogTimeout = time.Duration(1000) // en teoría esto es ajustable a lo que deseemos (?)
 
 const (
-	InvalidPageID  = PageID(-1)
-	InvalidFrameID = FrameID(-1)
-	InvalidTxnID   = TxnID(-1)
-	InvalidLSN     = LSN(-1)
+	InvalidPageID  = PageID_t(-1)
+	InvalidFrameID = FrameID_t(-1)
+	InvalidTxnID   = TxnID_t(-1)
+	InvalidLSN     = LSN_t(-1)
 	HeaderPageID   = 0
 	ElenaPageSize  = 4096
 	BufferPoolSize = 10
@@ -47,13 +47,13 @@ const (
 	// Pavlo says more system use K = 2 <https://youtu.be/BS5h8QZHCPk?si=Gsie7D2qB1aPJx1F&t=3389>
 )
 
-type FrameID int32
-type PageID int32
-type TxnID int64
-type LSN int32
-type SlotOffset int
-type OID uint16
+type FrameID_t int32
+type PageID_t int32
+type TxnID_t int64
+type LSN_t int32
+type SlotOffset_t int
+type OID_t uint16
 
-const TXNStartID TxnID = 1 << 62
+const TXNStartID TxnID_t = 1 << 62
 
 const VarcharDefaultLength = 128

@@ -80,7 +80,7 @@ func (dm *DiskManager) ShutDown() {
 // WritePage: writes a page to the database file.
 // @param pageID: id of the page
 // @param pageData: raw page data
-func (dm *DiskManager) WritePage(pageID common.PageID, pageData []byte) error {
+func (dm *DiskManager) WritePage(pageID common.PageID_t, pageData []byte) error {
 	dm.mu.Lock()
 	defer dm.mu.Unlock()
 	offset := int64(pageID) * common.ElenaPageSize
@@ -94,7 +94,7 @@ func (dm *DiskManager) WritePage(pageID common.PageID, pageData []byte) error {
 // ReadPage: reads a page from the database file.
 // @param pageID: id of the page
 // @param pageData: output buffer
-func (dm *DiskManager) ReadPage(pageID common.PageID) ([]byte, error) {
+func (dm *DiskManager) ReadPage(pageID common.PageID_t) ([]byte, error) {
 	dm.mu.Lock()
 	defer dm.mu.Unlock()
 	offset := int64(pageID) * common.ElenaPageSize

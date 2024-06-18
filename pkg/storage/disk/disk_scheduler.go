@@ -32,7 +32,7 @@ type DiskRequest struct {
 	Data []byte
 
 	// ID of the page being read from / written to disk.
-	PageID common.PageID
+	PageID common.PageID_t
 
 	// Channel used to signal to the request issuer when the request has been completed.
 	Callback chan bool
