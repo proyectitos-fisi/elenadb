@@ -40,7 +40,7 @@ type DiskRequest struct {
 
 type DiskScheduler struct {
 	// Pointer to the disk manager.
-	DiskManager *DiskManager
+	diskManager *DiskManager
 	// A shared queue to concurrently schedule and process requests. When the DiskScheduler's destructor is called, `nil` is put into the queue to signal to the background thread to stop execution. */
 	RequestQueue common.Channel[*DiskRequest] // esto debe testearse fijo
 	// Mutex to synchronize access to shared resources. */
@@ -51,7 +51,7 @@ type DiskScheduler struct {
 
 func NewScheduler(dm *DiskManager) *DiskScheduler {
 	return &DiskScheduler{
-		DiskManager:  dm,
+		diskManager:  dm,
 		RequestQueue: *common.NewChannel[*DiskRequest](),
 	}
 }
@@ -68,7 +68,7 @@ func (ds *DiskScheduler) StartWorkerThread() {
 				return
 			}
 			if request.IsWrite {
-				err := ds.DiskManager.WritePage(request.PageID, request.Data)
+				err := ds.diskManager.WritePage(request.PageID, request.Data)
 				if err != nil {
 					fmt.Println("unexpedted I/O error:", err.Error())
 					request.Callback <- false
@@ -76,7 +76,7 @@ func (ds *DiskScheduler) StartWorkerThread() {
 					request.Callback <- true
 				}
 			} else {
-				data, err := ds.DiskManager.ReadPage(request.PageID)
+				data, err := ds.diskManager.ReadPage(request.PageID)
 				if err != nil {
 					fmt.Println("unexpected I/O error:", err.Error())
 					request.Callback <- false

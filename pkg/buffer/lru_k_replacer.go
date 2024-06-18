@@ -138,6 +138,7 @@ func (lru *LRUKReplacer) Evict() FrameID {
 	return evicted_frame
 }
 
+// The number of evictable frames in the LRU-K replacer.
 func (lru *LRUKReplacer) Size() int {
 	return int(lru.size.Load())
 }

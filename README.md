@@ -76,7 +76,9 @@ ElenaDB internal workflow (spanish)
   Used to implement fast Hash Table misses.
   <https://en.wikipedia.org/wiki/Bloom_filter>
 
-- [ ] Hash Tables. Used in Hash Joins operations.
+- [X] Hash Tables:
+      - [] Used in Hash Joins operations.
+      - [X] Used in [Page Table, in Buffer Pool Manager](pkg/buffer/buffer_pool_manager.go).
 
 - [x] [Concurrent queue](pkg/common/channel.go): Thread safe queue implementation.
 
