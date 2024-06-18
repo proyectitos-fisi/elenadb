@@ -5,6 +5,7 @@ import (
 	storage_disk "fisi/elenadb/pkg/storage/disk"
 	"fisi/elenadb/pkg/storage/page"
 	"sync"
+	"sync/atomic"
 )
 
 type BufferPoolManager struct {
@@ -14,6 +15,7 @@ type BufferPoolManager struct {
 	pageTable     map[common.PageID_t]common.FrameID_t
 	replacer      LRUKReplacer
 	latch         sync.RWMutex
+	nextPageID    atomic.Value
 }
 
 func NewBufferPoolManager(poolSize uint32, diskScheduler *storage_disk.DiskScheduler) *BufferPoolManager {
@@ -23,6 +25,7 @@ func NewBufferPoolManager(poolSize uint32, diskScheduler *storage_disk.DiskSched
 		diskScheduler: diskScheduler,
 		pageTable:     make(map[common.PageID_t]common.FrameID_t),
 		replacer:      *NewLRUK(poolSize, common.LRUKReplacerK),
+		nextPageID:    atomic.Value{},
 	}
 }
 
@@ -41,3 +44,16 @@ func (bp *BufferPoolManager) FetchPage() *page.Page {
 	// If no unpinned page found, return nil
 	return nil
 }
+
+func (bp *BufferPoolManager) AllocatePage() common.PageID_t {
+	bp.latch.Lock()
+	defer bp.latch.Unlock()
+
+	currentID := bp.nextPageID.Load().(common.PageID_t)
+	newID := currentID + 1
+	bp.nextPageID.Store(newID)
+
+	return newID
+}
+
+/* On the other hand, the DeallocatePage() method is a no-op that imitates freeing a page on the disk and you should call this in your DeletePage() implementation. */
