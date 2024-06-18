@@ -7,7 +7,7 @@ import (
 
 type Page struct {
 	pageId   common.PageID_t
-	pinCount int
+	PinCount int
 	isDirty  bool
 	data     []byte
 	latch    sync.RWMutex

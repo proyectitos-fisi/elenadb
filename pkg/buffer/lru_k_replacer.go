@@ -24,7 +24,7 @@ type FrameID = common.FrameID_t
 type LRUKReplacer struct {
 	// contains filtered or unexported fields
 	K          int
-	max_frames int
+	max_frames uint32
 	size       atomic.Int32 // number of evictable frames
 	nodes      map[FrameID]*LRUKNode
 	latch      sync.RWMutex
@@ -41,7 +41,7 @@ type LRUKNode struct {
 	evictable bool
 }
 
-func NewLRUK(n_frames int, k int) *LRUKReplacer {
+func NewLRUK(n_frames uint32, k int) *LRUKReplacer {
 	return &LRUKReplacer{
 		K:          k,
 		max_frames: n_frames,
