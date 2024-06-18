@@ -37,21 +37,21 @@ type DiskManager struct {
 
 // NewDiskManager creates a new disk manager that writes to the specified database file.
 // @param dbFile: the file name of the database file to write to
-// NOTE: should open a directory instead
-func NewDiskManager(dbFile string) (*DiskManager, error) {
-	db, err := os.OpenFile(dbFile, os.O_RDWR|os.O_CREATE, 0755)
+// TODO: should open a directory instead
+func NewDiskManager(dbDir string) (*DiskManager, error) {
+	db, err := os.OpenFile(dbDir, os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
 		return nil, err
 	}
 
-	logFileName := fmt.Sprintf("%s.log", dbFile)
+	logFileName := fmt.Sprintf("%s.log", dbDir)
 	logFile, err := os.OpenFile(logFileName, os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
 		return nil, err
 	}
 
 	dm := &DiskManager{
-		fileName:  dbFile,
+		fileName:  dbDir,
 		logName:   logFileName,
 		dbFile:    db,
 		logFile:   logFile,

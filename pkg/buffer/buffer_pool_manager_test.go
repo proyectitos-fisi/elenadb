@@ -32,7 +32,7 @@ func TestBufferPoolManagerTestBinaryDataTest(t *testing.T) {
 
 	// Scenario: The buffer pool is empty. We should be able to create a new page.
 	assert.NotNil(t, page0)
-	assert.Equal(t, 0, page_id_temp)
+	assert.Equal(t, page_id_temp, common.PageID_t(0))
 
 	random_binary_data := make([]byte, common.ElenaPageSize)
 	// Generate random binary data
@@ -60,7 +60,11 @@ func TestBufferPoolManagerTestBinaryDataTest(t *testing.T) {
 
 	// Scenario: After unpinning pages {0, 1, 2, 3, 4}, we should be able to create 5 new pages
 	for i := 0; i < 5; i++ {
-		assert.True(t, bpm.UnpinPage(common.PageID_t(i), true))
+		unpinned := bpm.UnpinPage(common.PageID_t(i), true)
+		if !unpinned {
+			t.Errorf("Failed to unpin page %d", i)
+		}
+		assert.True(t, unpinned)
 		bpm.FlushPage(common.PageID_t(i))
 	}
 	for i := 0; i < 5; i++ {

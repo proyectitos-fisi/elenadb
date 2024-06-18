@@ -49,6 +49,7 @@ type DiskScheduler struct {
 	WaitGroup sync.WaitGroup
 }
 
+// Don't forget to start worker threads.
 func NewScheduler(dm *DiskManager) *DiskScheduler {
 	return &DiskScheduler{
 		diskManager:  dm,
@@ -64,6 +65,7 @@ func (ds *DiskScheduler) StartWorkerThread() {
 	go func() {
 		for {
 			request := ds.RequestQueue.Get()
+			print("request:", request)
 			if request == nil {
 				return
 			}

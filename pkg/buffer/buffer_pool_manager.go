@@ -15,20 +15,32 @@ type BufferPoolManager struct {
 	pageTable     map[common.FrameID_t]*page.Page // relaciones GRACIAS!!!!!!!!!!!!!!!!!!!!!!!
 	replacer      LRUKReplacer
 	latch         sync.RWMutex
-	nextPageID    atomic.Int32
+	nextPageID    *atomic.Int32
 	freeList      []common.FrameID_t
 }
 
-func NewBufferPoolManager(poolSize uint32, diskScheduler *storage_disk.DiskScheduler) *BufferPoolManager {
-	// pages:         []*page.Page{},
-	// pageTable:     make(map[common.PageID_t]common.FrameID_t),
+func NewBufferPoolManager(poolSize uint32, diskManager *storage_disk.DiskManager, k int) *BufferPoolManager {
+	scheduler := storage_disk.NewScheduler(diskManager)
+	freeList := make([]common.FrameID_t, poolSize)
+	pageTable := make(map[common.FrameID_t]*page.Page)
+	var nextPageID atomic.Int32
+	nextPageID.Store(-1)
+
+	for i := uint32(0); i < poolSize; i++ {
+		freeList[i] = common.FrameID_t(i)
+		pageTable[common.FrameID_t(i)] = nil
+	}
+
+	// TODO: @damaris how many threads should we use?
+	scheduler.StartWorkerThread()
+
 	return &BufferPoolManager{
 		poolSize:      poolSize,
-		pageTable:     make(map[common.FrameID_t]*page.Page),
-		diskScheduler: diskScheduler,
-		replacer:      *NewLRUK(poolSize, common.LRUKReplacerK),
-		nextPageID:    atomic.Int32{},
-		freeList:      make([]common.FrameID_t, poolSize),
+		pageTable:     pageTable,
+		diskScheduler: scheduler,
+		replacer:      *NewLRUK(poolSize, k),
+		nextPageID:    &nextPageID,
+		freeList:      freeList,
 	}
 }
 
@@ -58,6 +70,10 @@ func (bp *BufferPoolManager) FetchPage(pageId common.PageID_t) *page.Page {
 
 	// First search for page_id in the buffer pool
 	for _, page := range bp.pageTable {
+		if page == nil {
+			continue
+		}
+
 		if page.PageId == pageId {
 			// if found, returneas la page pues
 			return page
@@ -89,8 +105,21 @@ func (bp *BufferPoolManager) FetchPage(pageId common.PageID_t) *page.Page {
 		Callback: callback,
 	})
 
-	return &page.Page{}
+	// TODO: @damaris should we wait for the callback?
+	read := <-callback
+	if !read {
+		panic("unexpected I/O error")
+	}
 
+	newPage := page.NewPageWithData(pageId, data, 1)
+
+	// Una vez que hallamos creado la página, marcamos ese frame
+	// como not evictable
+	// bp.replacer.TriggerAccess(frameId)
+	// bp.replacer.SetEvictable(frameId, false)
+	// TODO: @damaris @damaris @damaris @damaris @damaris
+
+	return newPage
 }
 
 /**
@@ -98,9 +127,6 @@ func (bp *BufferPoolManager) FetchPage(pageId common.PageID_t) *page.Page {
  * @return the id of the allocated page
  */
 func (bp *BufferPoolManager) AllocatePage() common.PageID_t {
-	bp.latch.Lock()
-	defer bp.latch.Unlock()
-
 	// add one to the next page id
 	return common.PageID_t(bp.nextPageID.Add(1))
 }
@@ -161,8 +187,11 @@ func (bp *BufferPoolManager) NewPage() *page.Page {
 	// Una vez que hallamos creado la página, marcamos ese frame como not evictable
 
 	// Remember to "Pin" the frame by calling replacer.SetEvictable(frame_id, false)
-	bp.replacer.SetEvictable(frameId, false) // THERE'S NOTHING HERE ya entendí, paolo
+	newPage.PinCount.Store(1)
 	bp.replacer.TriggerAccess(frameId)
+	bp.replacer.SetEvictable(frameId, false) // THERE'S NOTHING HERE ya entendí, paolo
+
+	bp.pageTable[frameId] = &newPage
 
 	return &newPage
 }
@@ -176,6 +205,8 @@ func (bp *BufferPoolManager) NewPage() *page.Page {
  * After deleting the page from the page table, stop tracking the frame in the replacer and add the frame
  * back to the free list. Also, reset the page's memory and metadata.
  *
+ * WARNING: LOCK SHOULD BE ACQUIRED BEFORE CALLING THIS FUNCTION
+ *
  * @param page_id id of page to be deleted
  * @return false if the page exists but could not be deleted, true if the page didn't exist or deletion succeeded
  */
@@ -183,11 +214,16 @@ func (bp *BufferPoolManager) DeletePage(pageId common.PageID_t) bool {
 	frameIdToDelete := common.InvalidFrameID
 
 	for frameId, page := range bp.pageTable {
+		if page == nil {
+			continue
+		}
+
 		if page.PageId == pageId {
 			frameIdToDelete = frameId
 			if page.PinCount.Load() > 0 {
 				return false
 			}
+			break
 		}
 	}
 
@@ -195,17 +231,18 @@ func (bp *BufferPoolManager) DeletePage(pageId common.PageID_t) bool {
 		return true
 	}
 
-	bp.pageTable[frameIdToDelete].ResetMemory()
 	page := bp.pageTable[frameIdToDelete]
-
 	if page.IsDirty {
 		// write to disk
-		bp.diskScheduler.Schedule(&storage_disk.DiskRequest{
-			IsWrite: true,
-			PageID:  page.PageId,
-			Data:    page.Data,
-		})
+		bp.FlushPage(pageId)
 	}
+
+	// stop tracking the frame in the replacer
+	bp.replacer.Remove(frameIdToDelete)
+	// add the frame back to the free list
+	bp.freeList = append(bp.freeList, frameIdToDelete)
+	// reset the page's memory and metadata
+	page.ResetMemory()
 	return true
 }
 
@@ -224,3 +261,66 @@ func (bp *BufferPoolManager) DeletePage(pageId common.PageID_t) bool {
  * @return false if the page is not in the page table or its pin count is <= 0 before this call, true otherwise
  */
 /* For UnpinPage, the is_dirty parameter keeps track of whether a page was modified while it was pinned. */
+func (bp *BufferPoolManager) UnpinPage(pageId common.PageID_t, isDirty bool) bool {
+	bp.latch.Lock()
+	defer bp.latch.Unlock()
+
+	for frameId, page := range bp.pageTable {
+		if page == nil {
+			continue
+		}
+
+		if page.PageId == pageId {
+			if page.PinCount.Load() <= 0 {
+				return false
+			}
+			if page.PinCount.Add(-1) == 0 {
+				bp.replacer.SetEvictable(frameId, true)
+			}
+			page.IsDirty = isDirty
+			return true
+		}
+	}
+
+	return false
+}
+
+/**
+ * TODO(P1): Add implementation
+ *
+ * @brief Flush the target page to disk.
+ *
+ * Use the DiskManager::WritePage() method to flush a page to disk, REGARDLESS of the dirty flag.
+ * Unset the dirty flag of the page after flushing.
+ *
+ * @param page_id id of page to be flushed, cannot be INVALID_PAGE_ID
+ * @return false if the page could not be found in the page table, true otherwise
+ */
+func (bp *BufferPoolManager) FlushPage(pageId common.PageID_t) bool {
+	bp.latch.Lock()
+	defer bp.latch.Unlock()
+
+	for _, page := range bp.pageTable {
+		if page == nil {
+			continue
+		}
+
+		if page.PageId == pageId {
+			cb := make(chan bool)
+			bp.diskScheduler.Schedule(&storage_disk.DiskRequest{
+				IsWrite:  true,
+				PageID:   pageId,
+				Data:     page.Data,
+				Callback: cb,
+			})
+			res := <-cb
+			if !res {
+				panic("unexpected I/O error")
+			}
+			page.IsDirty = false
+			return true
+		}
+	}
+
+	return false
+}
