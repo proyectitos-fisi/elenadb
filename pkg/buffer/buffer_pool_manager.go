@@ -55,5 +55,3 @@ func (bp *BufferPoolManager) AllocatePage() common.PageID_t {
 
 	return newID
 }
-
-/* On the other hand, the DeallocatePage() method is a no-op that imitates freeing a page on the disk and you should call this in your DeletePage() implementation. */

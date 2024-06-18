@@ -15,7 +15,7 @@ const InvalidFrame = common.InvalidFrameID
 
 // So hard to read... This tests whether a LRU-1 (K=1) behaves like a normal LRU.
 func TestLRUK1BehavesLikeANormalLRU(t *testing.T) {
-	pool_size := 3
+	pool_size := uint32(3)
 	k := 1
 
 	lruk := lruk_replacer.NewLRUK(pool_size, k)
@@ -60,7 +60,7 @@ type set = map[Frame]struct{}
 // - Estimate (predict) the future access patterns
 // This also tests concurrent access to the LRU-K replacer.
 func TestLRUKPreventsSequentialFlooding(t *testing.T) {
-	pool_size := 8
+	pool_size := uint32(8)
 	n_disk_pages := 64
 	k := 3
 
@@ -75,7 +75,7 @@ func TestLRUKPreventsSequentialFlooding(t *testing.T) {
 	fullScan := func() {
 		for i := 1; i <= n_disk_pages; i++ {
 			mutex.Lock()
-			buffer_len := len(buffer_pool)
+			buffer_len := uint32(len(buffer_pool))
 
 			if buffer_len >= pool_size {
 				// Halt until there is a frame to evict (i.e. Evict() != InvalidFrame)
