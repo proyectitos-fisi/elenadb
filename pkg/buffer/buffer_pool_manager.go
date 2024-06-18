@@ -12,7 +12,7 @@ import (
 type BufferPoolManager struct {
 	poolSize      uint32
 	diskScheduler *storage_disk.DiskScheduler
-	pageTable     map[common.FrameID_t]*page.Page // relaciones
+	pageTable     map[common.FrameID_t]*page.Page // relaciones GRACIAS!!!!!!!!!!!!!!!!!!!!!!!
 	replacer      LRUKReplacer
 	latch         sync.RWMutex
 	nextPageID    atomic.Int32
@@ -32,10 +32,12 @@ func NewBufferPoolManager(poolSize uint32, diskScheduler *storage_disk.DiskSched
 	}
 }
 
+// func (bp *BufferPoolManager)
+
 /**
  * TODO(P1): Add implementation
  *
- * @brief Fetch the requested page from the buffer pool. Return nullptr if page_id needs to be fetched from the disk
+ * @brief Fetch the requested page from the buffer pool. 💋 Return nullptr if page_id needs to be fetched from the disk
  * but all frames are currently in use and not evictable (in another word, pinned).
  *
  * First search for page_id in the buffer pool. If not found, pick a replacement frame from either the free list or
@@ -49,12 +51,46 @@ func NewBufferPoolManager(poolSize uint32, diskScheduler *storage_disk.DiskSched
  * @param access_type type of access to the page, only needed for leaderboard tests.
  * @return nullptr if page_id cannot be fetched, otherwise pointer to the requested page
  */
-func (bp *BufferPoolManager) FetchPage() *page.Page {
+// auto FetchPage(page_id_t page_id, AccessType access_type = AccessType::Unknown) -> Page *;
+func (bp *BufferPoolManager) FetchPage(pageId common.PageID_t) *page.Page {
 	bp.latch.Lock()
 	defer bp.latch.Unlock()
 
-	// If no unpinned page found, return nil
-	return nil
+	// First search for page_id in the buffer pool
+	for _, page := range bp.pageTable {
+		if page.PageId == pageId {
+			// if found, returneas la page pues
+			return page
+		}
+	}
+
+	frameId := common.InvalidFrameID
+
+	// before fetching from disk, we check whether if there's a free frame
+	if len(bp.freeList) == 0 {
+		frameId = bp.replacer.Evict() // obtain the next evictable frame
+		if frameId == common.InvalidFrameID {
+			return nil
+		}
+		// eviction can happen
+		if !bp.DeletePage(bp.pageTable[frameId].PageId) {
+			panic("DeletePage shouldn't have returned false since we just evicted that page")
+		}
+	}
+
+	var data []byte
+	callback := make(chan bool)
+
+	// try fetching from disk
+	bp.diskScheduler.Schedule(&storage_disk.DiskRequest{
+		IsWrite:  false,
+		PageID:   pageId,
+		Data:     data,
+		Callback: callback,
+	})
+
+	return &page.Page{}
+
 }
 
 /**
