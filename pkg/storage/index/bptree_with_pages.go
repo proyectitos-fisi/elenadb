@@ -36,8 +36,14 @@ func NewBPlusTree() *BPlusTree {
 func (t *BPlusTree) Insert(key int, value string) {
 	leaf := t.findLeafNode(t.Root, key)
 
-	// Insert key and value into the leaf node
+	// Check if key already exists in the leaf node
 	insertIndex := t.findIndex(leaf.Keys, key)
+	if insertIndex < len(leaf.Keys) && leaf.Keys[insertIndex] == key {
+		// Key already exists, handle duplicate insertion logic here if needed
+		return
+	}
+
+	// Key does not exist, proceed with insertion
 	leaf.Keys = append(leaf.Keys, 0)                         // Create space for new key
 	copy(leaf.Keys[insertIndex+1:], leaf.Keys[insertIndex:]) // Shift keys to the right
 	leaf.Keys[insertIndex] = key
@@ -56,9 +62,11 @@ func (t *BPlusTree) Insert(key int, value string) {
 func (t *BPlusTree) Find(key int) (string, bool) {
 	leaf := t.findLeafNode(t.Root, key)
 	index := t.findIndex(leaf.Keys, key)
-	if index != -1 && leaf.Keys[index] == key {
+
+	if index < len(leaf.Keys) && leaf.Keys[index] == key {
 		return leaf.Values[index], true
 	}
+
 	return "", false
 }
 
@@ -66,7 +74,8 @@ func (t *BPlusTree) Find(key int) (string, bool) {
 func (t *BPlusTree) Delete(key int) {
 	leaf := t.findLeafNode(t.Root, key)
 	index := t.findIndex(leaf.Keys, key)
-	if index != -1 && leaf.Keys[index] == key {
+
+	if index != -1 && index < len(leaf.Keys) && leaf.Keys[index] == key {
 		// Remove key and value
 		copy(leaf.Keys[index:], leaf.Keys[index+1:])
 		leaf.Keys = leaf.Keys[:len(leaf.Keys)-1]
@@ -124,9 +133,11 @@ func (t *BPlusTree) splitLeafNode(leaf *Page) {
 		t.Root = newParent
 	} else {
 		index := t.findIndex(leaf.Parent.Keys, newLeaf.Keys[0])
+		leaf.Parent.Keys = append(leaf.Parent.Keys, 0) // Ensure enough capacity for new key
 		copy(leaf.Parent.Keys[index+1:], leaf.Parent.Keys[index:])
 		leaf.Parent.Keys[index] = newLeaf.Keys[0]
 
+		leaf.Parent.Children = append(leaf.Parent.Children, nil) // Ensure enough capacity for new child
 		copy(leaf.Parent.Children[index+1:], leaf.Parent.Children[index:])
 		leaf.Parent.Children[index+1] = newLeaf
 		newLeaf.Parent = leaf.Parent
