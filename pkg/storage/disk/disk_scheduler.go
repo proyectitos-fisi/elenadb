@@ -65,7 +65,6 @@ func (ds *DiskScheduler) StartWorkerThread() {
 	go func() {
 		for {
 			request := ds.RequestQueue.Get()
-			print("request:", request)
 			if request == nil {
 				return
 			}
@@ -83,7 +82,7 @@ func (ds *DiskScheduler) StartWorkerThread() {
 					fmt.Println("unexpected I/O error:", err.Error())
 					request.Callback <- false
 				} else {
-					request.Data = data
+					copy(request.Data, data)
 					request.Callback <- true
 				}
 			}

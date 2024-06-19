@@ -92,9 +92,13 @@ func (bp *BufferPoolManager) FetchPage(pageId common.PageID_t) *page.Page {
 		if !bp.DeletePage(bp.pageTable[frameId].PageId) {
 			panic("DeletePage shouldn't have returned false since we just evicted that page")
 		}
+	} else {
+		// there's a free frame to use!!11!!1!
+		frameId = bp.freeList[0]
+		bp.freeList = bp.freeList[1:]
 	}
 
-	var data []byte
+	data := make([]byte, common.ElenaPageSize)
 	callback := make(chan bool)
 
 	// try fetching from disk
@@ -112,12 +116,13 @@ func (bp *BufferPoolManager) FetchPage(pageId common.PageID_t) *page.Page {
 	}
 
 	newPage := page.NewPageWithData(pageId, data, 1)
+	bp.pageTable[frameId] = newPage
+	bp.removeFromFreeList(frameId)
 
 	// Una vez que hallamos creado la página, marcamos ese frame
 	// como not evictable
-	// bp.replacer.TriggerAccess(frameId)
-	// bp.replacer.SetEvictable(frameId, false)
-	// TODO: @damaris @damaris @damaris @damaris @damaris
+	bp.replacer.TriggerAccess(frameId)
+	bp.replacer.SetEvictable(frameId, false)
 
 	return newPage
 }
@@ -168,6 +173,7 @@ func (bp *BufferPoolManager) NewPage() *page.Page {
 		}
 		// eviction can happen
 		// check if page is dirrrty (POP ANTHEM BY CRHISTINA AGUILERA!!) so we write it to disk
+		// NOTE: debugger halts here
 		if !bp.DeletePage(bp.pageTable[frameId].PageId) {
 			panic("DeletePage shouldn't have returned false since we just evicted that page")
 		}
@@ -177,23 +183,16 @@ func (bp *BufferPoolManager) NewPage() *page.Page {
 		bp.freeList = bp.freeList[1:]
 	}
 
-	newPage := page.Page{
-		PageId:   bp.AllocatePage(),
-		PinCount: atomic.Int32{},
-		IsDirty:  false,
-		Data:     make([]byte, common.ElenaPageSize),
-		Latch:    sync.RWMutex{},
-	}
+	newPage := page.NewPage(bp.AllocatePage(), 1)
+	bp.pageTable[frameId] = newPage
+	bp.removeFromFreeList(frameId)
 	// Una vez que hallamos creado la página, marcamos ese frame como not evictable
 
 	// Remember to "Pin" the frame by calling replacer.SetEvictable(frame_id, false)
-	newPage.PinCount.Store(1)
 	bp.replacer.TriggerAccess(frameId)
-	bp.replacer.SetEvictable(frameId, false) // THERE'S NOTHING HERE ya entendí, paolo
+	bp.replacer.SetEvictable(frameId, false) // ya entendí, paolo
 
-	bp.pageTable[frameId] = &newPage
-
-	return &newPage
+	return newPage
 }
 
 /**
@@ -234,7 +233,7 @@ func (bp *BufferPoolManager) DeletePage(pageId common.PageID_t) bool {
 	page := bp.pageTable[frameIdToDelete]
 	if page.IsDirty {
 		// write to disk
-		bp.FlushPage(pageId)
+		bp.flushPageNoLock(pageId)
 	}
 
 	// stop tracking the frame in the replacer
@@ -323,4 +322,44 @@ func (bp *BufferPoolManager) FlushPage(pageId common.PageID_t) bool {
 	}
 
 	return false
+}
+
+// Same as FlushPage but without the lock
+func (bp *BufferPoolManager) flushPageNoLock(pageId common.PageID_t) bool {
+	for _, page := range bp.pageTable {
+		if page == nil {
+			continue
+		}
+
+		if page.PageId == pageId {
+			cb := make(chan bool)
+			bp.diskScheduler.Schedule(&storage_disk.DiskRequest{
+				IsWrite:  true,
+				PageID:   pageId,
+				Data:     page.Data,
+				Callback: cb,
+			})
+			res := <-cb
+			if !res {
+				panic("unexpected I/O error")
+			}
+			page.IsDirty = false
+			return true
+		}
+	}
+
+	return false
+}
+
+func (bp *BufferPoolManager) removeFromFreeList(frameId common.FrameID_t) {
+	newFreeList := make([]common.FrameID_t, 0, len(bp.freeList))
+
+	for _, id := range bp.freeList {
+		if id == frameId {
+			continue
+		}
+		newFreeList = append(newFreeList, id)
+	}
+
+	bp.freeList = newFreeList
 }

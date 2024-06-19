@@ -9,8 +9,8 @@ const (
 )
 
 type Value struct {
-	type_id int
-	data    []byte
+	typeId int
+	data   []byte
 }
 
 func (v *Value) GetValue() []byte {

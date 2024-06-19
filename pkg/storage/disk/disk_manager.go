@@ -30,7 +30,8 @@ type DiskManager struct {
 	numWrites  int32
 	flushLog   bool
 	flushLogF  chan struct{}
-	mu         sync.Mutex
+	latch      sync.RWMutex
+	logLatch   sync.RWMutex
 	dbFile     *os.File
 	logFile    *os.File
 }
@@ -65,8 +66,10 @@ func NewDiskManager(dbDir string) (*DiskManager, error) {
 
 // ShutDown: shuts down the disk manager and closes all the file resources.
 func (dm *DiskManager) ShutDown() {
-	dm.mu.Lock()
-	defer dm.mu.Unlock()
+	dm.latch.Lock()
+	dm.logLatch.Lock()
+	defer dm.latch.Unlock()
+	defer dm.logLatch.Unlock()
 	if dm.dbFile != nil {
 		dm.dbFile.Close()
 		dm.dbFile = nil
@@ -81,8 +84,8 @@ func (dm *DiskManager) ShutDown() {
 // @param pageID: id of the page
 // @param pageData: raw page data
 func (dm *DiskManager) WritePage(pageID common.PageID_t, pageData []byte) error {
-	dm.mu.Lock()
-	defer dm.mu.Unlock()
+	dm.latch.Lock()
+	defer dm.latch.Unlock()
 	offset := int64(pageID) * common.ElenaPageSize
 	_, err := dm.dbFile.WriteAt(pageData, offset)
 	if err == nil {
@@ -95,8 +98,8 @@ func (dm *DiskManager) WritePage(pageID common.PageID_t, pageData []byte) error 
 // @param pageID: id of the page
 // @param pageData: output buffer
 func (dm *DiskManager) ReadPage(pageID common.PageID_t) ([]byte, error) {
-	dm.mu.Lock()
-	defer dm.mu.Unlock()
+	dm.latch.RLock()
+	defer dm.latch.RUnlock()
 	offset := int64(pageID) * common.ElenaPageSize
 	pageData := make([]byte, common.ElenaPageSize)
 	_, err := dm.dbFile.ReadAt(pageData, offset)
@@ -106,8 +109,8 @@ func (dm *DiskManager) ReadPage(pageID common.PageID_t) ([]byte, error) {
 // WriteLog: flushes the entire log buffer into disk.
 // @param logData: raw log data
 func (dm *DiskManager) WriteLog(logData []byte) error {
-	dm.mu.Lock()
-	defer dm.mu.Unlock()
+	dm.logLatch.Lock()
+	defer dm.logLatch.Unlock()
 	_, err := dm.logFile.Write(logData)
 	if err == nil {
 		atomic.AddInt32(&dm.numFlushes, 1)
@@ -121,8 +124,8 @@ func (dm *DiskManager) WriteLog(logData []byte) error {
 // @param offset offset of the log entry in the file
 // @return true if the read was successful, false otherwise
 func (dm *DiskManager) ReadLog(logData []byte, size, offset int) (bool, error) {
-	dm.mu.Lock()
-	defer dm.mu.Unlock()
+	dm.logLatch.RLock()
+	defer dm.logLatch.RUnlock()
 	_, err := dm.logFile.ReadAt(logData, int64(offset))
 	if err != nil {
 		return false, err
@@ -176,17 +179,17 @@ func (dm *DiskManager) FlushLogRoutine() {
 	for {
 		select {
 		case <-time.After(common.LogTimeout * time.Millisecond):
-			dm.mu.Lock()
-			defer dm.mu.Unlock()
+			dm.logLatch.Lock()
 			if dm.logFile != nil {
 				dm.logFile.Sync()
 			}
+			dm.logLatch.Unlock()
 		case <-dm.flushLogF:
-			dm.mu.Lock()
-			defer dm.mu.Unlock()
+			dm.logLatch.Lock()
 			if dm.logFile != nil {
 				dm.logFile.Sync()
 			}
+			dm.logLatch.Unlock()
 		}
 	}
 }

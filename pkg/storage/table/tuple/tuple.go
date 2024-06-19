@@ -20,7 +20,7 @@ func New(values []Value /*, schema Schema*/) {
 
 func Empty() *Tuple {
 	return &Tuple{
-		RowId: common.InvalidRID,
+		RowId: *common.InvalidRID(),
 	}
 }
 

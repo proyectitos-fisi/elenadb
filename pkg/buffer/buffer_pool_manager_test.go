@@ -6,6 +6,7 @@ import (
 	storage_disk "fisi/elenadb/pkg/storage/disk"
 	"math"
 	"math/rand"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -24,6 +25,7 @@ func TestBufferPoolManagerTestBinaryDataTest(t *testing.T) {
 	}
 
 	disk_manager, nil := storage_disk.NewDiskManager(db_dir)
+	defer os.Remove(db_dir)
 	assert.Nil(t, nil)
 	bpm := buffer.NewBufferPoolManager(uint32(buffer_pool_size), disk_manager, k)
 
@@ -61,27 +63,25 @@ func TestBufferPoolManagerTestBinaryDataTest(t *testing.T) {
 	// Scenario: After unpinning pages {0, 1, 2, 3, 4}, we should be able to create 5 new pages
 	for i := 0; i < 5; i++ {
 		unpinned := bpm.UnpinPage(common.PageID_t(i), true)
-		if !unpinned {
-			t.Errorf("Failed to unpin page %d", i)
-		}
 		assert.True(t, unpinned)
 		bpm.FlushPage(common.PageID_t(i))
 	}
 	for i := 0; i < 5; i++ {
-		assert.NotNil(t, bpm.NewPage())
+		p := bpm.NewPage()
+		assert.NotNil(t, p)
 		// Unpin the page here to allow future fetching
-		bpm.UnpinPage(page_id_temp, false)
+		bpm.UnpinPage(p.PageId, false)
 	}
 
 	// Scenario: We should be able to fetch the data we wrote a while ago.
 	page0 = bpm.FetchPage(0)
 	assert.NotNil(t, page0)
 	assert.Equal(t, random_binary_data, page0.Data)
+
 	assert.True(t, bpm.UnpinPage(0, true))
 
 	// Shutdown the disk manager and remove the temporary file we created.
 	disk_manager.ShutDown()
-	// remove("test.db")
 }
 
 func TestBufferPoolManagerTestSampleTest(t *testing.T) {
@@ -89,24 +89,28 @@ func TestBufferPoolManagerTestSampleTest(t *testing.T) {
 	buffer_pool_size := 10
 	k := 5
 
-	disk_manager, nil := storage_disk.NewDiskManager(db_dir)
-	assert.Nil(t, nil)
+	disk_manager, err := storage_disk.NewDiskManager(db_dir)
+	defer os.Remove(db_dir)
+	assert.Nil(t, err)
 	bpm := buffer.NewBufferPoolManager(uint32(buffer_pool_size), disk_manager, k)
 
 	page0 := bpm.NewPage()
+	assert.NotNil(t, page0)
 	page_id_temp := page0.PageId
 
 	// Scenario: The buffer pool is empty. We should be able to create a new page.
 	assert.NotNil(t, page0)
-	assert.Equal(t, 0, page_id_temp)
+	assert.Equal(t, common.PageID_t(0), page_id_temp)
 
 	// Scenario: Once we have a page, we should be able to read and write content.
-	page0.Data = []byte("Hello")
-	assert.Equal(t, "Hello", string(page0.Data))
+	copy(page0.Data, []byte("Hello"))
+	assert.Equal(t, "Hello", string(page0.Data[:5]))
 
 	// Scenario: We should be able to create new pages until we fill up the buffer pool.
 	for i := 1; i < buffer_pool_size; i++ {
-		assert.NotNil(t, bpm.NewPage())
+		p := bpm.NewPage()
+		assert.NotNil(t, p)
+		assert.Equal(t, p.PageId, common.PageID_t(i))
 	}
 
 	// Scenario: Once the buffer pool is full, we should not be able to create any new pages.
@@ -126,15 +130,15 @@ func TestBufferPoolManagerTestSampleTest(t *testing.T) {
 	// Scenario: We should be able to fetch the data we wrote a while ago.
 	page0 = bpm.FetchPage(0)
 	assert.NotNil(t, page0)
-	assert.Equal(t, "Hello", string(page0.Data))
+	assert.Equal(t, "Hello", string(page0.Data[:5]))
 
 	// Scenario: If we unpin page 0 and then make a new page, all the buffer pages should
 	// now be pinned. Fetching page 0 again should fail.
 	assert.True(t, bpm.UnpinPage(0, true))
-	assert.NotNil(t, bpm.NewPage())
+	pp := bpm.NewPage()
+	assert.NotNil(t, pp)
 	assert.Nil(t, bpm.FetchPage(0))
 
 	// Shutdown the disk manager and remove the temporary file we created.
 	disk_manager.ShutDown()
-	// remove("
 }
