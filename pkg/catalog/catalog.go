@@ -13,6 +13,7 @@
 package catalog
 
 import (
+	storage_disk "fisi/elenadb/pkg/storage/disk"
 	"fisi/elenadb/pkg/storage/table"
 )
 
@@ -66,9 +67,11 @@ func NewIndexInfo(keySchema Schema, name string, index any, indexOID uint32, tab
 }
 
 type Catalog struct {
-	DiskManager *DiskManager
+	DiskManager *storage_disk.DiskManager
 }
 
-func NewCatalog(DiskManager *DiskManager) *Catalog {
-	return &Catalog{}
+func NewCatalog(diskManager *storage_disk.DiskManager) *Catalog {
+	return &Catalog{
+		DiskManager: diskManager,
+	}
 }
