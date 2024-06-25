@@ -2,7 +2,7 @@
 
 ## Storage
 
-A database directory is just a bunch of .table and .index file.
+A database directory is just a bunch of .table and .index files, plus a `elena.meta.table` file.
 
 ```text
 mydb.elena
@@ -10,7 +10,8 @@ mydb.elena
 ├── doctor.name.index
 ├── doctor.id.index
 ├── usuario.id.table
-└── usuario.table
+├── usuario.table
+└── elena.meta.table
 ```
 
 As you can see, a table can have multiple indexes. An index is created over a field (column) with
@@ -90,7 +91,18 @@ We are **not**:
 
 ### Meta table
 
-The meta table is a builtin table
+<!-- Tony reference code https://github.com/antoniosarosi/mkdb/blob/bf1341bc4da70971fc6c340f3a5e9c6bbc55da37/src/db.rs#L383-L397 -->
+
+The meta table is a builtin table hardcoded in the Elena source code. It contains metadata about the
+other tables and indexes in the database. Each database MUST have a meta table called `elena.meta.table`.
+
+```text
++----------------+-------------------------+----------------+--------------------------+
+| type           | name                    | table_name     | sql                     |
++----------------+-------------------------+----------------+--------------------------+
+| table or index | the index or table name | the table name | the CREATE sql statement |
++----------------+-------------------------+----------------+--------------------------+
+```
 
 <!--
 Good ideas but not planned:
