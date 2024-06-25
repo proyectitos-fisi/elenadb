@@ -57,7 +57,7 @@ func StartREPL(dbName string) error {
 		fmt.Println("creating db", dbName)
 	}
 
-	parser := query.NewParser()
+	parser := query.NewParser(query.DefaultFsm)
 	formatter := newFormatter()
 
 	symbolStack := stack{}
