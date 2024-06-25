@@ -2,7 +2,6 @@ package query
 
 import (
 	"fisi/elenadb/pkg/storage/table/value"
-	"log"
 	"strconv"
 )
 
