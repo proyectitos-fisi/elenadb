@@ -29,9 +29,12 @@ const (
 
     FsmFieldKey
     FsmFieldType
+    FsmFieldCompositeType
     FsmFieldNullable
     FsmFieldValue
     FsmFieldAnnotation
+
+    FsmNumber
 
     FsmFieldFkey
     FsmFieldFkeyPath
@@ -56,6 +59,9 @@ var isBasicTypeMap = map[string]struct{}{
     "int": {},
     "float": {},
     "bool": {},
+}
+
+var isCompositeType = map[string]struct{}{
     "char": {},
 }
 
@@ -89,6 +95,11 @@ func (fsm *FsmNode) Eval(tk *tokens.Token) bool {
 
     if fsm.Step == FsmFieldType {
         _, ok := isBasicTypeMap[tk.Data]
+        return ok
+    }
+
+    if fsm.Step == FsmFieldCompositeType {
+        _, ok := isCompositeType[tk.Data]
         return ok
     }
 
@@ -144,6 +155,13 @@ func defaultParseFsm() *FsmNode {
 
     createTableFieldType := &FsmNode{
         Step: FsmFieldType,
+        ExpectByType: true,
+        ExpectedType: tokens.TkWord,
+        Children: map[StepType]*FsmNode{},
+    }
+
+    createTableFieldCompositeType := &FsmNode{
+        Step: FsmFieldCompositeType,
         ExpectByType: true,
         ExpectedType: tokens.TkWord,
         Children: map[StepType]*FsmNode{},
@@ -226,6 +244,37 @@ func defaultParseFsm() *FsmNode {
         }, FsmCreateStep, FsmTable, FsmName, FsmOpenList).
         AddRule(createTableFieldKey,
             FsmCreateStep, FsmTable, FsmName, FsmOpenList, FsmFieldKey).
+        // composite types
+        AddRule(createTableFieldCompositeType,
+            FsmCreateStep, FsmTable, FsmName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType).
+        AddRule(createTableFieldCompositeType,
+            FsmCreateStep, FsmTable, FsmName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType).
+        AddRule(createTableNullable,
+            FsmCreateStep, FsmTable, FsmName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmFieldNullable).
+        AddRule(createTableAnnotation,
+            FsmCreateStep, FsmTable, FsmName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmFieldAnnotation).
+        AddRule(createTableEos,
+            FsmCreateStep, FsmTable, FsmName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmEos).
+        AddRule(&FsmNode{
+            ExpectByType: true,
+            ExpectedType: tokens.TkParenOpen,
+        }, FsmCreateStep, FsmTable, FsmName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector).
+        AddRule(&FsmNode{
+            ExpectByType: true,
+            ExpectedType: tokens.TkWord,
+            ExpectedString: "",
+        }, FsmCreateStep, FsmTable, FsmName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber).
+        AddRule(&FsmNode{
+            ExpectByType: true,
+            ExpectedType: tokens.TkParenClosed,
+        }, FsmCreateStep, FsmTable, FsmName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber, FsmCloseSelector).
+        AddRule(createTableNullable,
+            FsmCreateStep, FsmTable, FsmName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber, FsmCloseSelector, FsmFieldNullable).
+        AddRule(createTableAnnotation,
+            FsmCreateStep, FsmTable, FsmName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber, FsmCloseSelector, FsmFieldAnnotation).
+        AddRule(createTableEos,
+            FsmCreateStep, FsmTable, FsmName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber, FsmCloseSelector, FsmEos).
+        // regular/basic types
         AddRule(createTableFieldType,
             FsmCreateStep, FsmTable, FsmName, FsmOpenList, FsmFieldKey, FsmFieldType).
         AddRule(createTableNullable,

@@ -1,6 +1,10 @@
 package query
 
-import "fisi/elenadb/pkg/storage/table/value"
+import (
+	"fisi/elenadb/pkg/storage/table/value"
+	"log"
+	"strconv"
+)
 
 type QueryBuilder struct {
     qu []Query
@@ -96,6 +100,23 @@ func parseFkeyPathFn(qb *QueryBuilder, data string) error {
     return nil
 }
 
+func parseCompositeTypeFn(qb *QueryBuilder, data string) error {
+    fields := qb.qu[len(qb.qu)-1].Fields
+    fields[len(fields)-1].Type = value.NewValueTypeFromUserType(data)
+    return nil
+}
+
+func parseNumberFn(qb *QueryBuilder, data string) error {
+    fields := qb.qu[len(qb.qu)-1].Fields
+    length, convErr := strconv.ParseUint(data, 10, 8)
+    if convErr != nil {
+        return convErr
+    }
+
+    fields[len(fields)-1].Length = uint8(length)
+    return nil
+}
+
 var defaultParseFnTable map[StepType]ParseFn = map[StepType]ParseFn{
     FsmCreateStep: parseCreateFn,
     FsmRetrieveStep: parseRetrieveFn,
@@ -104,6 +125,8 @@ var defaultParseFnTable map[StepType]ParseFn = map[StepType]ParseFn{
     FsmName: parseTableNameFn,
     FsmFieldKey: parseFieldKeyFn,
     FsmFieldType: parseFieldTypeFn,
+    FsmFieldCompositeType: parseCompositeTypeFn,
+    FsmNumber: parseNumberFn,
     FsmFieldNullable: parseNullableTypeFn,
     FsmFieldValue: parseValueFn,
     FsmFieldAnnotation: parseAnnotationFn,

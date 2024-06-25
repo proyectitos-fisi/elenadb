@@ -12,6 +12,7 @@ const (
     QueryUpdate QueryInstrType = "cambia"
 )
 
+
 type QueryField struct {
     Foreign     bool
     Name        string
