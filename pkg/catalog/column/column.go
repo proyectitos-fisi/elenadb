@@ -1,12 +1,12 @@
-package catalog
+package column
 
 import "fisi/elenadb/pkg/storage/table/value"
 
 type Column struct {
-	ColumnType  value.TypeId
+	ColumnType  value.ValueType
 	ColumnName  string
 	StorageSize int
-	Offset      int
+	Offset      uint16
 }
 
 func CopyColumn(c Column) Column {
@@ -18,7 +18,7 @@ func CopyColumn(c Column) Column {
 	}
 }
 
-func NewColumn(columnType value.TypeId, columnName string) Column {
+func NewColumn(columnType value.ValueType, columnName string) Column {
 	return Column{
 		ColumnType: columnType,
 		ColumnName: columnName,

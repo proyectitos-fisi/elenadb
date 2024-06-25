@@ -38,6 +38,14 @@ func InvalidRID() *RID {
 	}
 }
 
+func (rid *RID) IsValid() bool {
+	return rid.PageID != -1
+}
+
+func (rid *RID) IsInvalid() bool {
+	return rid.PageID == -1
+}
+
 // NewRIDFromInt64 creates a new RID from a single int64 value
 func NewRIDFromInt64(rid int64) *RID {
 	return &RID{

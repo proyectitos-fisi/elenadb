@@ -4,7 +4,39 @@ import (
 	"fisi/elenadb/pkg/common"
 	"sync"
 	"sync/atomic"
+	"unsafe"
 )
+
+// -------------------------------------------------------------------
+// |  HEADER (8 bytes)  |  SLOTS  |  ..........  |  INSERTED TUPLES  |
+// -------------------------------------------------------------------
+
+// |------------------------------- HEADER --------------------------------|
+// -------------------------------------------------------------------------
+// | NumTuples(2) | NumDeletedTuples(2) | FreeSpace(2) | LastUsedOffset(2) |
+// -------------------------------------------------------------------------
+type PageHeader struct {
+	NumTuples      uint16 // 2 bytes
+	NumDeleted     uint16 // 2 bytes
+	FreeSpace      uint16 // 2 bytes
+	LastUsedOffset uint16 // 2 bytes
+
+}
+
+// Data format
+// ----------------------------------------------------------------
+// | Tuple_1 offset+size (4) | Tuple_2 offset+size (4) | ... |
+// ----------------------------------------------------------------
+type PageTableData struct {
+	PageId     common.PageID_t // 4 bytes
+	NumTuples  uint32          // 4 bytes
+	NumDeleted uint32          // 4 bytes
+}
+
+// static assert for PageTable size
+const HEADER_SIZE = 12
+
+var _ [0]struct{} = [unsafe.Sizeof(PageTableData{}) - HEADER_SIZE]struct{}{}
 
 type Page struct {
 	PageId   common.PageID_t
@@ -45,4 +77,12 @@ func (p *Page) ResetMemory() {
 	p.Data = make([]byte, common.ElenaPageSize)
 	p.IsDirty = false
 	p.PinCount.Store(0)
+}
+
+func (p *Page) AsPageTableData() *PageTableData {
+	p.Latch.RLock()
+	defer p.Latch.RUnlock()
+
+	// cast the memory to PageTableData
+	return (*PageTableData)(unsafe.Pointer(&p.Data[0]))
 }

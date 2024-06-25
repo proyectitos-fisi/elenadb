@@ -2,20 +2,36 @@ package tuple
 
 import (
 	"bytes"
-	"encoding/binary"
+	"fisi/elenadb/pkg/catalog/schema"
 	"fisi/elenadb/pkg/common"
+	"fisi/elenadb/pkg/storage/table/value"
+	"fmt"
 )
 
 // TOGRASP: is this tuple also used in table heaps? If so, it should have a valid RowId, right?
 type Tuple struct {
-	RowId common.RID // only valid if pointing to the table heap
-	Data  []byte
+	RowId  common.RID // only valid if pointing to the table heap
+	values []value.Value
 }
 
 // func New(row_id common.RID) *Tuple
 
-func New(values []Value /*, schema Schema*/) {
+func New(values []value.Value, RowId common.RID) *Tuple {
+	return &Tuple{
+		values: values,
+		RowId:  RowId,
+	}
+}
 
+func NewFromValues(values []value.Value) *Tuple {
+	return &Tuple{
+		values: values,
+		RowId:  *common.InvalidRID(),
+	}
+}
+
+func NewFromRawData(schema *schema.Schema, reader *bytes.Reader) *Tuple {
+	panic("Not implemented")
 }
 
 func Empty() *Tuple {
@@ -24,38 +40,47 @@ func Empty() *Tuple {
 	}
 }
 
-func (t *Tuple) DeserializeFrom(reader *bytes.Reader) error {
-	var size uint32
-	err := binary.Read(reader, binary.LittleEndian, &size)
-	if err != nil {
-		return err
+func (t *Tuple) PrintAsRow(schema *schema.Schema) {
+	// TODO: format nicely
+	fmt.Print("| ")
+	for _, val := range t.values {
+		fmt.Print(val)
 	}
-
-	t.Data = make([]byte, size)
-	n, err := reader.Read(t.Data)
-	if err != nil {
-		return err
-	}
-	if n != int(size) {
-		panic("Failed to read all data")
-	}
-
-	return nil
+	fmt.Print("\t|\n")
 }
 
-func (t *Tuple) SerializeTo(writer *bytes.Buffer) error {
-	err := binary.Write(writer, binary.LittleEndian, uint32(len(t.Data)))
-	if err != nil {
-		return err
-	}
+// func (t *Tuple) DeserializeFrom(reader *bytes.Reader) error {
+// 	var size uint32
+// 	err := binary.Read(reader, binary.LittleEndian, &size)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	_, err = writer.Write(t.Data)
-	if err != nil {
-		return err
-	}
+// 	t.Data = make([]byte, size)
+// 	n, err := reader.Read(t.Data)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	if n != int(size) {
+// 		panic("Failed to read all data")
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
+
+// func (t *Tuple) SerializeTo(writer *bytes.Buffer) error {
+// 	err := binary.Write(writer, binary.LittleEndian, uint32(len(t.Data)))
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	_, err = writer.Write(t.Data)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	return nil
+// }
 
 // func (t* Tuple) Serialize
 

@@ -1,9 +1,9 @@
 package repl
 
 import (
-	"fisi/elenadb/cli/commands"
 	"fisi/elenadb/internal/query"
 	"fisi/elenadb/pkg/common"
+	"fisi/elenadb/pkg/database"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	PromptNormal  = "elena> "
+	PromptIdle    = "elena> "
 	PromptWaiting = "   ... "
 	HistoryFile   = ".elenadb_repl_history"
 )
@@ -28,7 +28,13 @@ var (
 )
 
 func StartREPL(dbName string) error {
-	created, err := commands.ElenaCreate(dbName, true)
+	fmt.Println("🚄 Elena DB version", common.Version)
+	elena, err := database.StartElenaBusiness(dbName)
+
+	if elena.IsJustCreated {
+		fmt.Println("created db", dbName)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -48,20 +54,16 @@ func StartREPL(dbName string) error {
 		f.Close()
 	}
 
-	prompt := PromptNormal
+	prompt := PromptIdle
 
 	defer writeHistory(repl)
 
-	fmt.Println("🚄 Elena DB version", common.Version)
-	if created {
-		fmt.Println("creating db", dbName)
-	}
+	// Parsing debugging
 
-	parser := query.NewParser(query.DefaultFsm)
+	parser := query.NewParser()
 	formatter := newFormatter()
 
 	symbolStack := stack{}
-
 	fullInput := ""
 
 mainLoop:
@@ -72,7 +74,7 @@ mainLoop:
 			}
 
 			sanitized := removeQuottedStrings(input)
-			end := isEndOfQuery(sanitized)
+			isEnd := isEndOfQuery(sanitized)
 			fullInput += input + " "
 
 			for _, c := range input {
@@ -82,20 +84,17 @@ mainLoop:
 				if c == '}' {
 					if symbolStack = symbolStack.Pop(); symbolStack == nil {
 						fmt.Println("Syntax error: too many closing brackets")
-						prompt = PromptNormal
+						prompt = PromptIdle
 						fullInput = ""
 						continue mainLoop
 					}
 				}
 			}
 
-			if end && symbolStack.Empty() {
-				repl.AppendHistory(strings.TrimSpace(fullInput))
-				err := parseAndPrint(parser, &formatter, fullInput)
-				if err != nil {
-					fmt.Println("Syntax error:", err)
-				}
-				prompt = PromptNormal
+			if isEnd && symbolStack.Empty() {
+				executeAndDisplay(elena, repl, parser, formatter, fullInput)
+
+				prompt = PromptIdle
 				fullInput = ""
 				continue
 			}
@@ -107,6 +106,37 @@ mainLoop:
 			fmt.Println()
 			return nil
 		}
+	}
+}
+
+func executeAndDisplay(
+	elena *database.ElenaDB,
+	repl *liner.State,
+	parser *query.Parser,
+	formatter prettyjson.Formatter,
+	fullInput string,
+) {
+	fmt.Println("\n==== Parsing ====")
+	err := parseAndPrint(parser, &formatter, fullInput)
+	repl.AppendHistory(strings.TrimSpace(fullInput))
+
+	if err != nil {
+		fmt.Println("Syntax error:", err)
+	} else {
+		// 🚆 Database query execution!
+		schema, tuples, err := elena.ExecuteThisBaby(fullInput)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
+
+		fmt.Println("\n==== Results ====\n")
+		schema.PrintAsTableHeader()
+
+		for tuple := range tuples {
+			tuple.PrintAsRow(schema)
+		}
+		schema.PrintTableDivisor()
+		fmt.Println()
 	}
 }
 
@@ -122,12 +152,12 @@ func newFormatter() prettyjson.Formatter {
 }
 
 func parseAndPrint(parser *query.Parser, formatter *prettyjson.Formatter, input string) error {
-	res, err := parser.Parse(strings.NewReader(input))
+	parsedQuery, err := parser.Parse(strings.NewReader(input))
 	if err != nil {
 		return err
 	}
 
-	bytes, err := json.Marshal(res, json.DefaultOptionsV2())
+	bytes, err := json.Marshal(parsedQuery, json.DefaultOptionsV2())
 	if err != nil {
 		return err
 	}
@@ -150,12 +180,13 @@ func writeHistory(line *liner.State) {
 	}
 }
 
-var quotesRegex = regexp.MustCompile(`"([^"]*)"`)
 var endOfQueryRegex = regexp.MustCompile(`pe(\s?)+`)
 
 func isEndOfQuery(input string) bool {
 	return endOfQueryRegex.MatchString(input)
 }
+
+var quotesRegex = regexp.MustCompile(`"([^"]*)"`)
 
 func removeQuottedStrings(text string) string {
 	return quotesRegex.ReplaceAllString(text, "")

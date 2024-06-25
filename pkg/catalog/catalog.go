@@ -13,6 +13,7 @@
 package catalog
 
 import (
+	"fisi/elenadb/pkg/catalog/schema"
 	storage_disk "fisi/elenadb/pkg/storage/disk"
 	"fisi/elenadb/pkg/storage/table"
 )
@@ -26,13 +27,13 @@ const (
 
 /* Metadata about a Table */
 type TableInfo struct {
-	Schema Schema
+	Schema schema.Schema
 	Name   string
 	Table  table.TableHeap
 	OID    uint32
 }
 
-func NewTableInfo(schema Schema, name string, table table.TableHeap, oid uint32) *TableInfo {
+func NewTableInfo(schema schema.Schema, name string, table table.TableHeap, oid uint32) *TableInfo {
 	return &TableInfo{
 		Schema: schema,
 		Name:   name,
@@ -43,7 +44,7 @@ func NewTableInfo(schema Schema, name string, table table.TableHeap, oid uint32)
 
 /* Metadata about an Index */
 type IndexInfo struct {
-	KeySchema    Schema
+	KeySchema    schema.Schema
 	Name         string
 	Index        any
 	OID          uint32
@@ -53,7 +54,16 @@ type IndexInfo struct {
 	IndexType    IndexType
 }
 
-func NewIndexInfo(keySchema Schema, name string, index any, indexOID uint32, tableName string, keySize uintptr, isPrimaryKey bool, indexType IndexType) *IndexInfo {
+func NewIndexInfo(
+	keySchema schema.Schema,
+	name string,
+	index any,
+	indexOID uint32,
+	tableName string,
+	keySize uintptr,
+	isPrimaryKey bool,
+	indexType IndexType,
+) *IndexInfo {
 	return &IndexInfo{
 		KeySchema:    keySchema,
 		Name:         name,
