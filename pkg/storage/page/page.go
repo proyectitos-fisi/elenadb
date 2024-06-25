@@ -7,43 +7,40 @@ import (
 	"unsafe"
 )
 
+// A table is made up of Data Pages, which is a combination of HEADER, SLOTS and INSERTED TUPLES
 // -------------------------------------------------------------------
 // |  HEADER (8 bytes)  |  SLOTS  |  ..........  |  INSERTED TUPLES  |
 // -------------------------------------------------------------------
+//                                               ^
+// ________________ LastUsedOffset ______________|
+//
 
-// |------------------------------- HEADER --------------------------------|
+// Page header format:
 // -------------------------------------------------------------------------
 // | NumTuples(2) | NumDeletedTuples(2) | FreeSpace(2) | LastUsedOffset(2) |
 // -------------------------------------------------------------------------
-type PageHeader struct {
+type SlottedPageHeader struct {
 	NumTuples      uint16 // 2 bytes
 	NumDeleted     uint16 // 2 bytes
 	FreeSpace      uint16 // 2 bytes
 	LastUsedOffset uint16 // 2 bytes
-
 }
 
-// Data format
-// ----------------------------------------------------------------
-// | Tuple_1 offset+size (4) | Tuple_2 offset+size (4) | ... |
-// ----------------------------------------------------------------
-type PageTableData struct {
-	PageId     common.PageID_t // 4 bytes
-	NumTuples  uint32          // 4 bytes
-	NumDeleted uint32          // 4 bytes
-}
+// struct SlottedPage
 
-// static assert for PageTable size
-const HEADER_SIZE = 12
+const PAGE_HEADER_SIZE = 8
 
-var _ [0]struct{} = [unsafe.Sizeof(PageTableData{}) - HEADER_SIZE]struct{}{}
+var _ [0]struct{} = [unsafe.Sizeof(SlottedPageHeader{}) - PAGE_HEADER_SIZE]struct{}{}
 
+// Generic page
+// Not to be confused with a Slotted Page or BTree Page. This page can be interpreted as a
+// Slotted Page or BTree Page, depending on whether it's from a .table or .index file
 type Page struct {
 	PageId   common.PageID_t
 	PinCount atomic.Int32 // number of workers que usan la page. WHEN DO U PIN? when a worker thread is using it during a query
 	IsDirty  bool
 	Data     []byte
-	Latch    sync.RWMutex
+	Latch    sync.RWMutex // TODO: implement read and write guards for pages
 }
 
 func NewPage(pageId common.PageID_t, pinCount int32) *Page {
@@ -77,12 +74,4 @@ func (p *Page) ResetMemory() {
 	p.Data = make([]byte, common.ElenaPageSize)
 	p.IsDirty = false
 	p.PinCount.Store(0)
-}
-
-func (p *Page) AsPageTableData() *PageTableData {
-	p.Latch.RLock()
-	defer p.Latch.RUnlock()
-
-	// cast the memory to PageTableData
-	return (*PageTableData)(unsafe.Pointer(&p.Data[0]))
 }
