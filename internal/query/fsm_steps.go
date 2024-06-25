@@ -164,7 +164,7 @@ func defaultParseFsm() *FsmNode {
 
     createTableEos := &FsmNode{
         Step: FsmEos,
-        ExpectedString: "pe",
+        ExpectedString: ",",
         Children: map[StepType]*FsmNode{},
     }
 
