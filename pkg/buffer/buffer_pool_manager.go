@@ -374,3 +374,55 @@ func (bp *BufferPoolManager) removeFromFreeList(frameId common.FrameID_t) {
 
 	bp.freeList = newFreeList
 }
+
+// Iterates over our frames to see if the page exists. If not, tries to create fetch it from disk
+// as usual. Once fetched, writes the data to the page.
+// TODO: adquire write lock
+func (bp *BufferPoolManager) WriteDataToPage(pageId common.PageID_t, data []byte) bool {
+	bp.latch.Lock()
+	defer bp.latch.Unlock()
+
+	for _, page := range bp.pageTable {
+		if page == nil {
+			continue
+		}
+
+		if page.PageId == pageId {
+			copy(page.Data, data)
+			page.IsDirty = true
+			return true
+		}
+	}
+
+	// page not found, fetch from disk
+	frameId := common.InvalidFrameID
+
+	if len(bp.freeList) == 0 {
+		// no free frames
+		frameId = bp.replacer.Evict() // obtain the next evictable frame
+		if frameId == common.InvalidFrameID {
+			return false
+		}
+		// eviction can happen
+		// check if page is dirrrty (POP ANTHEM BY CRHISTINA AGUILERA!!) so we write it to disk
+		// NOTE: debugger halts here
+		if !bp.DeletePage(bp.pageTable[frameId].PageId) {
+			panic("DeletePage shouldn't have returned false since we just evicted that page")
+		}
+	} else {
+		// there's a free frame to use!!11!!1!
+		frameId = bp.freeList[0]
+		bp.freeList = bp.freeList[1:]
+	}
+
+	newPage := page.NewPageWithData(pageId, data, 1)
+	bp.pageTable[frameId] = newPage
+	bp.removeFromFreeList(frameId)
+	// Una vez que hallamos creado la página, marcamos ese frame como not evictable
+
+	// Remember to "Pin" the frame by calling replacer.SetEvictable(frame_id, false)
+	bp.replacer.TriggerAccess(frameId)
+	bp.replacer.SetEvictable(frameId, false) // ya entendí, paolo
+
+	return true
+}
