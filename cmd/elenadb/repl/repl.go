@@ -31,12 +31,12 @@ func StartREPL(dbName string) error {
 	fmt.Println("🚄 Elena DB version", common.Version)
 	elena, err := database.StartElenaBusiness(dbName)
 
-	if elena.IsJustCreated {
-		fmt.Println("created db", dbName)
-	}
-
 	if err != nil {
 		return err
+	}
+
+	if elena.IsJustCreated {
+		fmt.Println("created db", dbName)
 	}
 
 	repl := liner.NewLiner()
@@ -124,16 +124,20 @@ func executeAndDisplay(
 		fmt.Println("Syntax error:", err)
 	} else {
 		// 🚆 Database query execution!
-		schema, tuples, err := elena.ExecuteThisBaby(fullInput)
+		tuples, schema, plan, err := elena.ExecuteThisBaby(fullInput)
 		if err != nil {
 			fmt.Println("Error:", err)
 		}
+		fmt.Println("\n==== Query plan ====")
+		fmt.Println(plan.ToString())
 
 		fmt.Println("\n==== Results ====\n")
 		schema.PrintAsTableHeader()
 
+		colIdx := 0
 		for tuple := range tuples {
-			tuple.PrintAsRow(schema)
+			tuple.PrintAsRow(schema, schema.GetColumn(colIdx))
+			colIdx++
 		}
 		schema.PrintTableDivisor()
 		fmt.Println()

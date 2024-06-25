@@ -6,7 +6,6 @@ type Column struct {
 	ColumnType  value.ValueType
 	ColumnName  string
 	StorageSize uint16
-	Offset      uint16
 }
 
 func CopyColumn(c Column) Column {
@@ -14,7 +13,6 @@ func CopyColumn(c Column) Column {
 		ColumnType:  c.ColumnType,
 		ColumnName:  c.ColumnName,
 		StorageSize: c.StorageSize,
-		Offset:      c.Offset,
 	}
 }
 

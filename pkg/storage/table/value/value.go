@@ -1,5 +1,10 @@
 package value
 
+import (
+	"encoding/binary"
+	"math"
+)
+
 type ValueType string
 
 const (
@@ -11,8 +16,8 @@ const (
 )
 
 type Value struct {
-	typeId ValueType
-	data   []byte
+	Type ValueType
+	Data []byte
 }
 
 func NewValueTypeFromUserType(typeName string) ValueType {
@@ -31,15 +36,14 @@ func NewValueTypeFromUserType(typeName string) ValueType {
 }
 
 func (v *Value) GetValue() []byte {
-	return v.data
+	return v.Data
 }
 
 func NewValue(type_id ValueType, data []byte) *Value {
 	return &Value{
-		typeId: type_id,
-		data:   data,
+		Type: type_id,
+		Data: data,
 	}
-
 }
 
 func (typeId *ValueType) TypeSize() uint16 {
@@ -53,4 +57,24 @@ func (typeId *ValueType) TypeSize() uint16 {
 	default:
 		panic("unrechable. varchar should use Column.StorageSize")
 	}
+}
+
+func (v *ValueType) AsString() string {
+	return string(*v)
+}
+
+func (v *Value) AsBoolean() bool {
+	return v.Data[0] != 0
+}
+
+func (v *Value) AsInt32() int32 {
+	return int32(binary.LittleEndian.Uint32(v.Data))
+}
+
+func (v *Value) AsFloat32() float32 {
+	return math.Float32frombits(binary.LittleEndian.Uint32(v.Data))
+}
+
+func (v *Value) AsVarchar() string {
+	return string(v.Data)
 }

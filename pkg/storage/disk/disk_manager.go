@@ -14,7 +14,6 @@ package storage_disk
 
 import (
 	"fisi/elenadb/pkg/common"
-	"fmt"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -40,22 +39,22 @@ type DiskManager struct {
 // @param dbFile: the file name of the database file to write to
 // TODO: should open a directory instead
 func NewDiskManager(dbDir string) (*DiskManager, error) {
-	db, err := os.OpenFile(dbDir, os.O_RDWR|os.O_CREATE, 0755)
-	if err != nil {
-		return nil, err
-	}
+	// db, err := os.OpenFile(dbDir, os.O_RDWR|os.O_CREATE, 0755)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	logFileName := fmt.Sprintf("%s.log", dbDir)
-	logFile, err := os.OpenFile(logFileName, os.O_RDWR|os.O_CREATE, 0755)
-	if err != nil {
-		return nil, err
-	}
+	// logFileName := fmt.Sprintf("%s.log", dbDir)
+	// logFile, err := os.OpenFile(logFileName, os.O_RDWR|os.O_CREATE, 0755)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	dm := &DiskManager{
 		fileName:  dbDir,
-		logName:   logFileName,
-		dbFile:    db,
-		logFile:   logFile,
+		logName:   "fake.log", //logFileName,
+		dbFile:    nil,        //db,
+		logFile:   nil,        //logFile,
 		flushLogF: make(chan struct{}),
 	}
 

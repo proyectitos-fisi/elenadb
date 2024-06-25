@@ -1,4 +1,4 @@
-package plan
+package database
 
 import (
 	"fisi/elenadb/internal/query"
@@ -6,11 +6,13 @@ import (
 	"fisi/elenadb/pkg/catalog/schema"
 	"fisi/elenadb/pkg/storage/table/tuple"
 	"fisi/elenadb/pkg/storage/table/value"
+	"os"
 )
 
 type PlanNode interface {
 	Next() *tuple.Tuple
 	Schema() *schema.Schema
+	ToString() string
 }
 
 type PlanNodeType string
@@ -33,15 +35,20 @@ const (
 type PlanNodeBase struct {
 	Type     PlanNodeType
 	Children []PlanNode
+	Database *ElenaDB
 }
 
-func (p *PlanNodeBase) Next() *tuple.Tuple {
-	panic("call to PlanNodeBase.Next() from plan_node=" + string(p.Type))
-}
+// func (p *PlanNodeBase) Next() *tuple.Tuple {
+// 	panic("call to PlanNodeBase.Next() from plan_node=" + string(p.Type))
+// }
 
-func (p *PlanNodeBase) Schema() *schema.Schema {
-	panic("call to PlanNodeBase.Schema() from plan_node=" + string(p.Type))
-}
+// func (p *PlanNodeBase) Schema() *schema.Schema {
+// 	panic("call to PlanNodeBase.Schema() from plan_node=" + string(p.Type))
+// }
+
+// func (p *PlanNodeBase) Print() *schema.Schema {
+// 	panic("call to PlanNodeBase.Print() from plan_node=" + string(p.Type))
+// }
 
 type SeqScanPlanNode struct {
 	PlanNodeBase
@@ -57,20 +64,46 @@ type IndexScanPlanNode struct {
 	Index string
 }
 
+// =========== "dame" ===========
+type SelectPlanNode struct {
+	PlanNodeBase
+	Table string
+	Query *query.Query
+}
+
+func (s *SelectPlanNode) Next() *tuple.Tuple {
+	return nil
+}
+
+func (s *SelectPlanNode) Schema() *schema.Schema {
+	cols := make([]column.Column, 0)
+
+	for _, f := range s.Query.Fields {
+		cols = append(cols, column.NewColumn(f.Type, f.Name))
+	}
+	return schema.NewSchema(cols)
+}
+
+func (s *SelectPlanNode) ToString() string {
+	return "SelectPlanNode{}"
+}
+
 // =========== "creame" ===========
 
 type CreatePlanNode struct {
 	PlanNodeBase
 	Table   string
 	Query   *query.Query
-	created bool
+	Created bool
 }
 
 func (c *CreatePlanNode) Next() *tuple.Tuple {
-	if c.created {
+	if c.Created {
 		return nil
 	}
-	c.created = true
+	os.Create(c.Database.DbPath + c.Table + ".table")
+
+	c.Created = true
 	val := value.NewValue(value.TypeBoolean, []byte{1})
 
 	return tuple.NewFromValues([]value.Value{*val})
@@ -81,6 +114,10 @@ func (c *CreatePlanNode) Schema() *schema.Schema {
 	return schema.NewSchema([]column.Column{col})
 }
 
+func (c *CreatePlanNode) ToString() string {
+	return "CreatePlanNode{}"
+}
+
 // Static assertions for PlanNodeBase implementors.
-var _ PlanNode = (*PlanNodeBase)(nil)
+var _ PlanNode = (*SelectPlanNode)(nil)
 var _ PlanNode = (*CreatePlanNode)(nil)

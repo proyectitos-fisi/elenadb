@@ -6,7 +6,8 @@ import (
 	"fisi/elenadb/pkg/storage/table/value"
 )
 
-const ELENA_META_TABLE = "elena_meta.table"
+const ELENA_META_TABLE_NAME = "elena_meta"
+const ELENA_META_TABLE_FILE = "elena_meta.table"
 
 var ElenaMetaSchema = schema.NewSchema([]column.Column{
 	{ColumnName: "type", ColumnType: value.TypeVarChar, StorageSize: 5},

@@ -2,10 +2,13 @@ package tuple
 
 import (
 	"bytes"
+	"fisi/elenadb/pkg/catalog/column"
 	"fisi/elenadb/pkg/catalog/schema"
 	"fisi/elenadb/pkg/common"
 	"fisi/elenadb/pkg/storage/table/value"
+	"fisi/elenadb/pkg/utils"
 	"fmt"
+	"strings"
 )
 
 // TOGRASP: is this tuple also used in table heaps? If so, it should have a valid RowId, right?
@@ -40,13 +43,34 @@ func Empty() *Tuple {
 	}
 }
 
-func (t *Tuple) PrintAsRow(schema *schema.Schema) {
-	// TODO: format nicely
+func (t *Tuple) PrintAsRow(rowSchema *schema.Schema, col column.Column) {
 	fmt.Print("| ")
 	for _, val := range t.values {
-		fmt.Print(val)
+		var formattedValue string
+
+		switch val.Type {
+		case value.TypeInt32:
+			formattedValue = fmt.Sprintf("%d", val.AsInt32())
+		case value.TypeFloat32:
+			formattedValue = fmt.Sprintf("%f", val.AsFloat32())
+		case value.TypeVarChar:
+			formattedValue = fmt.Sprintf("%s", val.AsVarchar())
+		case value.TypeBoolean:
+			formattedValue = fmt.Sprintf("%t", val.AsBoolean())
+		default:
+			panic("Unknown value type")
+		}
+
+		spacing := utils.Max(
+			len(formattedValue),
+			len(col.ColumnName),
+			schema.GetMinimumSpacingForType(val.Type),
+		)
+
+		fmt.Print(formattedValue)
+		fmt.Print(strings.Repeat(" ", spacing-len(formattedValue)))
 	}
-	fmt.Print("\t|\n")
+	fmt.Print(" |\n")
 }
 
 // func (t *Tuple) DeserializeFrom(reader *bytes.Reader) error {

@@ -31,3 +31,14 @@ func FileOrDirExists(path string) bool {
 	}
 	return true
 }
+
+func WithTrailingSlash(path string) string {
+	if len(path) == 0 {
+		return "./"
+	}
+
+	if path[len(path)-1] != '/' {
+		return path + "/"
+	}
+	return path
+}
