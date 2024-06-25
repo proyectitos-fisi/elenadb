@@ -19,10 +19,7 @@ the name `<table>.<field>.index`.
 
 ### How tables are stored
 
-A .table file is NO MORE than a bunch of pages.
-
-- The first page is the **header page**, which contains metadata about the table.
-- The rest of the pages are **data pages** structured as slotted pages.
+A .table file is NO MORE than a bunch of **data pages** stored as slotted pages.
 
 We are **not**:
 
@@ -31,13 +28,9 @@ We are **not**:
   We are using a simple approach: Our pages are contiguous and we assume the last page is the one
   that contains the most recent data, and may have free space.
 
-#### Header page
-
-```text
-??? What kind of metadata we should store here ???
-```
-
 #### Data page
+
+So a table file is made up of data pages. Each data page is a slotted page structured as follows:
 
 ```text
 -------------------------------------------------------------------
@@ -82,6 +75,8 @@ We are **not**:
     That is, in order to delete a tuple you just nullify the slot (i.e., set to zero).
 
 ### How indexes are storaged
+
+@eduardo needs to write this section.
 
 ```text
 -------------------------------------------------------------------

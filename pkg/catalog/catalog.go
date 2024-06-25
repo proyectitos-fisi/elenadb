@@ -29,11 +29,11 @@ const (
 type TableInfo struct {
 	Schema schema.Schema
 	Name   string
-	Table  table.TableHeap
+	Table  *table.TableHeap
 	OID    uint32
 }
 
-func NewTableInfo(schema schema.Schema, name string, table table.TableHeap, oid uint32) *TableInfo {
+func NewTableInfo(schema schema.Schema, name string, table *table.TableHeap, oid uint32) *TableInfo {
 	return &TableInfo{
 		Schema: schema,
 		Name:   name,
