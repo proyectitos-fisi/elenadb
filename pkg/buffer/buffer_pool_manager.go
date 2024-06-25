@@ -4,6 +4,7 @@ import (
 	"fisi/elenadb/pkg/common"
 	storage_disk "fisi/elenadb/pkg/storage/disk"
 	"fisi/elenadb/pkg/storage/page"
+	"log"
 	"sync"
 	"sync/atomic"
 )
@@ -86,6 +87,7 @@ func (bp *BufferPoolManager) FetchPage(pageId common.PageID_t) *page.Page {
 	if len(bp.freeList) == 0 {
 		frameId = bp.replacer.Evict() // obtain the next evictable frame
 		if frameId == common.InvalidFrameID {
+			log.Println("MAYBE ERR: No free frames available")
 			return nil
 		}
 		// eviction can happen
@@ -298,13 +300,21 @@ func (bp *BufferPoolManager) UnpinPage(pageId common.PageID_t, isDirty bool) boo
 func (bp *BufferPoolManager) FlushPage(pageId common.PageID_t) bool {
 	bp.latch.Lock()
 	defer bp.latch.Unlock()
+	return bp.flushPageNoLock(pageId)
+}
 
+// Same as FlushPage but without the lock
+func (bp *BufferPoolManager) flushPageNoLock(pageId common.PageID_t) bool {
 	for _, page := range bp.pageTable {
 		if page == nil {
 			continue
 		}
 
 		if page.PageId == pageId {
+			if !page.IsDirty {
+				return true
+			}
+
 			cb := make(chan bool)
 			bp.diskScheduler.Schedule(&storage_disk.DiskRequest{
 				IsWrite:  true,
@@ -324,18 +334,22 @@ func (bp *BufferPoolManager) FlushPage(pageId common.PageID_t) bool {
 	return false
 }
 
-// Same as FlushPage but without the lock
-func (bp *BufferPoolManager) flushPageNoLock(pageId common.PageID_t) bool {
+// Schedules a write for each dirty page in the buffer pool.
+// FUTURE NOTE: You may need to first adquire each page's latch before writing to disk
+func (bp *BufferPoolManager) FlushEntirePool() {
+	bp.latch.Lock()
+	defer bp.latch.Unlock()
+
 	for _, page := range bp.pageTable {
 		if page == nil {
 			continue
 		}
 
-		if page.PageId == pageId {
+		if page.IsDirty {
 			cb := make(chan bool)
 			bp.diskScheduler.Schedule(&storage_disk.DiskRequest{
 				IsWrite:  true,
-				PageID:   pageId,
+				PageID:   page.PageId,
 				Data:     page.Data,
 				Callback: cb,
 			})
@@ -344,11 +358,8 @@ func (bp *BufferPoolManager) flushPageNoLock(pageId common.PageID_t) bool {
 				panic("unexpected I/O error")
 			}
 			page.IsDirty = false
-			return true
 		}
 	}
-
-	return false
 }
 
 func (bp *BufferPoolManager) removeFromFreeList(frameId common.FrameID_t) {
