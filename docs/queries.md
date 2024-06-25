@@ -4,8 +4,8 @@
 
 ```elenaql
 creame tabla usuario {
-    id     int       @id @incremental pe
-    nombre char(255) pe
+    id  int @id @incremental,
+    age int,
 } pe
 ```
 

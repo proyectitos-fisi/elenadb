@@ -9,7 +9,7 @@ mydb.elena
 ├── doctor.table
 ├── doctor.name.index
 ├── doctor.id.index
-├── usuario.id.table
+├── usuario.id.index
 ├── usuario.table
 └── elena.meta.table
 ```
@@ -93,7 +93,7 @@ other tables and indexes in the database. Each database MUST have a meta table c
 
 ```text
 +----------------+-------------------------+----------------+--------------------------+
-| type           | name                    | table_name     | sql                     |
+| type           | name                    | table_name     | sql                      |
 +----------------+-------------------------+----------------+--------------------------+
 | table or index | the index or table name | the table name | the CREATE sql statement |
 +----------------+-------------------------+----------------+--------------------------+

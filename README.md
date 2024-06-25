@@ -70,6 +70,9 @@ ElenaDB internal workflow (spanish)
 - [x] [Disk scheduling](pkg/storage/disk/disk_scheduler.go): Used to optimize and prioritize disk accesss.
   <https://en.wikipedia.org/wiki/I/O_scheduling>
 
+- [x] [Tree traversing](pkg/storage/index/another_bptree.go): BFS and DFS are used to traverse the B+Tree.
+  <https://en.wikipedia.org/wiki/Tree_traversal>
+
 ## Data structures used
 
 - [ ] Bloom filters. A probabilistic data structure to test whether an element is on a set.
