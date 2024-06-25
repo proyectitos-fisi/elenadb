@@ -38,7 +38,7 @@ const (
 
     FsmRetrieveFrom
     FsmRetrieveFromSome
-    FsmRetrieveAll
+    FsmRetrieveFields
 
     FsmInsertAt
 )
@@ -66,10 +66,6 @@ func isKeyword(tk *tokens.Token) bool {
     }
 
     if tk.Data == "fkey" {
-        return true
-    }
-
-    if tk.Data == "todo" {
         return true
     }
 
@@ -168,7 +164,7 @@ func defaultParseFsm() *FsmNode {
 
     createTableEos := &FsmNode{
         Step: FsmEos,
-        ExpectedString: "pe",
+        ExpectedString: ",",
         Children: map[StepType]*FsmNode{},
     }
 
@@ -278,16 +274,16 @@ func defaultParseFsm() *FsmNode {
         }, FsmRetrieveStep).
         AddRule(&FsmNode{
             ExpectedString: "todo",
-        }, FsmRetrieveStep, FsmRetrieveAll).
+        }, FsmRetrieveStep, FsmRetrieveFields).
         AddRule(retrieveTableFrom,
-            FsmRetrieveStep, FsmRetrieveAll, FsmRetrieveFrom).
+            FsmRetrieveStep, FsmRetrieveFields, FsmRetrieveFrom).
         AddRule(&FsmNode{
             ExpectByType: true,
             ExpectedType: tokens.TkWord,
             ExpectedString: "",
-        }, FsmRetrieveStep, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveFromSome).
+        }, FsmRetrieveStep, FsmRetrieveFields, FsmRetrieveFrom, FsmRetrieveFromSome).
         AddRule(beginStep,
-            FsmRetrieveStep, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveFromSome, FsmBeginStep).
+            FsmRetrieveStep, FsmRetrieveFields, FsmRetrieveFrom, FsmRetrieveFromSome, FsmBeginStep).
         AddRule(&FsmNode{
             ExpectedString: "{",
         }, FsmRetrieveStep, FsmOpenList).
@@ -341,4 +337,3 @@ func defaultParseFsm() *FsmNode {
 
     return beginStep
 }
-
