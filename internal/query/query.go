@@ -1,12 +1,13 @@
 package query
 
-type QueryInstrType uint8
+type QueryInstrType string
+
 const (
-    queryCreate QueryInstrType = iota
-    queryRetrieve
-    queryInsert
-    queryDelete
-    queryUpdate
+    QueryCreate QueryInstrType = "creame"
+    QueryRetrieve QueryInstrType = "dame"
+    QueryInsert QueryInstrType = "mete"
+    QueryDelete QueryInstrType = "borra"
+    QueryUpdate QueryInstrType = "cambia"
 )
 
 type QueryField struct {

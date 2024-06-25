@@ -19,17 +19,17 @@ func (qb *QueryBuilder) PushInstr(tp QueryInstrType) {
 type ParseFn func(*QueryBuilder, string) error
 
 func parseCreateFn(qu *QueryBuilder, _ string) error {
-    qu.PushInstr(queryCreate)
+    qu.PushInstr(QueryCreate)
     return nil
 }
 
 func parseRetrieveFn(qb *QueryBuilder, _ string) error {
-    qb.PushInstr(queryRetrieve)
+    qb.PushInstr(QueryRetrieve)
     return nil
 }
 
 func parseInsertFn(qb *QueryBuilder, _ string) error {
-    qb.PushInstr(queryInsert)
+    qb.PushInstr(QueryInsert)
     return nil
 }
 
@@ -94,12 +94,6 @@ func parseFkeyPathFn(qb *QueryBuilder, data string) error {
     return nil
 }
 
-func parseGetAllFieldsFn(qb *QueryBuilder, _ string) error {
-    qb.qu[len(qb.qu)-1].GetAllFields = true
-    return nil
-}
-
-
 var defaultParseFnTable map[StepType]ParseFn = map[StepType]ParseFn{
     FsmCreateStep: parseCreateFn,
     FsmRetrieveStep: parseRetrieveFn,
@@ -114,7 +108,7 @@ var defaultParseFnTable map[StepType]ParseFn = map[StepType]ParseFn{
     FsmFieldFkey: parseFkeyFn,
     FsmFieldFkeyPath: parseFkeyPathFn,
     FsmRetrieveFromSome: parseTableNameFn,
-    FsmRetrieveAll: parseGetAllFieldsFn,
+    FsmRetrieveFields: parseFieldKeyFn,
 }
 
 

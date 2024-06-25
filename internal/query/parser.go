@@ -31,7 +31,6 @@ func (par *Parser) Test(tk *tokens.Token) error {
         return fmt.Errorf("uninitialized tokenizer")
     }
 
-
     expKeys := []string{}
     for key := range par.fsm.Children {
         if par.fsm.Children[key].Eval(tk) {
@@ -102,9 +101,3 @@ func (par *Parser) Parse(rd io.Reader) ([]Query, error) {
 
     return newQuery.qu, nil
 }
-
-
-
-
-
-
