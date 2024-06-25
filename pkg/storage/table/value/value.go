@@ -15,6 +15,21 @@ type Value struct {
 	data   []byte
 }
 
+func NewValueTypeFromUserType(typeName string) ValueType {
+	switch typeName {
+	case "bool":
+		return TypeBoolean
+	case "int":
+		return TypeInt32
+	case "float":
+		return TypeFloat32
+	case "char":
+		return TypeVarChar
+	default:
+		return TypeInvalid
+	}
+}
+
 func (v *Value) GetValue() []byte {
 	return v.data
 }

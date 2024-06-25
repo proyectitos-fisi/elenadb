@@ -1,5 +1,7 @@
 package query
 
+import "fisi/elenadb/pkg/storage/table/value"
+
 type QueryBuilder struct {
     qu []Query
 }
@@ -40,7 +42,7 @@ func parseTableNameFn(qb *QueryBuilder, data string) error {
 
 func parseFieldTypeFn(qb *QueryBuilder, data string) error {
     fields := qb.qu[len(qb.qu)-1].Fields
-    fields[len(fields)-1].Type = data
+    fields[len(fields)-1].Type = value.NewValueTypeFromUserType(data)
     return nil
 }
 
@@ -60,7 +62,7 @@ func parseFieldKeyFn(qb *QueryBuilder, data string) error {
 
 func parseTypeFn(qb *QueryBuilder, data string) error {
     fields := qb.qu[len(qb.qu)-1].Fields
-    fields[len(fields)-1].Type = data
+    fields[len(fields)-1].Type = value.NewValueTypeFromUserType(data)
     return nil
 }
 

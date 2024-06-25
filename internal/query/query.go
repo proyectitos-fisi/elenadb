@@ -1,5 +1,7 @@
 package query
 
+import "fisi/elenadb/pkg/storage/table/value"
+
 type QueryInstrType string
 
 const (
@@ -13,7 +15,7 @@ const (
 type QueryField struct {
     Foreign     bool
     Name        string
-    Type        string
+    Type        value.ValueType
     Length      uint8
     Value       interface{}
     ForeignPath string
@@ -28,7 +30,6 @@ func (qf *QueryFilter) Exec(map[string]interface{}) bool {
 
 type Query struct {
     QueryType      QueryInstrType
-    QueryTypeStr   string
     QueryInstrName string
     QueryDbInstr   bool
     Fields         []QueryField
