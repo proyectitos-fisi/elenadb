@@ -5,7 +5,7 @@ import "fisi/elenadb/pkg/storage/table/value"
 type Column struct {
 	ColumnType  value.ValueType
 	ColumnName  string
-	StorageSize int
+	StorageSize uint16
 	Offset      uint16
 }
 

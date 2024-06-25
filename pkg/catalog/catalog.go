@@ -15,7 +15,6 @@ package catalog
 import (
 	"fisi/elenadb/pkg/catalog/schema"
 	storage_disk "fisi/elenadb/pkg/storage/disk"
-	"fisi/elenadb/pkg/storage/table"
 )
 
 type IndexType int
@@ -29,15 +28,13 @@ const (
 type TableInfo struct {
 	Schema schema.Schema
 	Name   string
-	Table  *table.TableHeap
 	OID    uint32
 }
 
-func NewTableInfo(schema schema.Schema, name string, table *table.TableHeap, oid uint32) *TableInfo {
+func NewTableInfo(schema schema.Schema, name string, oid uint32) *TableInfo {
 	return &TableInfo{
 		Schema: schema,
 		Name:   name,
-		Table:  table,
 		OID:    oid,
 	}
 }

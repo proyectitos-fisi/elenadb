@@ -10,31 +10,27 @@ import (
 type Schema struct {
 	columns          []column.Column
 	uninlinedColumns []column.Column
-	AllInlined       bool
 	Size             uint16
 }
 
 func NewSchema(columns []column.Column) *Schema {
-	allInlined := true
 	currentOffset := uint16(0)
 	thisColumns := make([]column.Column, len(columns))
 	thisUninlinedColumns := make([]column.Column, 0)
 
 	for _, c := range columns {
 		newCol := column.CopyColumn(c)
-
-		if !c.ColumnType.IsInlinedType() {
-			allInlined = false
-			thisUninlinedColumns = append(thisUninlinedColumns, newCol)
-		}
 		newCol.Offset = currentOffset
+		if c.StorageSize > 0 {
+			currentOffset += c.StorageSize
+		} else {
+			currentOffset += c.ColumnType.TypeSize()
 
-		currentOffset += c.ColumnType.TypeSize()
+		}
 		thisColumns = append(thisColumns, newCol)
 	}
 
 	return &Schema{
-		AllInlined:       allInlined,
 		Size:             currentOffset,
 		columns:          columns,
 		uninlinedColumns: thisUninlinedColumns,

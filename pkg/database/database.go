@@ -8,6 +8,8 @@ import (
 	"fisi/elenadb/pkg/plan"
 	storage_disk "fisi/elenadb/pkg/storage/disk"
 	"fisi/elenadb/pkg/storage/table/tuple"
+	"fisi/elenadb/pkg/utils"
+	"os"
 	"strings"
 )
 
@@ -26,19 +28,21 @@ type ElenaDB struct {
 func StartElenaBusiness(dbPath string) (*ElenaDB, error) {
 	diskManager, err := storage_disk.NewDiskManager(dbPath)
 
-	// TODO: parse table and index files in the directory
-
 	if err != nil {
 		panic(err)
 	}
 
 	bpm := buffer.NewBufferPoolManager(common.BufferPoolSize, diskManager, common.LRUKReplacerK)
 
-	return &ElenaDB{
-		diskManager: diskManager,
-		dbPath:      dbPath,
-		bufferPool:  bpm,
-	}, nil
+	elena := &ElenaDB{
+		diskManager:   diskManager,
+		dbPath:        dbPath,
+		bufferPool:    bpm,
+		IsJustCreated: false,
+	}
+	elena.CreateDatabaseIfNotExists()
+
+	return elena, nil
 }
 
 // Executes a SQL query. The steps are as follows:
@@ -76,6 +80,21 @@ func (e *ElenaDB) ExecuteThisBaby(input string) (*schema.Schema, chan tuple.Tupl
 	}()
 
 	return nodePlan.Schema(), tuples, nil
+}
+
+func (e *ElenaDB) CreateDatabaseIfNotExists() error {
+	if utils.DirExists(e.dbPath) {
+		return nil
+	}
+
+	err := os.Mkdir(e.dbPath, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	e.IsJustCreated = true
+
+	return nil
 }
 
 func (e *ElenaDB) optimizePlan(inputPlan plan.PlanNode) plan.PlanNode {

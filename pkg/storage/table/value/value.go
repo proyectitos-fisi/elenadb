@@ -27,20 +27,7 @@ func NewValue(type_id ValueType, data []byte) *Value {
 
 }
 
-func (typeId *ValueType) IsInlinedType() bool {
-	switch *typeId {
-	case TypeVarChar:
-		return false
-	default:
-		return true
-	}
-}
-
 func (typeId *ValueType) TypeSize() uint16 {
-	if typeId.IsInlinedType() {
-		return 4
-	}
-
 	switch *typeId {
 	case TypeBoolean:
 		return 1
@@ -49,6 +36,6 @@ func (typeId *ValueType) TypeSize() uint16 {
 	case TypeFloat32:
 		return 4
 	default:
-		panic("unrechable")
+		panic("unrechable. varchar should use Column.StorageSize")
 	}
 }
