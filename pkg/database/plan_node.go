@@ -7,6 +7,7 @@ import (
 	"fisi/elenadb/pkg/storage/table/tuple"
 	"fisi/elenadb/pkg/storage/table/value"
 	"os"
+	"strings"
 )
 
 type PlanNode interface {
@@ -116,7 +117,16 @@ func (c *CreatePlanNode) Schema() *schema.Schema {
 }
 
 func (c *CreatePlanNode) ToString() string {
-	return "CreatePlanNode{}"
+	fields := strings.Builder{}
+
+	for _, f := range c.Query.Fields {
+		fields.WriteString(f.Name)
+		fields.WriteString(": ")
+		fields.WriteString(f.Type.AsString())
+		fields.WriteString(", ")
+	}
+
+	return "CreatePlanNode(" + c.Table + "){ " + fields.String() + "}"
 }
 
 // Static assertions for PlanNodeBase implementors.
