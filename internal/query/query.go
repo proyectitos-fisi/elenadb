@@ -24,12 +24,6 @@ type QueryField struct {
 	Annotations []string
 }
 
-type QueryFilter struct{}
-
-func (qf *QueryFilter) Exec(map[string]interface{}) bool {
-	return false
-}
-
 type Query struct {
 	QueryType      QueryInstrType
 	QueryInstrName string
