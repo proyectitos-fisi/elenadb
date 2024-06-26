@@ -55,4 +55,3 @@ cambia en users {
   nombre: "otro nombre",
 } si (id=10) pe
 ```
-

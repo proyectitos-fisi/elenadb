@@ -92,12 +92,16 @@ The meta table is a builtin table hardcoded in the Elena source code. It contain
 other tables and indexes in the database. Each database MUST have a meta table called `elena.meta.table`.
 
 ```text
-+----------------+-------------------------+----------------+--------------------------+
-| type           | name                    | table_name     | sql                      |
-+----------------+-------------------------+----------------+--------------------------+
-| table or index | the index or table name | the table name | the CREATE sql statement |
-+----------------+-------------------------+----------------+--------------------------+
++----------------+---------------------+--------------+--------------------------+
+| type           | name                | root         | sql                      |
++----------------+---------------------+--------------+--------------------------+
+| table or index | index or table name | root page id | the CREATE sql statement |
++----------------+---------------------+--------------+--------------------------+
 ```
+
+For tables the root page is always 0.
+
+For indexes, root is the page_id of the btree root page. Index name is formatted as `<table>.<field>`.
 
 <!--
 Good ideas but not planned:

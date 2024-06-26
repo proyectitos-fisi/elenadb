@@ -54,7 +54,7 @@ func (t *Tuple) PrintAsRow(rowSchema *schema.Schema, col column.Column) {
 		case value.TypeFloat32:
 			formattedValue = fmt.Sprintf("%f", val.AsFloat32())
 		case value.TypeVarChar:
-			formattedValue = fmt.Sprintf("%s", val.AsVarchar())
+			formattedValue = val.AsVarchar()
 		case value.TypeBoolean:
 			formattedValue = fmt.Sprintf("%t", val.AsBoolean())
 		default:

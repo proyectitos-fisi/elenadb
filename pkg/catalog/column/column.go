@@ -6,6 +6,8 @@ type Column struct {
 	ColumnType  value.ValueType
 	ColumnName  string
 	StorageSize uint16
+	IsUnique    bool
+	IsNullable  bool
 }
 
 func CopyColumn(c Column) Column {

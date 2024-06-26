@@ -14,33 +14,31 @@ package catalog
 
 import (
 	"fisi/elenadb/pkg/catalog/schema"
-	storage_disk "fisi/elenadb/pkg/storage/disk"
+	"fisi/elenadb/pkg/database"
 )
 
-type IndexType int
+type IndexType string
 
 const (
-	BPTreeIndex IndexType = iota
-	HashTableIndex
+	BPTreeIndex    IndexType = "BPTreeIndex"
+	HashTableIndex IndexType = "HashTableIndex"
 )
 
 /* Metadata about a Table */
-type TableInfo struct {
-	Schema schema.Schema
-	Name   string
-	OID    uint32
+type TableMetadata struct {
+	Name string
+	// SQL Create statement that created this table
+	SqlCreate string //
+	Schema    schema.Schema
 }
 
-func NewTableInfo(schema schema.Schema, name string, oid uint32) *TableInfo {
-	return &TableInfo{
-		Schema: schema,
-		Name:   name,
-		OID:    oid,
-	}
+func NewTableInfo(name string, oid uint32) *TableMetadata {
+	return &TableMetadata{}
 }
 
 /* Metadata about an Index */
 type IndexInfo struct {
+	Schema       schema.Schema
 	KeySchema    schema.Schema
 	Name         string
 	Index        any
@@ -74,11 +72,41 @@ func NewIndexInfo(
 }
 
 type Catalog struct {
-	DiskManager *storage_disk.DiskManager
+	Db *database.ElenaDB
 }
 
-func NewCatalog(diskManager *storage_disk.DiskManager) *Catalog {
+func NewCatalog(db *database.ElenaDB) *Catalog {
 	return &Catalog{
-		DiskManager: diskManager,
+		Db: db,
 	}
+}
+
+func (c *Catalog) GetTableMetadata(table string) *TableMetadata {
+	if table == database.ELENA_META_TABLE_NAME {
+		return &TableMetadata{
+			Name:      database.ELENA_META_TABLE_NAME,
+			SqlCreate: database.ELENA_META_CREATE_SQL,
+			Schema:    *database.ElenaMetaSchema,
+		}
+	}
+
+	result, _, _, err := c.Db.ExecuteThisBaby(
+		"dame { table_name, sql } de elena_meta donde { table_name = " + table + " } pe",
+	)
+
+	if err != nil {
+		panic("Unable to query elena_meta: " + err.Error())
+	}
+
+	tuple := <-result
+
+	if nil != <-result {
+		panic("Multiple rows returned for table " + table)
+	}
+
+	if tuple == nil {
+		return nil
+	}
+
+	return &TableMetadata{}
 }

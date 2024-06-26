@@ -61,7 +61,7 @@ func StartElenaBusiness(dbPath string) (*ElenaDB, error) {
 // - Make a plan based on the query
 // - Optimize the plan
 // - Execute the plan, fetching the tuples one by one
-func (e *ElenaDB) ExecuteThisBaby(input string) (chan tuple.Tuple, *schema.Schema, PlanNode, error) {
+func (e *ElenaDB) ExecuteThisBaby(input string) (chan *tuple.Tuple, *schema.Schema, PlanNode, error) {
 	parsedQuery, err := e.sqlPipeline(input)
 	if err != nil {
 		return nil, nil, nil, err
@@ -74,7 +74,7 @@ func (e *ElenaDB) ExecuteThisBaby(input string) (chan tuple.Tuple, *schema.Schem
 	}
 	nodePlan = OptimizeQueryPlan(nodePlan)
 
-	tuples := make(chan tuple.Tuple)
+	tuples := make(chan *tuple.Tuple)
 
 	go func() {
 		for {
@@ -83,7 +83,7 @@ func (e *ElenaDB) ExecuteThisBaby(input string) (chan tuple.Tuple, *schema.Schem
 				break
 			}
 
-			tuples <- *tuple
+			tuples <- tuple
 		}
 		close(tuples)
 	}()
@@ -111,12 +111,7 @@ func (e *ElenaDB) CreateMetaTableIfNotExists() error {
 		return nil
 	}
 
-	result, _, _, err := e.ExecuteThisBaby(
-		"creame tabla " + ELENA_META_TABLE_NAME +
-			// TODO(@pandadiestro): suppot varchar paramater
-			// " { type char(5), name char(255), table char(255), sql char(2048), } pe",
-			" { type char, name char, table char, sql char, } pe",
-	)
+	result, _, _, err := e.ExecuteThisBaby(ELENA_META_CREATE_SQL)
 	if err != nil {
 		return err
 	}

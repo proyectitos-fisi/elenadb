@@ -102,6 +102,7 @@ func (c *CreatePlanNode) Next() *tuple.Tuple {
 		return nil
 	}
 	os.Create(c.Database.DbPath + c.Table + ".table")
+	c.Database.ExecuteThisBaby("mete {} en elena_meta")
 
 	c.Created = true
 	val := value.NewValue(value.TypeBoolean, []byte{1})

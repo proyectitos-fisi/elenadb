@@ -2,7 +2,6 @@ package schema
 
 import (
 	"fisi/elenadb/pkg/catalog/column"
-	catalog "fisi/elenadb/pkg/catalog/column"
 	"fisi/elenadb/pkg/storage/table/value"
 	"fisi/elenadb/pkg/utils"
 	"fmt"
@@ -14,17 +13,10 @@ type Schema struct {
 }
 
 func NewSchema(columns []column.Column) *Schema {
-	thisColumns := make([]column.Column, len(columns))
-
-	for _, c := range columns {
-		newCol := column.CopyColumn(c)
-		thisColumns = append(thisColumns, newCol)
-	}
-
 	return &Schema{columns: columns}
 }
 
-func (s *Schema) GetColumns() []catalog.Column {
+func (s *Schema) GetColumns() []column.Column {
 	return s.columns
 }
 
@@ -32,7 +24,7 @@ func (s *Schema) GetColumnCount() int {
 	return len(s.columns)
 }
 
-func (s *Schema) GetColumn(col_idx int) catalog.Column {
+func (s *Schema) GetColumn(col_idx int) column.Column {
 	return s.columns[col_idx]
 }
 
