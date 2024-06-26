@@ -28,7 +28,7 @@ const (
 type TableMetadata struct {
 	Name string
 	// SQL Create statement that created this table
-	SqlCreate string //
+	SqlCreate string // columns
 	Schema    schema.Schema
 }
 

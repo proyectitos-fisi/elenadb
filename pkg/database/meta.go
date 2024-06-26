@@ -19,7 +19,7 @@ var ElenaMetaSchema = schema.NewSchema([]column.Column{
 
 // TODO(@pandadiestro): suppot varchar paramater
 const ELENA_META_CREATE_SQL = `creame tabla elena_meta {
-	id   int @id
+	id   int @id,
 	type char,
 	name char,
 	root int,
