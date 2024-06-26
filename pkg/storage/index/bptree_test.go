@@ -17,21 +17,22 @@ func TestRangeSearch(t *testing.T) {
 	// defer diskManager.Shutdown()
 
 	// Inicializa el Buffer Pool Manager
-	poolSize := uint32(10) // tamaño del buffer pool
+	poolSize := uint32(30) // tamaño del buffer pool
 	k := 5                 // parámetro K para LRU-K
 	bufferPoolManager := buffer.NewBufferPoolManager(poolSize, diskManager, k)
 
 	// Inicializa el B+ Tree con el Buffer Pool Manager
 	bptree := NewBPTree(bufferPoolManager)
 
-	const large = 1000
+	const large = 10
 	key := 1
 	for ; key < large; key++ {
 		bptree.Insert(key, uint64(key))
 		bptree.PrintTree()
 	}
 
-	keys, values := bptree.RangeSearch(640, 700)
+	bptree.PrintTree()
+	keys, values := bptree.RangeSearch(5, 7)
 
 	fmt.Printf("Keys: %v", keys)
 	fmt.Printf("Values: %v", values)
@@ -48,14 +49,14 @@ func TestIntegrationWithBufferpool(t *testing.T) {
 	// defer diskManager.Shutdown()
 
 	// Inicializa el Buffer Pool Manager
-	poolSize := uint32(10) // tamaño del buffer pool
+	poolSize := uint32(30) // tamaño del buffer pool
 	k := 5                 // parámetro K para LRU-K
 	bufferPoolManager := buffer.NewBufferPoolManager(poolSize, diskManager, k)
 
 	// Inicializa el B+ Tree con el Buffer Pool Manager
 	bptree := NewBPTree(bufferPoolManager)
 
-	const large = 1000
+	const large = 30
 	key := 1
 	for ; key < large; key++ {
 		bptree.Insert(key, uint64(key))

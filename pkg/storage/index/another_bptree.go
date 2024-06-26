@@ -7,7 +7,7 @@ import (
 	"fmt"
 )
 
-const numberNodes = 500
+const numberNodes = 4
 
 // BPTree es la estructura principal del B+ Tree
 type BPTree struct {
@@ -128,7 +128,7 @@ func (tree *BPTree) splitNode(nodePage *page.BTreePage, key int, value uint64) {
 
 	newPage.Keys = append(newPage.Keys, allKeys[midIndex:]...)
 	newPage.Values = append(newPage.Values, allValues[midIndex:]...)
-	newPage.Children = append(newPage.Children, nodePage.PageID)
+	// newPage.Children = append(newPage.Children, nodePage.PageID)
 
 	nodePage.Keys = allKeys[:midIndex]
 	nodePage.Values = allValues[:midIndex]
@@ -386,6 +386,7 @@ func (tree *BPTree) RangeSearch(startKey int, endKey int) ([]int, []uint64) {
 			// Add all keys and values in range
 			for i, key := range nodePage.Keys {
 				if key >= startKey && key < endKey {
+					// fmt.Printf("Appending keys and values..... %v - %v\n", key, nodePage.Values[i])
 					keys = append(keys, key)
 					values = append(values, nodePage.Values[i])
 				} else if key == endKey {
@@ -397,23 +398,28 @@ func (tree *BPTree) RangeSearch(startKey int, endKey int) ([]int, []uint64) {
 			}
 
 			if found {
+				// fmt.Printf("FOUND IS TRUE\n")
 				break
 			}
 			// Move to the next leaf node
 			if len(nodePage.Children) != 0 {
+				// fmt.Printf("Going to next leaf node.... %v\n", nodePage.Children[0])
 				currentPageID = nodePage.Children[0]
 			} else {
 				break
 			}
 		} else {
 			// Find the appropriate child node
+			// fmt.Printf("Looking for the appropiate child node....\n")
 			index := 0
 			for index < len(nodePage.Keys) && startKey > nodePage.Keys[index] {
 				index++
 			}
 			if index < len(nodePage.Keys) && startKey <= nodePage.Keys[index] {
+				// fmt.Printf("Looking in: %v\n", nodePage.Children[index])
 				currentPageID = nodePage.Children[index]
 			} else {
+				// fmt.Printf("Looking in: %v\n", nodePage.Children[len(nodePage.Children)-1])
 				currentPageID = nodePage.Children[len(nodePage.Children)-1]
 			}
 		}
