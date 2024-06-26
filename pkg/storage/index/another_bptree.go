@@ -52,7 +52,7 @@ func (tree *BPTree) createPage(pageType page.BTreePageType) *page.BTreePage {
 }
 
 // Insert inserta una clave-valor en el B+ Tree
-func (tree *BPTree) Insert(key int, value int) {
+func (tree *BPTree) Insert(key int, value uint64) {
 	if tree.rootPageID == common.InvalidPageID {
 		newPage := tree.createPage(page.LeafPage)
 		if newPage == nil {
@@ -67,7 +67,7 @@ func (tree *BPTree) Insert(key int, value int) {
 }
 
 // initializeRootPage inicializa la página raíz
-func (tree *BPTree) initializeRootPage(rootPage *page.BTreePage, key int, value int) {
+func (tree *BPTree) initializeRootPage(rootPage *page.BTreePage, key int, value uint64) {
 	rootPage.Keys = append(rootPage.Keys, key)
 	rootPage.Values = append(rootPage.Values, value)
 	data, _ := rootPage.Serialize()
@@ -76,7 +76,7 @@ func (tree *BPTree) initializeRootPage(rootPage *page.BTreePage, key int, value 
 }
 
 // insertIntoNode inserta una clave-valor en un nodo dado
-func (tree *BPTree) insertIntoNode(pageID common.PageID_t, key int, value int) {
+func (tree *BPTree) insertIntoNode(pageID common.PageID_t, key int, value uint64) {
 	nodePage := tree.getPage(pageID)
 	if nodePage == nil {
 		panic("No se pudo obtener la página del nodo")
@@ -100,10 +100,10 @@ func (tree *BPTree) insertIntoNode(pageID common.PageID_t, key int, value int) {
 }
 
 // insertIntoLeaf inserta una clave-valor en una página hoja
-func (tree *BPTree) insertIntoLeaf(nodePage *page.BTreePage, key int, value int) {
+func (tree *BPTree) insertIntoLeaf(nodePage *page.BTreePage, key int, value uint64) {
 	index := tree.findIndex(nodePage.Keys, key)
 	nodePage.Keys = append(nodePage.Keys[:index], append([]int{key}, nodePage.Keys[index:]...)...)
-	nodePage.Values = append(nodePage.Values[:index], append([]int{value}, nodePage.Values[index:]...)...)
+	nodePage.Values = append(nodePage.Values[:index], append([]uint64{value}, nodePage.Values[index:]...)...)
 	data, err := nodePage.Serialize()
 	if err != nil {
 		panic(fmt.Sprintf("Error serializing BTreePage: %v", err))
@@ -115,7 +115,7 @@ func (tree *BPTree) insertIntoLeaf(nodePage *page.BTreePage, key int, value int)
 }
 
 // splitNode maneja el desbordamiento de un nodo
-func (tree *BPTree) splitNode(nodePage *page.BTreePage, key int, value int) {
+func (tree *BPTree) splitNode(nodePage *page.BTreePage, key int, value uint64) {
 	newPage := tree.createPage(nodePage.PageType)
 	if newPage == nil {
 		panic("No se pudo crear una nueva página")
@@ -123,14 +123,16 @@ func (tree *BPTree) splitNode(nodePage *page.BTreePage, key int, value int) {
 
 	index := tree.findIndex(nodePage.Keys, key)
 	allKeys := append(nodePage.Keys[:index], append([]int{key}, nodePage.Keys[index:]...)...)
-	allValues := append(nodePage.Values[:index], append([]int{value}, nodePage.Values[index:]...)...)
+	allValues := append(nodePage.Values[:index], append([]uint64{value}, nodePage.Values[index:]...)...)
 	midIndex := len(allKeys) / 2
 
 	newPage.Keys = append(newPage.Keys, allKeys[midIndex:]...)
 	newPage.Values = append(newPage.Values, allValues[midIndex:]...)
+	newPage.Children = append(newPage.Children, nodePage.PageID)
 
 	nodePage.Keys = allKeys[:midIndex]
 	nodePage.Values = allValues[:midIndex]
+	nodePage.Children = append(nodePage.Children, newPage.PageID)
 
 	fmt.Printf("Splitting.......\n")
 	fmt.Printf("newpage: %v - nodepage: %v\n", newPage, nodePage)
@@ -273,12 +275,12 @@ func (tree *BPTree) searchParent(currentPageID, targetPageID common.PageID_t) co
 }
 
 // Search busca una clave en el B+ Tree
-func (tree *BPTree) Search(key int) (int, bool) {
+func (tree *BPTree) Search(key int) (uint64, bool) {
 	return tree.searchNode(tree.rootPageID, key)
 }
 
 // searchNode busca una clave en un nodo específico del árbol B+
-func (tree *BPTree) searchNode(pageID common.PageID_t, key int) (int, bool) {
+func (tree *BPTree) searchNode(pageID common.PageID_t, key int) (uint64, bool) {
 	nodePage := tree.getPage(pageID)
 	if nodePage == nil {
 		return 0, false
@@ -364,4 +366,58 @@ func (tree *BPTree) PrintTree() {
 			levelSizes = append(levelSizes, len(nextLevel))
 		}
 	}
+}
+
+// RangeSearch busca un rango de claves en el B+ Tree
+func (tree *BPTree) RangeSearch(startKey int, endKey int) ([]int, []uint64) {
+	var keys []int
+	var values []uint64
+	found := false
+
+	// Find the starting node
+	currentPageID := tree.rootPageID
+	for {
+		nodePage := tree.getPage(currentPageID)
+		if nodePage == nil {
+			return nil, nil
+		}
+
+		if nodePage.PageType == page.LeafPage {
+			// Add all keys and values in range
+			for i, key := range nodePage.Keys {
+				if key >= startKey && key < endKey {
+					keys = append(keys, key)
+					values = append(values, nodePage.Values[i])
+				} else if key == endKey {
+					keys = append(keys, key)
+					values = append(values, nodePage.Values[i])
+					found = true
+					break
+				}
+			}
+
+			if found {
+				break
+			}
+			// Move to the next leaf node
+			if len(nodePage.Children) != 0 {
+				currentPageID = nodePage.Children[0]
+			} else {
+				break
+			}
+		} else {
+			// Find the appropriate child node
+			index := 0
+			for index < len(nodePage.Keys) && startKey > nodePage.Keys[index] {
+				index++
+			}
+			if index < len(nodePage.Keys) && startKey <= nodePage.Keys[index] {
+				currentPageID = nodePage.Children[index]
+			} else {
+				currentPageID = nodePage.Children[len(nodePage.Children)-1]
+			}
+		}
+	}
+
+	return keys, values
 }

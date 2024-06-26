@@ -19,7 +19,7 @@ type BTreePage struct {
 	PageID   common.PageID_t
 	PageType BTreePageType
 	Keys     []int
-	Values   []int
+	Values   []uint64
 	Children []common.PageID_t
 }
 
@@ -29,7 +29,7 @@ func NewBTreePage(pageID common.PageID_t, pageType BTreePageType) *BTreePage {
 		PageID:   pageID,
 		PageType: pageType,
 		Keys:     []int{},
-		Values:   []int{},
+		Values:   []uint64{},
 		Children: []common.PageID_t{},
 	}
 }
