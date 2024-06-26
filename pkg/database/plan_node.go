@@ -86,7 +86,7 @@ func (s *SelectPlanNode) Schema() *schema.Schema {
 }
 
 func (s *SelectPlanNode) ToString() string {
-	return "SelectPlanNode{}"
+	return "SelectPlanNode(" + s.Table + ")"
 }
 
 // =========== "creame" ===========

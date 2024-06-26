@@ -42,7 +42,8 @@ func GetMinimumSpacingForType(columnType value.ValueType) int {
 	case value.TypeVarChar:
 		return 16
 	default:
-		panic("unreachable: getMinimumSpacingForType(" + string(columnType) + ")")
+		return 5
+		// panic("unreachable: getMinimumSpacingForType(" + string(columnType) + ")")
 	}
 }
 
@@ -57,8 +58,8 @@ func (s *Schema) PrintTableDivisor() {
 
 		bdivider.WriteString("+")
 		bdivider.WriteString(strings.Repeat("-", spacing+2))
-		bdivider.WriteString("+")
 	}
+	bdivider.WriteString("+")
 	divider := bdivider.String()
 
 	fmt.Println(divider)
@@ -89,8 +90,8 @@ func (s *Schema) PrintAsTableHeader() {
 
 		fmt.Print("| ")
 		fmt.Print(column.ColumnName)
-		fmt.Print(strings.Repeat(" ", spacing-len(column.ColumnName)))
+		fmt.Print(strings.Repeat(" ", spacing-len(column.ColumnName)+1))
 	}
-	fmt.Println(" |")
+	fmt.Println("|")
 	fmt.Println(divider)
 }
