@@ -1,6 +1,10 @@
 package query
 
-import "fisi/elenadb/pkg/storage/table/value"
+import (
+	"fisi/elenadb/pkg/catalog/column"
+	"fisi/elenadb/pkg/catalog/schema"
+	"fisi/elenadb/pkg/storage/table/value"
+)
 
 type QueryInstrType string
 
@@ -11,7 +15,6 @@ const (
 	QueryDelete   QueryInstrType = "borra"
 	QueryUpdate   QueryInstrType = "cambia"
 )
-
 
 type QueryField struct {
 	Foreign     bool
@@ -30,4 +33,13 @@ type Query struct {
 	QueryDbInstr   bool
 	Fields         []QueryField
 	Filter         *QueryFilter
+}
+
+func (q *Query) GetSchema() *schema.Schema {
+	cols := make([]column.Column, 0, len(q.Fields))
+
+	for _, f := range q.Fields {
+		cols = append(cols, column.NewColumn(f.Type, f.Name))
+	}
+	return schema.NewSchema(cols)
 }
