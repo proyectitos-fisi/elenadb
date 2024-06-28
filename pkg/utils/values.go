@@ -29,3 +29,11 @@ func Min[K constraints.Ordered](orderedSlice ...K) K {
 	}
 	return v
 }
+
+func SafeSubtractUint16(a, b uint16) (uint16, bool) {
+	// Check if subtracting b from a would cause an underflow
+	if a < b {
+		return 0, false // Indicate an overflow occurred
+	}
+	return a - b, true
+}

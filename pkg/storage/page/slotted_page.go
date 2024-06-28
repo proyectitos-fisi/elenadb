@@ -42,6 +42,10 @@ type SlotData struct {
 	Length uint16
 }
 
+func (sd *SlotData) IsDeleted() bool {
+	return sd.Length == 0
+}
+
 func NewEmptySlottedPage() *SlottedPage {
 	h := &SlottedPageHeader{
 		NumTuples:      0,
@@ -116,21 +120,13 @@ func (sp *SlottedPage) AppendTuple(t *tuple.Tuple) error {
 	if sp.Header.FreeSpace < t.Size {
 		return NoSpaceLeft{}
 	}
-	// sp.header.NumTuples += 1
-	sp.SetNumTuples(sp.Header.NumTuples + 1)
-	// sp.header.FreeSpace -= t.Size
-	sp.SetFreeSpace(sp.Header.FreeSpace - t.Size)
-	// sp.header.LastUsedOffset -= t.Size
-	sp.SetLastUsedOffset(sp.Header.LastUsedOffset - common.SlotOffset_t(t.Size))
 
-	// TODO: update slots array
 	slots := sp.GetSlotsArray()
 	slots = append(slots, SlotData{
-		Offset: sp.Header.LastUsedOffset,
+		Offset: sp.Header.LastUsedOffset - common.SlotOffset_t(t.Size),
 		Length: t.Size,
 	})
 	sp.SetSlotsArray(slots)
-
 	copy(sp.PageData[SLOTTED_PAGE_HEADER_SIZE+int(sp.Header.LastUsedOffset):], t.AsRawData())
 	return nil
 }
@@ -140,16 +136,14 @@ func (sp *SlottedPage) GetSlotsArray() []SlotData {
 	rawSlots := make([]byte, SLOT_SIZE*numSlots)
 	copy(rawSlots, sp.PageData[SLOTTED_PAGE_HEADER_SIZE:SLOTTED_PAGE_HEADER_SIZE+int(numSlots)*SLOT_SIZE])
 
-	slots := make([]SlotData, 0, sp.Header.NumTuples)
+	slots := make([]SlotData, 0, numSlots)
 	for i := 0; i < int(numSlots); i++ {
 		offset := i * SLOT_SIZE
 		slot := SlotData{
 			Offset: common.SlotOffset_t((*(*uint16)(unsafe.Pointer(&rawSlots[offset])))),
 			Length: (*(*uint16)(unsafe.Pointer(&rawSlots[offset+2]))),
 		}
-		if slot.Length != 0 {
-			slots = append(slots, slot)
-		}
+		slots = append(slots, slot)
 	}
 	return slots
 }
@@ -161,7 +155,7 @@ func (sp *SlottedPage) SetSlotsArray(slots []SlotData) {
 	numDeleted := 0
 
 	for _, s := range slots {
-		if s.Length == 0 {
+		if s.IsDeleted() {
 			numDeleted += 1
 		}
 		rawSlots = append(rawSlots, (*(*[SLOT_SIZE]byte)(unsafe.Pointer(&s)))[:]...)
@@ -170,7 +164,7 @@ func (sp *SlottedPage) SetSlotsArray(slots []SlotData) {
 			minOffset = s.Offset
 		}
 	}
-	sp.SetNumTuples(uint16(len(slots)))
+	sp.SetNumTuples(uint16(len(slots)) - uint16(numDeleted))
 	sp.SetLastUsedOffset(minOffset)
 	sp.SetNumDeleted(uint16(numDeleted))
 	if uint16(len(slots)*SLOT_SIZE) > uint16(minOffset) {
@@ -181,15 +175,16 @@ func (sp *SlottedPage) SetSlotsArray(slots []SlotData) {
 }
 
 // Deleting a tuple zero out the slot
-func (sp *SlottedPage) DeleteTuple(slot common.SlotNumber_t) {
+func (sp *SlottedPage) DeleteTuple(slot common.SlotNumber_t) bool {
 	slots := sp.GetSlotsArray()
 	for i := range slots {
 		if common.SlotNumber_t(i) == slot {
 			slots[i].Length = 0
 			sp.SetSlotsArray(slots)
-			return
+			return true
 		}
 	}
+	return false
 }
 
 // Given a slot number, read that tuple
@@ -197,6 +192,10 @@ func (sp *SlottedPage) ReadTuple(schema *schema.Schema, slot common.SlotNumber_t
 	slots := sp.GetSlotsArray()
 	for i, s := range slots {
 		if slot == common.SlotNumber_t(i) {
+			if s.IsDeleted() {
+				return nil
+			}
+
 			return tuple.NewFromRawData(
 				schema,
 				bytes.NewReader(sp.PageData[SLOTTED_PAGE_HEADER_SIZE+s.Offset:SLOTTED_PAGE_HEADER_SIZE+s.Offset+common.SlotOffset_t(s.Length)]),
@@ -211,4 +210,10 @@ type NoSpaceLeft struct{}
 
 func (nsl NoSpaceLeft) Error() string {
 	return "No space left in the page"
+}
+
+// to check if error is of type NoSpaceLeft
+func IsNoSpaceLeft(err error) bool {
+	_, ok := err.(NoSpaceLeft)
+	return ok
 }
