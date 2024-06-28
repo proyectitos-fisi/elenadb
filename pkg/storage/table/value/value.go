@@ -2,7 +2,9 @@ package value
 
 import (
 	"encoding/binary"
+	"fisi/elenadb/pkg/utils"
 	"math"
+	"strconv"
 )
 
 type ValueType string
@@ -57,6 +59,38 @@ func (typeId *ValueType) TypeSize() uint16 {
 	default:
 		panic("unrechable. varchar should use Column.StorageSize")
 	}
+}
+
+func NewInt32Value(data int32) *Value {
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, uint32(data))
+	return NewValue(TypeInt32, buf)
+}
+
+func NewFloat32Value(data float32) *Value {
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, math.Float32bits(data))
+	return NewValue(TypeFloat32, buf)
+}
+
+func NewBooleanValue(data bool) *Value {
+	if data {
+		return NewValue(TypeBoolean, []byte{1})
+	}
+	return NewValue(TypeBoolean, []byte{0})
+}
+
+// varchars are encoded as: [len(u8)][data(len)]
+func NewVarCharValue(data string, maxBytes int) *Value {
+	if maxBytes > 255 {
+		panic("varchar data is waaay too big, got size: " + strconv.Itoa(maxBytes))
+	}
+	strlen := utils.Min(maxBytes, len(data))
+	buf := make([]byte, strlen+1)
+
+	copy(buf[1:], []byte(data))
+	buf[0] = byte(uint8(strlen))
+	return NewValue(TypeVarChar, buf)
 }
 
 func (v *ValueType) AsString() string {

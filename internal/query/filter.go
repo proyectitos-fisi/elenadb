@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-    "fisi/elenadb/internal/tokens"
-    valuepkg "fisi/elenadb/pkg/storage/table/value"
+	"fisi/elenadb/internal/tokens"
+	valuepkg "fisi/elenadb/pkg/storage/table/value"
 )
 
 type QueryFilter struct {
@@ -14,7 +14,11 @@ type QueryFilter struct {
     in  *tokens.TkStack
 }
 
-func FieldType(string) valuepkg.ValueType
+// tabla.column -> tipo
+func FieldType(string) valuepkg.ValueType {
+    // FIXME: MOCK
+    return valuepkg.TypeFloat32
+}
 
 func CompareBool(field string, cmp string, value string, mapper map[string]interface{}) (bool, error) {
     boolTypes := map[string]bool {

@@ -15,6 +15,8 @@ func CopyColumn(c Column) Column {
 		ColumnType:  c.ColumnType,
 		ColumnName:  c.ColumnName,
 		StorageSize: c.StorageSize,
+		IsUnique:    c.IsUnique,
+		IsNullable:  c.IsNullable,
 	}
 }
 
@@ -22,5 +24,13 @@ func NewColumn(columnType value.ValueType, columnName string) Column {
 	return Column{
 		ColumnType: columnType,
 		ColumnName: columnName,
+	}
+}
+
+func NewSizedColumn(columnType value.ValueType, columnName string, storageSize uint16) Column {
+	return Column{
+		ColumnType:  columnType,
+		ColumnName:  columnName,
+		StorageSize: storageSize,
 	}
 }

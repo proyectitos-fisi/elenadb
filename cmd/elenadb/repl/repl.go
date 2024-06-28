@@ -134,10 +134,8 @@ func executeAndDisplay(
 		fmt.Println("\n==== Results ====\n")
 		schema.PrintAsTableHeader()
 
-		colIdx := 0
 		for tuple := range tuples {
-			tuple.PrintAsRow(schema, schema.GetColumn(colIdx))
-			colIdx++
+			tuple.PrintAsRow(schema)
 		}
 		schema.PrintTableDivisor()
 		fmt.Println()

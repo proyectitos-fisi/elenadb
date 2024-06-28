@@ -53,7 +53,8 @@ type FileID_t uint16
 type APageID_t uint16 // "Actual" Page ID
 type TxnID_t int64
 type LSN_t int32
-type SlotOffset_t int
+type SlotOffset_t uint16
+type SlotNumber_t uint16 // Slot number is slot index
 type OID_t uint16
 
 const TXNStartID TxnID_t = 1 << 62
