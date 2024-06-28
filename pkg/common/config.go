@@ -48,7 +48,9 @@ const (
 )
 
 type FrameID_t int32
-type PageID_t uint32
+type PageID_t uint32 // PageId = FileID + APageID
+type FileID_t uint16
+type APageID_t uint16 // "Actual" Page ID
 type TxnID_t int64
 type LSN_t int32
 type SlotOffset_t int

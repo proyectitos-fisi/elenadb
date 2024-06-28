@@ -33,17 +33,17 @@ func NewRID(pageID PageID_t, slotNum uint32) *RID {
 
 func InvalidRID() *RID {
 	return &RID{
-		PageID:  -1,
+		PageID:  InvalidPageID,
 		SlotNum: 69,
 	}
 }
 
 func (rid *RID) IsValid() bool {
-	return rid.PageID != -1
+	return rid.PageID != InvalidPageID
 }
 
 func (rid *RID) IsInvalid() bool {
-	return rid.PageID == -1
+	return rid.PageID == InvalidPageID
 }
 
 // NewRIDFromInt64 creates a new RID from a single int64 value

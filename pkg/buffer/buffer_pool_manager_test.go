@@ -3,7 +3,6 @@ package buffer_test
 import (
 	"fisi/elenadb/pkg/buffer"
 	"fisi/elenadb/pkg/common"
-	storage_disk "fisi/elenadb/pkg/storage/disk"
 	"math"
 	"math/rand"
 	"os"
@@ -24,10 +23,9 @@ func TestBufferPoolManagerTestBinaryDataTest(t *testing.T) {
 		return lower_bound + rand.Intn(upper_bound-lower_bound)
 	}
 
-	disk_manager, nil := storage_disk.NewDiskManager(db_dir)
-	defer os.Remove(db_dir)
+	defer os.RemoveAll(db_dir)
 	assert.Nil(t, nil)
-	bpm := buffer.NewBufferPoolManager(uint32(buffer_pool_size), disk_manager, k)
+	bpm := buffer.NewBufferPoolManager(db_dir, uint32(buffer_pool_size), k)
 
 	page0 := bpm.NewPage()
 	page_id_temp := page0.PageId
@@ -81,7 +79,7 @@ func TestBufferPoolManagerTestBinaryDataTest(t *testing.T) {
 	assert.True(t, bpm.UnpinPage(0, true))
 
 	// Shutdown the disk manager and remove the temporary file we created.
-	disk_manager.ShutDown()
+	// disk_manager.ShutDown()
 }
 
 func TestBufferPoolManagerTestSampleTest(t *testing.T) {
@@ -89,10 +87,9 @@ func TestBufferPoolManagerTestSampleTest(t *testing.T) {
 	buffer_pool_size := 10
 	k := 5
 
-	disk_manager, err := storage_disk.NewDiskManager(db_dir)
-	defer os.Remove(db_dir)
-	assert.Nil(t, err)
-	bpm := buffer.NewBufferPoolManager(uint32(buffer_pool_size), disk_manager, k)
+	defer os.RemoveAll(db_dir)
+	// assert.Nil(t, err)
+	bpm := buffer.NewBufferPoolManager(db_dir, uint32(buffer_pool_size), k)
 
 	page0 := bpm.NewPage()
 	assert.NotNil(t, page0)
@@ -140,5 +137,5 @@ func TestBufferPoolManagerTestSampleTest(t *testing.T) {
 	assert.Nil(t, bpm.FetchPage(0))
 
 	// Shutdown the disk manager and remove the temporary file we created.
-	disk_manager.ShutDown()
+	// disk_manager.ShutDown()
 }

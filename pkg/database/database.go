@@ -26,22 +26,16 @@ type ElenaDB struct {
 // Long live to ELENA! WE LOVE ELENA! 🚄!!
 func StartElenaBusiness(dbPath string) (*ElenaDB, error) {
 	dbPath = utils.WithTrailingSlash(dbPath)
-	diskManager, err := storage_disk.NewDiskManager(dbPath)
 
-	if err != nil {
-		panic(err)
-	}
-
-	bpm := buffer.NewBufferPoolManager(common.BufferPoolSize, diskManager, common.LRUKReplacerK)
+	bpm := buffer.NewBufferPoolManager(dbPath, common.BufferPoolSize, common.LRUKReplacerK)
 
 	elena := &ElenaDB{
 		DbPath:        dbPath,
-		diskManager:   diskManager,
 		bufferPool:    bpm,
 		IsJustCreated: false,
 	}
 
-	err = elena.CreateDatabaseIfNotExists()
+	err := elena.CreateDatabaseIfNotExists()
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +72,7 @@ func (e *ElenaDB) ExecuteThisBaby(input string) (chan *tuple.Tuple, *schema.Sche
 
 	go func() {
 		for {
-			tuple := nodePlan.Next()
+			tuple := nodePlan.Next() // executor
 			if tuple == nil {
 				break
 			}

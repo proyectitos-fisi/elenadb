@@ -23,7 +23,6 @@ import (
 // DiskManager takes care of the allocation and deallocation of pages within a database.
 // It performs the reading and writing of pages to and from disk, providing a logical file layer within the context of a database management system.
 type DiskManager struct {
-	fileName   string
 	logName    string
 	numFlushes int32
 	numWrites  int32
@@ -51,9 +50,8 @@ func NewDiskManager(dbDir string) (*DiskManager, error) {
 	// }
 
 	dm := &DiskManager{
-		fileName:  dbDir,
 		logName:   "fake.log", //logFileName,
-		dbDir:     nil,        //db,
+		dbDir:     dbDir,      //db,
 		logFile:   nil,        //logFile,
 		flushLogF: make(chan struct{}),
 	}
@@ -69,17 +67,10 @@ func (dm *DiskManager) ShutDown() {
 	dm.logLatch.Lock()
 	defer dm.latch.Unlock()
 	defer dm.logLatch.Unlock()
-	if dm.dbDir != nil {
-		dm.dbDir.Close()
-		dm.dbDir = nil
-	}
-	if dm.logFile != nil {
-		dm.logFile.Close()
-		dm.logFile = nil
-	}
+	// TODO: gracefully close the file resources
 }
 
-/* // WritePage: writes a page to the database file.
+// WritePage: writes a page to the database file.
 // @param pageID: id of the page
 // @param pageData: raw page data
 func (dm *DiskManager) WritePage(pageID common.PageID_t, pageData []byte) error {
@@ -91,7 +82,7 @@ func (dm *DiskManager) WritePage(pageID common.PageID_t, pageData []byte) error 
 		atomic.AddInt32(&dm.numWrites, 1)
 	}
 	return err
-} */
+}
 
 // ReadPage: reads a page from the database file.
 // @param pageID: id of the page
@@ -197,8 +188,8 @@ func (dm *DiskManager) FlushLogRoutine() {
 // @param pageID: the ID of the page
 // @return fileID: the ID of the file
 // @return apID: the ID of the actual page within the file
-func parsePageID(pageID common.PageID_t) (common.PageID_t, common.PageID_t) {
+func parsePageID(pageID common.PageID_t) (common.FileID_t, common.APageID_t) {
 	fileID := pageID >> 16  // high 16 bits
 	apID := pageID & 0xFFFF // low 16 bits
-	return fileID, apID
+	return common.FileID_t(fileID), common.APageID_t(apID)
 }

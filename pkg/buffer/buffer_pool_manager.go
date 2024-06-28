@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 )
 
-// pages         []*page.Page
 type BufferPoolManager struct {
 	poolSize      uint32
 	diskScheduler *storage_disk.DiskScheduler
@@ -20,7 +19,12 @@ type BufferPoolManager struct {
 	freeList      []common.FrameID_t
 }
 
-func NewBufferPoolManager(poolSize uint32, diskManager *storage_disk.DiskManager, k int) *BufferPoolManager {
+func NewBufferPoolManager(dbName string, poolSize uint32, k int) *BufferPoolManager {
+	diskManager, err := storage_disk.NewDiskManager(dbName)
+	if err != nil {
+		panic(err)
+	}
+
 	scheduler := storage_disk.NewScheduler(diskManager)
 	freeList := make([]common.FrameID_t, poolSize)
 	pageTable := make(map[common.FrameID_t]*page.Page)
