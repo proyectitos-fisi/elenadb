@@ -14,6 +14,7 @@ package catalog
 
 import (
 	"fisi/elenadb/pkg/catalog/schema"
+	"fisi/elenadb/pkg/common"
 )
 
 type IndexType string
@@ -75,7 +76,7 @@ type Catalog struct {
 	// file_id -> filename
 	// table_name -> TableMetadata
 	// index_name -> IndexMetadata
-	FileIdToFilenameMap map[uint16]string
+	FileIdToFilenameMap map[common.FileID_t]string
 	TableMetadataMap    map[string]*TableMetadata
 	IndexMetadataMap    map[string]*IndexMetadata
 }
@@ -88,7 +89,7 @@ func (c *Catalog) IndexMetadata(table string) *IndexMetadata {
 	return c.IndexMetadataMap[table]
 }
 
-func (c *Catalog) FilenameFromFileId(fileId uint16) string {
+func (c *Catalog) FilenameFromFileId(fileId common.FileID_t) string {
 	return c.FileIdToFilenameMap[fileId]
 }
 
