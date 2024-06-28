@@ -92,16 +92,19 @@ The meta table is a builtin table hardcoded in the Elena source code. It contain
 other tables and indexes in the database. Each database MUST have a meta table called `elena.meta.table`.
 
 ```text
-+----------------+---------------------+--------------+--------------------------+
-| type           | name                | root         | sql                      |
-+----------------+---------------------+--------------+--------------------------+
-| table or index | index or table name | root page id | the CREATE sql statement |
-+----------------+---------------------+--------------+--------------------------+
++----------------+---------------------+-----------+--------------+--------------------------+
+| type           | name                | file_id   | root         | sql                      |
++----------------+---------------------+-----------+--------------+--------------------------+
+| table or index | index or table name | file id   | root page id | the CREATE sql statement |
++----------------+---------------------+-----------+--------------+--------------------------+
 ```
 
-For tables the root page is always 0.
+For tables the root page is assumed to be 0.
 
 For indexes, root is the page_id of the btree root page. Index name is formatted as `<table>.<field>`.
+
+So why we store the file_id? When resolving pages we use a uint32, where the first 16 bits are
+the file_id, and the last 16 bits are the page_id.
 
 <!--
 Good ideas but not planned:
