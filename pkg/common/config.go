@@ -34,7 +34,7 @@ var EnableLogging atomic.Value
 var LogTimeout = time.Duration(1000) // en teoría esto es ajustable a lo que deseemos (?)
 
 const (
-	InvalidPageID  = PageID_t(-1)
+	InvalidPageID  = PageID_t(4294967295)
 	InvalidFrameID = FrameID_t(-1)
 	InvalidTxnID   = TxnID_t(-1)
 	InvalidLSN     = LSN_t(-1)
@@ -48,7 +48,7 @@ const (
 )
 
 type FrameID_t int32
-type PageID_t int32
+type PageID_t uint32
 type TxnID_t int64
 type LSN_t int32
 type SlotOffset_t int

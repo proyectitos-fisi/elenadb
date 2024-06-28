@@ -31,7 +31,7 @@ type DiskManager struct {
 	flushLogF  chan struct{}
 	latch      sync.RWMutex
 	logLatch   sync.RWMutex
-	dbFile     *os.File
+	dbDir      string
 	logFile    *os.File
 }
 
@@ -53,7 +53,7 @@ func NewDiskManager(dbDir string) (*DiskManager, error) {
 	dm := &DiskManager{
 		fileName:  dbDir,
 		logName:   "fake.log", //logFileName,
-		dbFile:    nil,        //db,
+		dbDir:     nil,        //db,
 		logFile:   nil,        //logFile,
 		flushLogF: make(chan struct{}),
 	}
@@ -69,9 +69,9 @@ func (dm *DiskManager) ShutDown() {
 	dm.logLatch.Lock()
 	defer dm.latch.Unlock()
 	defer dm.logLatch.Unlock()
-	if dm.dbFile != nil {
-		dm.dbFile.Close()
-		dm.dbFile = nil
+	if dm.dbDir != nil {
+		dm.dbDir.Close()
+		dm.dbDir = nil
 	}
 	if dm.logFile != nil {
 		dm.logFile.Close()
@@ -79,19 +79,19 @@ func (dm *DiskManager) ShutDown() {
 	}
 }
 
-// WritePage: writes a page to the database file.
+/* // WritePage: writes a page to the database file.
 // @param pageID: id of the page
 // @param pageData: raw page data
 func (dm *DiskManager) WritePage(pageID common.PageID_t, pageData []byte) error {
 	dm.latch.Lock()
 	defer dm.latch.Unlock()
 	offset := int64(pageID) * common.ElenaPageSize
-	_, err := dm.dbFile.WriteAt(pageData, offset)
+	_, err := dm.dbDir.WriteAt(pageData, offset)
 	if err == nil {
 		atomic.AddInt32(&dm.numWrites, 1)
 	}
 	return err
-}
+} */
 
 // ReadPage: reads a page from the database file.
 // @param pageID: id of the page
@@ -101,7 +101,7 @@ func (dm *DiskManager) ReadPage(pageID common.PageID_t) ([]byte, error) {
 	defer dm.latch.RUnlock()
 	offset := int64(pageID) * common.ElenaPageSize
 	pageData := make([]byte, common.ElenaPageSize)
-	_, err := dm.dbFile.ReadAt(pageData, offset)
+	_, err := dm.dbDir.ReadAt(pageData, offset)
 	return pageData, err
 }
 
@@ -191,4 +191,14 @@ func (dm *DiskManager) FlushLogRoutine() {
 			dm.logLatch.Unlock()
 		}
 	}
+}
+
+// parsePageID: splits the pageID into fileID and apID.
+// @param pageID: the ID of the page
+// @return fileID: the ID of the file
+// @return apID: the ID of the actual page within the file
+func parsePageID(pageID common.PageID_t) (common.PageID_t, common.PageID_t) {
+	fileID := pageID >> 16  // high 16 bits
+	apID := pageID & 0xFFFF // low 16 bits
+	return fileID, apID
 }
