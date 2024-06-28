@@ -4,33 +4,7 @@ import (
 	"fisi/elenadb/pkg/common"
 	"sync"
 	"sync/atomic"
-	"unsafe"
 )
-
-// A table is made up of Data Pages, which is a combination of HEADER, SLOTS and INSERTED TUPLES
-// -------------------------------------------------------------------
-// |  HEADER (8 bytes)  |  SLOTS  |  ..........  |  INSERTED TUPLES  |
-// -------------------------------------------------------------------
-//                                               ^
-// ________________ LastUsedOffset ______________|
-//
-
-// Page header format:
-// -------------------------------------------------------------------------
-// | NumTuples(2) | NumDeletedTuples(2) | FreeSpace(2) | LastUsedOffset(2) |
-// -------------------------------------------------------------------------
-type SlottedPageHeader struct {
-	NumTuples      uint16 // 2 bytes
-	NumDeleted     uint16 // 2 bytes
-	FreeSpace      uint16 // 2 bytes
-	LastUsedOffset uint16 // 2 bytes
-}
-
-// struct SlottedPage
-
-const PAGE_HEADER_SIZE = 8
-
-var _ [0]struct{} = [unsafe.Sizeof(SlottedPageHeader{}) - PAGE_HEADER_SIZE]struct{}{}
 
 // Generic page
 // Not to be confused with a Slotted Page or BTree Page. This page can be interpreted as a
