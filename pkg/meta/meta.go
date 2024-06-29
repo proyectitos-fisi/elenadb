@@ -1,4 +1,16 @@
-package database
+//===----------------------------------------------------------------------===//
+//
+//                         🚄 ElenaDB ®
+//
+// meta.go
+//
+// Identification: pkg/meta/meta.go
+//
+// Copyright (c) 2024
+//
+//===----------------------------------------------------------------------===//
+
+package meta
 
 import (
 	"fisi/elenadb/pkg/catalog/column"
@@ -13,19 +25,19 @@ var ElenaMetaSchema = schema.NewSchema([]column.Column{
 	{ColumnName: "id", ColumnType: value.TypeInt32, IsUnique: true},
 	{ColumnName: "type", ColumnType: value.TypeVarChar, StorageSize: 5},
 	{ColumnName: "name", ColumnType: value.TypeVarChar, StorageSize: 255},
+	{ColumnName: "file_id", ColumnType: value.TypeInt32, IsUnique: true},
 	{ColumnName: "root", ColumnType: value.TypeInt32},
 	{ColumnName: "sql", ColumnType: value.TypeVarChar, StorageSize: 2048},
-	{ColumnName: "oid", ColumnType: value.TypeInt32, IsUnique: true},
 })
 
 // TODO(@pandadiestro): suppot varchar paramater
 const ELENA_META_CREATE_SQL = `creame tabla elena_meta {
-	id   int @id,
+	id   int @unique,
 	type char,
 	name char,
+	file_id int @unique,
 	root int,
 	sql  char,
-	oid int @id,
 } pe`
 
 // " { type char(5), name char(255), table char(255), sql char(2048), } pe",

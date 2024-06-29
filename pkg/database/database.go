@@ -1,10 +1,24 @@
+//===----------------------------------------------------------------------===//
+//
+//                         🚄 ElenaDB ®
+//
+// database.go
+//
+// Identification: pkg/database/database.go
+//
+// Copyright (c) 2024
+//
+//===----------------------------------------------------------------------===//
+
 package database
 
 import (
 	"fisi/elenadb/internal/query"
 	"fisi/elenadb/pkg/buffer"
+	"fisi/elenadb/pkg/catalog"
 	"fisi/elenadb/pkg/catalog/schema"
 	"fisi/elenadb/pkg/common"
+	"fisi/elenadb/pkg/meta"
 	storage_disk "fisi/elenadb/pkg/storage/disk"
 	"fisi/elenadb/pkg/storage/table/tuple"
 	"fisi/elenadb/pkg/utils"
@@ -33,6 +47,7 @@ func StartElenaBusiness(dbPath string) (*ElenaDB, error) {
 		DbPath:        dbPath,
 		bufferPool:    bpm,
 		IsJustCreated: false,
+		// empty catalog
 	}
 
 	err := elena.CreateDatabaseIfNotExists()
@@ -44,8 +59,49 @@ func StartElenaBusiness(dbPath string) (*ElenaDB, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return elena, nil
+}
+
+// Populate catalog
+func (elena *ElenaDB) PopulateCatalog() error {
+	tableMetadataMap := make(map[string]*catalog.TableMetadata)
+	indexMetadataMap := make(map[string]*catalog.IndexMetadata)
+
+	tuples, sch, plan, err := elena.ExecuteThisBaby("dame todo de elena_meta pe")
+	if err != nil {
+		return err
+	}
+
+	for tuple := range tuples {
+		fileType := tuple.Values[1].AsVarchar()
+		name := tuple.Values[2].AsVarchar()
+		fileId := tuple.Values[3].AsInt32()
+		root := tuple.Values[4].AsInt32()
+		sql := tuple.Values[5].AsVarchar()
+
+		if fileType == "table" {
+			parser := query.NewParser()
+			tableSchema, err := parser.Parse(strings.NewReader(sql))
+			if err != nil {
+				return err
+			}
+			tableMetadataMap[name] = &catalog.TableMetadata{
+				Name:      name,
+				FileID:    common.FileID_t(fileId),
+				SqlCreate: sql,
+				Schema:    *tableSchema[0].GetSchema(),
+			}
+		} else if fileType == "index" {
+			indexMetadataMap[name] = &catalog.IndexMetadata{
+				Name:      name,
+				FileID:    common.FileID_t(fileId),
+				Root:      common.PageID_t(root),
+				SqlCreate: sql,
+			}
+		}
+	}
+
+	return nil
 }
 
 // Executes a SQL query. The steps are as follows:
@@ -101,11 +157,11 @@ func (e *ElenaDB) CreateDatabaseIfNotExists() error {
 }
 
 func (e *ElenaDB) CreateMetaTableIfNotExists() error {
-	if utils.FileExists(e.DbPath + ELENA_META_TABLE_FILE) {
+	if utils.FileExists(e.DbPath + meta.ELENA_META_TABLE_FILE) {
 		return nil
 	}
 
-	result, _, _, err := e.ExecuteThisBaby(ELENA_META_CREATE_SQL)
+	result, _, _, err := e.ExecuteThisBaby(meta.ELENA_META_CREATE_SQL)
 	if err != nil {
 		return err
 	}

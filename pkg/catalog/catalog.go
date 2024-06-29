@@ -15,6 +15,7 @@ package catalog
 import (
 	"fisi/elenadb/pkg/catalog/schema"
 	"fisi/elenadb/pkg/common"
+	"fisi/elenadb/pkg/meta"
 )
 
 type IndexType string
@@ -26,7 +27,8 @@ const (
 
 /* Metadata about a Table */
 type TableMetadata struct {
-	Name string
+	Name   string
+	FileID common.FileID_t
 	// SQL Create statement that created this table
 	SqlCreate string // columns
 	Schema    schema.Schema
@@ -38,36 +40,23 @@ func NewTableInfo(name string, oid uint32) *TableMetadata {
 
 /* Metadata about an Index */
 type IndexMetadata struct {
-	Schema       schema.Schema
-	KeySchema    schema.Schema
-	Name         string
-	Index        any
-	OID          uint32
-	TableName    string
-	KeySize      uintptr
-	IsPrimaryKey bool
-	IndexType    IndexType
+	Name      string
+	FileID    common.FileID_t
+	Root      common.PageID_t
+	SqlCreate string
 }
 
 func NewIndexInfo(
-	keySchema schema.Schema,
 	name string,
-	index any,
-	indexOID uint32,
-	tableName string,
-	keySize uintptr,
-	isPrimaryKey bool,
-	indexType IndexType,
+	fileID common.FileID_t,
+	root common.PageID_t,
+	sqlCreate string,
 ) *IndexMetadata {
 	return &IndexMetadata{
-		KeySchema:    keySchema,
-		Name:         name,
-		Index:        index,
-		OID:          indexOID,
-		TableName:    tableName,
-		KeySize:      keySize,
-		IsPrimaryKey: isPrimaryKey,
-		IndexType:    indexType,
+		Name:      name,
+		FileID:    fileID,
+		Root:      root,
+		SqlCreate: sqlCreate,
 	}
 }
 
@@ -81,8 +70,26 @@ type Catalog struct {
 	IndexMetadataMap    map[string]*IndexMetadata
 }
 
-func NewCatalog( /* toOODOOOOOO */ ) *Catalog {
-	return &Catalog{}
+// un catalog skeleton, vacío no más
+func EmptyCatalog() *Catalog {
+	return &Catalog{
+		FileIdToFilenameMap: nil,
+		TableMetadataMap:    nil,
+		IndexMetadataMap:    nil,
+	}
+}
+
+// un catalog que será llenado
+func FillCatalog(
+	fileIdToFilenameMap map[common.FileID_t]string,
+	tableMetadataMap map[string]*TableMetadata,
+	indexMetadataMap map[string]*IndexMetadata,
+) *Catalog {
+	return &Catalog{
+		FileIdToFilenameMap: fileIdToFilenameMap,
+		TableMetadataMap:    tableMetadataMap,
+		IndexMetadataMap:    indexMetadataMap,
+	}
 }
 
 func (c *Catalog) IndexMetadata(table string) *IndexMetadata {
@@ -94,31 +101,38 @@ func (c *Catalog) FilenameFromFileId(fileId common.FileID_t) string {
 }
 
 func (c *Catalog) GetTableMetadata(table string) *TableMetadata {
+	if table == meta.ELENA_META_TABLE_NAME {
+		return &TableMetadata{
+			Name:      meta.ELENA_META_TABLE_NAME,
+			SqlCreate: meta.ELENA_META_CREATE_SQL,
+			Schema:    *meta.ElenaMetaSchema,
+		}
+	}
 	return c.TableMetadataMap[table]
-
-	// if table == database.ELENA_META_TABLE_NAME {
-	// 	return &TableMetadata{
-	// 		Name:      database.ELENA_META_TABLE_NAME,
-	// 		SqlCreate: database.ELENA_META_CREATE_SQL,
-	// 		Schema:    *database.ElenaMetaSchema,
-	// 	}
-	// }
-
-	// result, _, _, err := c.Db.ExecuteThisBaby(
-	// 	"dame { table_name, sql } de elena_meta donde { table_name = " + table + " } pe",
-	// )
-
-	// if err != nil {
-	// 	panic("Unable to query elena_meta: " + err.Error())
-	// }
-
-	// tuple := <-result
-
-	// if nil != <-result {
-	// 	panic("Multiple rows returned for table " + table)
-	// }
-
-	// if tuple == nil {
-	// 	return nil
-	// }
 }
+
+// if table == database.ELENA_META_TABLE_NAME {
+// 	return &TableMetadata{
+// 		Name:      database.ELENA_META_TABLE_NAME,
+// 		SqlCreate: database.ELENA_META_CREATE_SQL,
+// 		Schema:    *database.ElenaMetaSchema,
+// 	}
+// }
+
+// result, _, _, err := c.Db.ExecuteThisBaby(
+// 	"dame { table_name, sql } de elena_meta donde { table_name = " + table + " } pe",
+// )
+
+// if err != nil {
+// 	panic("Unable to query elena_meta: " + err.Error())
+// }
+
+// tuple := <-result
+
+// if nil != <-result {
+// 	panic("Multiple rows returned for table " + table)
+// }
+
+// if tuple == nil {
+// 	return nil
+// }
