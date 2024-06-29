@@ -64,7 +64,11 @@ func (par *Parser) stepParseExec(qu *QueryBuilder, data string) error {
 
 func (par *Parser) Parse(rd io.Reader) ([]Query, error) {
     br := bufio.NewReader(rd)
-    tokenIter := tokens.Tokenize(br)
+    tokenIter, tokenIterErr := tokens.Tokenize(br)
+    if tokenIterErr != nil {
+        return nil, tokenIterErr
+    }
+
     newQuery := NewQueryBuilder()
     defer par.reset()
 

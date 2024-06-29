@@ -5,19 +5,35 @@ import (
 	"strconv"
 	"strings"
 
-	"fisi/elenadb/internal/tokens"
-	valuepkg "fisi/elenadb/pkg/storage/table/value"
+    "fisi/elenadb/internal/tokens"
+    valuepkg "fisi/elenadb/pkg/storage/table/value"
 )
 
-type QueryFilter struct {
-    out *tokens.TkStack
-    in  *tokens.TkStack
+func FieldType(field string) valuepkg.ValueType {
+    switch field {
+    case "id":
+        return valuepkg.TypeInt32
+    case "name":
+        return valuepkg.TypeVarChar
+    case "isGerencial":
+        return valuepkg.TypeBoolean
+    default:
+        return valuepkg.TypeFloat32
+    }
 }
 
-// tabla.column -> tipo
-func FieldType(string) valuepkg.ValueType {
-    // FIXME: MOCK
-    return valuepkg.TypeFloat32
+type QueryFilter struct {
+    Out *tokens.TkStack
+    In  *tokens.TkStack
+
+    binder func(string)valuepkg.ValueType
+}
+
+func NewQueryFilter() *QueryFilter {
+    return &QueryFilter{
+        Out: &tokens.TkStack{},
+        In: &tokens.TkStack{},
+    }
 }
 
 func CompareBool(field string, cmp string, value string, mapper map[string]interface{}) (bool, error) {
@@ -50,17 +66,17 @@ func CompareInt32(field string, cmp string, value string, mapper map[string]inte
     actuali32 := int32(actuali64)
     switch cmp {
     case "<=":
-        return (actuali32 <= mapper[field].(int32)), nil
+        return (actuali32 <= int32(mapper[field].(int))), nil
     case "<":
-        return (actuali32 < mapper[field].(int32)), nil
+        return (actuali32 < int32(mapper[field].(int))), nil
     case ">=":
-        return (actuali32 >= mapper[field].(int32)), nil
+        return (actuali32 >= int32(mapper[field].(int))), nil
     case ">":
-        return (actuali32 > mapper[field].(int32)), nil
+        return (actuali32 > int32(mapper[field].(int))), nil
     case "!=":
-        return (actuali32 != mapper[field].(int32)), nil
+        return (actuali32 != int32(mapper[field].(int))), nil
     case "==":
-        return (actuali32 == mapper[field].(int32)), nil
+        return (actuali32 == int32(mapper[field].(int))), nil
     }
 
     return false, nil
@@ -75,17 +91,17 @@ func CompareFloat32(field string, cmp string, value string, mapper map[string]in
     actuali32 := float32(actuali64)
     switch cmp {
     case "<=":
-        return (actuali32 <= mapper[field].(float32)), nil
+        return (actuali32 <= float32(mapper[field].(float64))), nil
     case "<":
-        return (actuali32 < mapper[field].(float32)), nil
+        return (actuali32 < float32(mapper[field].(float64))), nil
     case ">=":
-        return (actuali32 >= mapper[field].(float32)), nil
+        return (actuali32 >= float32(mapper[field].(float64))), nil
     case ">":
-        return (actuali32 > mapper[field].(float32)), nil
+        return (actuali32 > float32(mapper[field].(float64))), nil
     case "!=":
-        return (actuali32 != mapper[field].(float32)), nil
+        return (actuali32 != float32(mapper[field].(float64))), nil
     case "==":
-        return (actuali32 == mapper[field].(float32)), nil
+        return (actuali32 == float32(mapper[field].(float64))), nil
     }
 
     return false, nil
@@ -126,18 +142,38 @@ func CastAndCompare(field string, cmp string, value string, mapper map[string]in
 }
 
 func (qf *QueryFilter) Push(tk *tokens.Token) {
-    if tk.Type == tokens.TkBoolOp || tk.Type == tokens.TkParenOpen {
-        qf.in.Push(*tk)
+    if tk.Type == tokens.TkWord {
+        qf.Out.Push(*tk)
         return
     }
 
-    if tk.Type == tokens.TkWord {
-        qf.out.Push(*tk)
+    if tk.Type == tokens.TkParenOpen {
+        qf.In.Push(*tk)
         return
+    }
+
+    if tk.Type != tokens.TkParenClosed {
+        if tk.Type != tokens.TkNexus {
+            qf.In.Push(*tk)
+            return
+        }
+
+        peekTk, peekErr := qf.In.Peek()
+        if peekErr != nil {
+            qf.In.Push(*tk)
+            return
+        }
+
+        if peekTk.Type != tokens.TkNexus && peekTk.Type != tokens.TkParenOpen {
+            tkN, _ := qf.In.Pop()
+            qf.Out.Push(tkN)
+            qf.In.Push(*tk)
+            return
+        }
     }
 
     for {
-        tk, err := qf.in.Pop()
+        tk, err := qf.In.Pop()
         if err != nil {
             return
         }
@@ -146,24 +182,28 @@ func (qf *QueryFilter) Push(tk *tokens.Token) {
             return
         }
 
-        qf.out.Push(tk)
+        qf.Out.Push(tk)
     }
 }
 
 func (qf *QueryFilter) execrec(mapper map[string]interface{}) (string, bool, error) {
-    tk, err := qf.out.Pop()
+    tk, err := qf.Out.Pop()
     if err != nil {
         return "", false, err
     }
 
-    leftstr, leftbool, leftexecerr := qf.execrec(mapper)
-    if leftexecerr != nil {
-        return "", false, leftexecerr
+    if tk.Type == tokens.TkWord {
+        return tk.Data, false, nil
     }
 
     rightstr, rightbool, rightexecerr := qf.execrec(mapper)
     if rightexecerr != nil {
         return "", false, rightexecerr
+    }
+
+    leftstr, leftbool, leftexecerr := qf.execrec(mapper)
+    if leftexecerr != nil {
+        return "", false, leftexecerr
     }
 
     switch true {
@@ -182,6 +222,15 @@ func (qf *QueryFilter) execrec(mapper map[string]interface{}) (string, bool, err
 }
 
 func (qf *QueryFilter) Exec(mapper map[string]interface{}) (bool, error) {
+    for qf.In.Len() > 0 {
+        tk, err := qf.In.Pop()
+        if err != nil {
+            break
+        }
+
+        qf.Out.Push(tk)
+    }
+
     _, execbool, execerr := qf.execrec(mapper)
     return execbool, execerr
 }
