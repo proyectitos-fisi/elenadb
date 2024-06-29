@@ -142,18 +142,18 @@ func CastAndCompare(field string, cmp string, value string, mapper map[string]in
 }
 
 func (qf *QueryFilter) Push(tk *tokens.Token) {
-    if tk.Type == tokens.TkWord {
-        qf.Out.Push(*tk)
-        return
-    }
-
     if tk.Type == tokens.TkParenOpen {
         qf.In.Push(*tk)
         return
     }
 
+    if (tk.Type == tokens.TkWord || tk.Type == tokens.TkString) && tk.Data != "y" && tk.Data != "o" {
+        qf.Out.Push(*tk)
+        return
+    }
+
     if tk.Type != tokens.TkParenClosed {
-        if tk.Type != tokens.TkNexus {
+        if tk.Data != "y" && tk.Data != "o" {
             qf.In.Push(*tk)
             return
         }
@@ -164,7 +164,7 @@ func (qf *QueryFilter) Push(tk *tokens.Token) {
             return
         }
 
-        if peekTk.Type != tokens.TkNexus && peekTk.Type != tokens.TkParenOpen {
+        if peekTk.Data != "y" && peekTk.Data != "o" && peekTk.Type != tokens.TkParenOpen {
             tkN, _ := qf.In.Pop()
             qf.Out.Push(tkN)
             qf.In.Push(*tk)
@@ -192,7 +192,7 @@ func (qf *QueryFilter) execrec(mapper map[string]interface{}) (string, bool, err
         return "", false, err
     }
 
-    if tk.Type == tokens.TkWord {
+    if (tk.Type == tokens.TkWord && tk.Data != "y" && tk.Data != "o") || tk.Type == tokens.TkString {
         return tk.Data, false, nil
     }
 
@@ -211,14 +211,14 @@ func (qf *QueryFilter) execrec(mapper map[string]interface{}) (string, bool, err
         return "", (leftbool && rightbool), nil
     case tk.Data == "o":
         return "", (leftbool || rightbool), nil
-    default:
-        cmpBool, cmpErr := CastAndCompare(leftstr, tk.Data, rightstr, mapper)
-        if cmpErr != nil {
-            return "", false, cmpErr
-        }
-
-        return "", cmpBool, nil
     }
+
+    cmpBool, cmpErr := CastAndCompare(leftstr, tk.Data, rightstr, mapper)
+    if cmpErr != nil {
+        return "", false, cmpErr
+    }
+
+    return "", cmpBool, nil
 }
 
 func (qf *QueryFilter) Exec(mapper map[string]interface{}) (bool, error) {

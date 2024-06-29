@@ -16,28 +16,28 @@ func TestExec(t *testing.T) {
         expect    bool
     }{
         {
-            query: "(id >= 5 y loqsea == 6 ) o name == \"ramirez\"",
+            query: `(id >= 5 y loqsea == 6 ) o name == "ramirez"`,
             mapper: map[string]interface{}{
                 "id": 32,
-                "name": "\"ramirez\"",
+                "name": "ramirez",
                 "loqsea": 6.0,
             },
             expect: true,
         },
         {
-            query: "(id >= 5 y loqsea == 6) o name == \"ramirez\"",
+            query: "(id >= 5 y loqsea == 6) o name == ramirez",
             mapper: map[string]interface{}{
                 "id": 0,
-                "name": "\"ramirez\"",
+                "name": "ramirez",
                 "loqsea": 50.0,
             },
             expect: true,
         },
         {
-            query: "(id >= 5 y loqsea == 5) o (name == \"ramirez\" y isGerencial == true)",
+            query: "(id >= 5 y loqsea == 5) o (name == ramirez y isGerencial == true)",
             mapper: map[string]interface{}{
                 "id": 0,
-                "name": "\"hola\"",
+                "name": "hola",
                 "loqsea": 4.0,
                 "isGerencial": true,
             },

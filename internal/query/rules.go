@@ -61,13 +61,18 @@ var isBasicTypeMap = map[string]struct{}{
     "bool": {},
 }
 
-var isCompositeType = map[string]struct{}{
+var isCompositeTypeMap = map[string]struct{}{
     "char": {},
 }
 
 func isKeyword(tk *tokens.Token) bool {
-    _, ok := isBasicTypeMap[tk.Data]
-    if ok {
+    _, basicok := isBasicTypeMap[tk.Data]
+    if basicok {
+        return true
+    }
+
+    _, comok := isCompositeTypeMap[tk.Data]
+    if comok {
         return true
     }
 
@@ -99,7 +104,7 @@ func (fsm *FsmNode) Eval(tk *tokens.Token) bool {
     }
 
     if fsm.Step == FsmFieldCompositeType {
-        _, ok := isCompositeType[tk.Data]
+        _, ok := isCompositeTypeMap[tk.Data]
         return ok
     }
 
