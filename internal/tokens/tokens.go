@@ -3,6 +3,7 @@ package tokens
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"unicode"
@@ -17,12 +18,33 @@ const (
     TkSeparator
     TkValueIndicator
     TkNullable
+    TkString
 
     TkBoolOp
+    TkNexus
 
     TkWord
     TkAnnotation
+
+    whitespace
 )
+
+
+// filter-only step types' names map
+var LexedTokenStepNameTable = map[TkType]string{
+    TkBracketOpen: "Opened Bracket",
+    TkBracketClosed: "Closed Bracket",
+    TkParenOpen: "Opened Parentheses",
+    TkParenClosed: "Closed Parentheses",
+    TkSeparator: "Comma Separator",
+    TkValueIndicator: "Colon",
+    TkNullable: "Nullable",
+    TkBoolOp: "Bool Operator",
+    TkWord: "Word",
+    TkAnnotation: "Annotation",
+    TkNexus: "Nexus",
+    TkString: "String",
+}
 
 type Token struct {
     Type TkType
@@ -41,6 +63,14 @@ func NewIterator() *TokenIterator {
         off: -1,
         size: 0,
     }
+}
+
+func (tki *TokenIterator) Size() int {
+    return tki.size
+}
+
+func (tki *TokenIterator) GetAll() []Token {
+    return tki.arr
 }
 
 func (tki *TokenIterator) Load(tkType TkType, tkData string) {
@@ -62,7 +92,21 @@ func (tki *TokenIterator) Next() (Token, error) {
     return data, nil
 }
 
+func (tki *TokenIterator) Peek() (Token, error) {
+    if tki.off + 1 >= tki.size {
+        return Token{}, errors.New("iterend")
+    }
+
+    data := tki.arr[tki.off + 1]
+    return data, nil
+}
+
+
 func getType(rn rune) TkType {
+    if unicode.IsSpace(rn) {
+        return whitespace
+    }
+
     switch rn {
     case '{':
         return TkBracketOpen
@@ -82,77 +126,148 @@ func getType(rn rune) TkType {
         return TkAnnotation
     case '>', '<', '=', '!':
         return TkBoolOp
+    case 'y', 'o':
+        return TkNexus
+    case '"':
+        return TkString
     default:
         return TkWord
     }
 }
 
-func Tokenize(rd *bufio.Reader) (*TokenIterator) {
+func Tokenize(rd *bufio.Reader) (*TokenIterator, error) {
     strBuilder := new(strings.Builder)
     returnable := NewIterator()
     var typ TkType
+    var last TkType
 
     var flags struct {
         isWord       bool
         isAnnotation bool
+        isBoolOp     bool
+        isNexusOp    bool
+        isString     bool
     }
 
     for {
         rn, _, err := rd.ReadRune()
         if err == io.EOF {
+            if flags.isString {
+                return nil, fmt.Errorf("string literal left opened")
+            }
+
             if strBuilder.Len() != 0 {
-                returnable.Load(typ, strBuilder.String())
+                returnable.Load(last, strBuilder.String())
             }
 
             break
         }
 
-        if unicode.IsSpace(rn) {
-            if (flags.isWord || flags.isAnnotation) && strBuilder.Len() != 0 {
-                returnable.Load(typ, strBuilder.String())
+        typ = getType(rn)
+        switch typ {
+        case whitespace:
+            if flags.isString {
+                strBuilder.WriteRune(rn)
+                continue
+            }
+
+            if strBuilder.Len() != 0 {
+                returnable.Load(last, strBuilder.String())
                 strBuilder.Reset()
             }
 
             flags.isWord, flags.isAnnotation = false, false
-            continue
-        }
-
-        typ = getType(rn)
-
-        switch typ {
         case TkAnnotation:
+            if flags.isString {
+                strBuilder.WriteRune(rn)
+                continue
+            }
+
+            if strBuilder.Len() != 0 && !flags.isAnnotation {
+                returnable.Load(last, strBuilder.String())
+                strBuilder.Reset()
+                flags.isBoolOp, flags.isNexusOp = false, false
+            }
+
             flags.isAnnotation = true
             // commented out so the '@' wont get into the actual
             // data, uncomment for it to be added anyways
             // build.WriteRune(rn)
-            continue
+        case TkString:
+            if strBuilder.Len() != 0 && flags.isString {
+                returnable.Load(last, strBuilder.String())
+                strBuilder.Reset()
+                flags.isBoolOp, flags.isNexusOp = false, false
+            }
+
+            flags.isString = !flags.isString
         case TkWord:
+            if flags.isString {
+                strBuilder.WriteRune(rn)
+                continue
+            }
+
+            if strBuilder.Len() != 0 && !flags.isWord && !flags.isAnnotation {
+                returnable.Load(last, strBuilder.String())
+                strBuilder.Reset()
+                flags.isBoolOp, flags.isNexusOp = false, false
+            }
+
             if flags.isAnnotation {
                 typ = TkAnnotation
             }
 
             flags.isWord = !flags.isAnnotation
+            flags.isBoolOp, flags.isNexusOp = false, false
             strBuilder.WriteRune(rn)
-            continue
-        default:
-            if strBuilder.Len() != 0 {
-                if flags.isWord {
-                    returnable.Load(TkWord, strBuilder.String())
-                } else {
-                    returnable.Load(TkAnnotation, strBuilder.String())
-                }
+        case TkBoolOp:
+            if flags.isString {
+                strBuilder.WriteRune(rn)
+                continue
             }
 
-            strBuilder.Reset()
-            flags.isWord, flags.isAnnotation = false, false
+            if strBuilder.Len() != 0 && !flags.isBoolOp {
+                returnable.Load(last, strBuilder.String())
+                strBuilder.Reset()
+                flags.isWord, flags.isAnnotation = false, false
+            }
+
+            strBuilder.WriteRune(rn)
+            flags.isBoolOp = true
+        case TkNexus:
+            if flags.isString {
+                strBuilder.WriteRune(rn)
+                continue
+            }
+
+            if strBuilder.Len() != 0 && !flags.isNexusOp && !flags.isWord {
+                returnable.Load(last, strBuilder.String())
+                strBuilder.Reset()
+                flags.isWord, flags.isAnnotation = false, false
+            }
+
+            strBuilder.WriteRune(rn)
+            flags.isNexusOp = true
+        default:
+            if flags.isString {
+                strBuilder.WriteRune(rn)
+                continue
+            }
+
+            if strBuilder.Len() != 0 {
+                returnable.Load(last, strBuilder.String())
+                strBuilder.Reset()
+                flags.isWord, flags.isAnnotation, flags.isBoolOp, flags.isNexusOp = false, false, false, false
+            }
 
             strBuilder.WriteRune(rn)
             returnable.Load(typ, strBuilder.String())
             strBuilder.Reset()
-            continue
         }
+
+        last = typ
     }
 
-    return returnable
+    return returnable, nil
 }
 

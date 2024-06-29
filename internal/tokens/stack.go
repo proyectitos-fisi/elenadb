@@ -1,5 +1,7 @@
 package tokens
 
+import "fmt"
+
 type tkNode struct {
     data Token
     child *tkNode
@@ -33,14 +35,22 @@ func (stck *TkStack) Push(tk Token) error {
 }
 
 func (stck *TkStack) Pop() (Token, error) {
-    if stck.tail == nil {
-        return Token{}, nil
+    if stck.Len() == 0 {
+        return Token{}, fmt.Errorf("tkstack: empty stack")
     }
 
     tk := stck.tail.data
     stck.tail = stck.tail.paren
     stck.size--
     return tk, nil
+}
+
+func (stck *TkStack) Peek() (Token, error) {
+    if stck.Len() == 0 {
+        return Token{}, fmt.Errorf("tkstack: empty stack")
+    }
+
+    return stck.tail.data, nil
 }
 
 func (stck *TkStack) Len() int {
