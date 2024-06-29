@@ -1,6 +1,9 @@
 package query
 
-import "fisi/elenadb/internal/tokens"
+import (
+	"fisi/elenadb/internal/tokens"
+	"fmt"
+)
 
 type StepType uint16
 const (
@@ -425,6 +428,8 @@ func defaultParseFsm() *FsmNode {
         }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName).
         AddRule(beginStep,
             FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName, FsmBeginStep)
+
+    fmt.Println(createTableFieldKey)
 
     return beginStep
 }

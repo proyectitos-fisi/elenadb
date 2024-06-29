@@ -33,6 +33,15 @@ func (par *Parser) Test(tk *tokens.Token) error {
 
     expKeys := []string{}
     for key := range par.fsm.Children {
+        if defaultEvalFnTable[key] != nil {
+            if defaultEvalFnTable[key](tk) {
+                par.fsm = par.fsm.Children[key]
+                return nil
+            }
+
+            continue
+        }
+
         if par.fsm.Children[key].Eval(tk) {
             par.fsm = par.fsm.Children[key]
             return nil
