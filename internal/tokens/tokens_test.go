@@ -40,7 +40,7 @@ func TestTokenize(t *testing.T) {
             },
         },
         {
-            query: `new "text @with y o a spaced string" lol`,
+            query: `dame { a, todo, c } y o yo oyu oo yde elena_meta pe`,
             expect: []tokens.Token{
                 {
                     Type: tokens.TkWord,

@@ -21,7 +21,6 @@ const (
     TkString
 
     TkBoolOp
-    TkNexus
 
     TkWord
     TkAnnotation
@@ -42,7 +41,6 @@ var LexedTokenStepNameTable = map[TkType]string{
     TkBoolOp: "Bool Operator",
     TkWord: "Word",
     TkAnnotation: "Annotation",
-    TkNexus: "Nexus",
     TkString: "String",
 }
 
@@ -126,8 +124,6 @@ func getType(rn rune) TkType {
         return TkAnnotation
     case '>', '<', '=', '!':
         return TkBoolOp
-    case 'y', 'o':
-        return TkNexus
     case '"':
         return TkString
     default:
@@ -234,20 +230,6 @@ func Tokenize(rd *bufio.Reader) (*TokenIterator, error) {
 
             strBuilder.WriteRune(rn)
             flags.isBoolOp = true
-        case TkNexus:
-            if flags.isString {
-                strBuilder.WriteRune(rn)
-                continue
-            }
-
-            if strBuilder.Len() != 0 && !flags.isNexusOp && !flags.isWord {
-                returnable.Load(last, strBuilder.String())
-                strBuilder.Reset()
-                flags.isWord, flags.isAnnotation = false, false
-            }
-
-            strBuilder.WriteRune(rn)
-            flags.isNexusOp = true
         default:
             if flags.isString {
                 strBuilder.WriteRune(rn)

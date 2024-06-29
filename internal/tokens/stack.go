@@ -9,7 +9,6 @@ type tkNode struct {
 }
 
 type TkStack struct {
-    head *tkNode
     tail *tkNode
     size int
 }
@@ -18,15 +17,15 @@ func (stck *TkStack) Push(tk Token) error {
     node := &tkNode{
         data: tk,
         child: nil,
-        paren: nil,
+        paren: stck.tail,
     }
 
-    if stck.head == nil {
-        stck.head = node
-        stck.tail = stck.head
+    if stck.tail == nil {
+        stck.tail = node
+        stck.size++
+        return nil
     }
 
-    node.paren = stck.tail
     stck.tail.child = node
     stck.tail = node
 
@@ -35,12 +34,18 @@ func (stck *TkStack) Push(tk Token) error {
 }
 
 func (stck *TkStack) Pop() (Token, error) {
-    if stck.Len() == 0 {
+    if stck.tail == nil {
         return Token{}, fmt.Errorf("tkstack: empty stack")
     }
 
     tk := stck.tail.data
+
     stck.tail = stck.tail.paren
+
+    if stck.tail != nil {
+        stck.tail.child = nil
+    }
+
     stck.size--
     return tk, nil
 }
@@ -55,6 +60,17 @@ func (stck *TkStack) Peek() (Token, error) {
 
 func (stck *TkStack) Len() int {
     return stck.size
+}
+
+func (stck *TkStack) GetAll() []Token {
+    r := []Token{}
+    cursor := stck.tail
+    for cursor != nil {
+        r = append(r, cursor.data)
+        cursor = cursor.paren
+    }
+
+    return r
 }
 
 
