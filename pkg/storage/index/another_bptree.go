@@ -87,6 +87,7 @@ func (tree *BPTree) insertIntoNode(pageID common.PageID_t, key int, value uint64
 		fmt.Print("Looking for the correct node to append....\n")
 		childIndex := tree.findIndex(nodePage.Keys, key)
 		childPageID := nodePage.Children[childIndex]
+		tree.bufferPoolManager.UnpinPage(nodePage.PageID, false)
 		tree.insertIntoNode(childPageID, key, value)
 		return
 	}
@@ -313,6 +314,7 @@ func (tree *BPTree) searchNode(pageID common.PageID_t, key int) (uint64, bool) {
 
 	// Recursivamente buscar en el hijo correspondiente
 	childPageID := nodePage.Children[index]
+	tree.bufferPoolManager.UnpinPage(pageID, false)
 	return tree.searchNode(childPageID, key)
 }
 

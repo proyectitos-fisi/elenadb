@@ -17,7 +17,7 @@ func TestRangeSearch(t *testing.T) {
 	// defer diskManager.Shutdown()
 
 	// Inicializa el Buffer Pool Manager
-	poolSize := uint32(30) // tamaño del buffer pool
+	poolSize := uint32(10) // tamaño del buffer pool
 	k := 5                 // parámetro K para LRU-K
 	bufferPoolManager := buffer.NewBufferPoolManager(poolSize, diskManager, k)
 
@@ -32,7 +32,7 @@ func TestRangeSearch(t *testing.T) {
 	}
 
 	bptree.PrintTree()
-	keys, values := bptree.RangeSearch(5, 7)
+	keys, values := bptree.RangeSearch(1, 9)
 
 	fmt.Printf("Keys: %v", keys)
 	fmt.Printf("Values: %v", values)
@@ -49,7 +49,7 @@ func TestIntegrationWithBufferpool(t *testing.T) {
 	// defer diskManager.Shutdown()
 
 	// Inicializa el Buffer Pool Manager
-	poolSize := uint32(30) // tamaño del buffer pool
+	poolSize := uint32(19) // tamaño del buffer pool
 	k := 5                 // parámetro K para LRU-K
 	bufferPoolManager := buffer.NewBufferPoolManager(poolSize, diskManager, k)
 
@@ -76,5 +76,5 @@ func TestIntegrationWithBufferpool(t *testing.T) {
 			t.Errorf("Valor incorrecto para la clave %d. Se esperaba %d pero se obtuvo %d", keyIterator, keyIterator, value)
 		}
 	}
-	bptree.PrintTree()
+	// bptree.PrintTree()
 }
