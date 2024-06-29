@@ -50,7 +50,7 @@ type FsmNode struct {
     Step           StepType
     ExpectByType   bool
     ExpectedString string
-    ExpectedType   tokens.TkType
+    ExpectedType   []tokens.TkType
     Eof            bool
     Children       map[StepType]*FsmNode
 }
@@ -93,9 +93,13 @@ func isKeyword(tk *tokens.Token) bool {
 
 func (fsm *FsmNode) Eval(tk *tokens.Token) bool {
     if fsm.ExpectByType {
-        if fsm.ExpectedType != tk.Type {
-            return false
+        for index := range fsm.ExpectedType {
+            if fsm.ExpectedType[index] == tk.Type {
+                return true
+            }
         }
+
+        return false
     }
 
     if fsm.Step == FsmFieldType {
@@ -154,21 +158,27 @@ func defaultParseFsm() *FsmNode {
     createTableFieldKey := &FsmNode{
         Step: FsmFieldKey,
         ExpectByType: true,
-        ExpectedType: tokens.TkWord,
+        ExpectedType: []tokens.TkType{
+            tokens.TkWord,
+        },
         Children: map[StepType]*FsmNode{},
     }
 
     createTableFieldType := &FsmNode{
         Step: FsmFieldType,
         ExpectByType: true,
-        ExpectedType: tokens.TkWord,
+        ExpectedType: []tokens.TkType{
+            tokens.TkWord,
+        },
         Children: map[StepType]*FsmNode{},
     }
 
     createTableFieldCompositeType := &FsmNode{
         Step: FsmFieldCompositeType,
         ExpectByType: true,
-        ExpectedType: tokens.TkWord,
+        ExpectedType: []tokens.TkType{
+            tokens.TkWord,
+        },
         Children: map[StepType]*FsmNode{},
     }
 
@@ -181,7 +191,9 @@ func defaultParseFsm() *FsmNode {
     createTableAnnotation := &FsmNode{
         Step: FsmFieldAnnotation,
         ExpectByType: true,
-        ExpectedType: tokens.TkAnnotation,
+        ExpectedType: []tokens.TkType{
+            tokens.TkAnnotation,
+        },
         Children: map[StepType]*FsmNode{},
     }
 
@@ -193,7 +205,9 @@ func defaultParseFsm() *FsmNode {
 
     createTableCloseList := &FsmNode{
         Step: FsmCloseList,
-        ExpectedType: tokens.TkBracketClosed,
+        ExpectedType: []tokens.TkType{
+            tokens.TkBracketClosed,
+        },
         ExpectedString: "}",
         ExpectByType: true,
         Children: map[StepType]*FsmNode{},
@@ -207,14 +221,18 @@ func defaultParseFsm() *FsmNode {
 
     retrieveFieldKey := &FsmNode{
         ExpectByType: true,
-        ExpectedType: tokens.TkWord,
+        ExpectedType: []tokens.TkType{
+            tokens.TkWord,
+        },
         ExpectedString: "",
         Children: map[StepType]*FsmNode{},
     }
 
     insertFieldKey := &FsmNode{
         ExpectByType: true,
-        ExpectedType: tokens.TkWord,
+        ExpectedType: []tokens.TkType{
+            tokens.TkWord,
+        },
         ExpectedString: "",
         Children: map[StepType]*FsmNode{},
     }
@@ -231,7 +249,9 @@ func defaultParseFsm() *FsmNode {
         AddRule(&FsmNode{
             ExpectByType: true,
             ExpectedString: "",
-            ExpectedType: tokens.TkWord,
+            ExpectedType: []tokens.TkType{
+                tokens.TkWord,
+            },
         }, FsmCreateStep, FsmDb, FsmName).
         AddRule(beginStep,
             FsmCreateStep, FsmDb, FsmName, FsmBeginStep).
@@ -241,7 +261,9 @@ func defaultParseFsm() *FsmNode {
         }, FsmCreateStep, FsmTable).
         AddRule(&FsmNode{
             ExpectByType: true,
-            ExpectedType: tokens.TkWord,
+            ExpectedType: []tokens.TkType{
+                tokens.TkWord,
+            },
             ExpectedString: "",
         }, FsmCreateStep, FsmTable, FsmName).
         AddRule(&FsmNode{
@@ -262,16 +284,22 @@ func defaultParseFsm() *FsmNode {
             FsmCreateStep, FsmTable, FsmName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmEos).
         AddRule(&FsmNode{
             ExpectByType: true,
-            ExpectedType: tokens.TkParenOpen,
+            ExpectedType: []tokens.TkType{
+                tokens.TkParenOpen,
+            },
         }, FsmCreateStep, FsmTable, FsmName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector).
         AddRule(&FsmNode{
             ExpectByType: true,
-            ExpectedType: tokens.TkWord,
+            ExpectedType: []tokens.TkType{
+                tokens.TkWord,
+            },
             ExpectedString: "",
         }, FsmCreateStep, FsmTable, FsmName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber).
         AddRule(&FsmNode{
             ExpectByType: true,
-            ExpectedType: tokens.TkParenClosed,
+            ExpectedType: []tokens.TkType{
+                tokens.TkParenClosed,
+            },
         }, FsmCreateStep, FsmTable, FsmName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber, FsmCloseSelector).
         AddRule(createTableNullable,
             FsmCreateStep, FsmTable, FsmName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber, FsmCloseSelector, FsmFieldNullable).
@@ -310,7 +338,9 @@ func defaultParseFsm() *FsmNode {
         }, FsmCreateStep, FsmTable, FsmName, FsmOpenList, FsmFieldKey, FsmFieldFkey, FsmOpenSelector).
         AddRule(&FsmNode{
             ExpectByType: true,
-            ExpectedType: tokens.TkWord,
+            ExpectedType: []tokens.TkType{
+                tokens.TkWord,
+            },
             ExpectedString: "",
         }, FsmCreateStep, FsmTable, FsmName, FsmOpenList, FsmFieldKey, FsmFieldFkey, FsmOpenSelector, FsmFieldFkeyPath).
         AddRule(&FsmNode{
@@ -333,7 +363,9 @@ func defaultParseFsm() *FsmNode {
             FsmRetrieveStep, FsmRetrieveFields, FsmRetrieveFrom).
         AddRule(&FsmNode{
             ExpectByType: true,
-            ExpectedType: tokens.TkWord,
+            ExpectedType: []tokens.TkType{
+                tokens.TkWord,
+            },
             ExpectedString: "",
         }, FsmRetrieveStep, FsmRetrieveFields, FsmRetrieveFrom, FsmRetrieveFromSome).
         AddRule(beginStep,
@@ -367,7 +399,10 @@ func defaultParseFsm() *FsmNode {
         }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign).
         AddRule(&FsmNode{
             ExpectByType: true,
-            ExpectedType: tokens.TkWord,
+            ExpectedType: []tokens.TkType{
+                tokens.TkWord,
+                tokens.TkString,
+            },
             ExpectedString: "",
         }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue).
         AddRule(&FsmNode{
@@ -383,7 +418,9 @@ func defaultParseFsm() *FsmNode {
         }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt).
         AddRule(&FsmNode{
             ExpectByType: true,
-            ExpectedType: tokens.TkWord,
+            ExpectedType: []tokens.TkType{
+                tokens.TkWord,
+            },
             ExpectedString: "",
         }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName).
         AddRule(beginStep,
