@@ -33,6 +33,7 @@ type Query struct {
 	QueryDbInstr   bool
 	Fields         []QueryField
 	Filter         *QueryFilter
+    Returning      []string
 }
 
 func (q *Query) GetSchema() *schema.Schema {

@@ -243,6 +243,15 @@ func defaultParseFsm() *FsmNode {
         Children: map[StepType]*FsmNode{},
     }
 
+    insertReturningFieldKey := &FsmNode{
+        ExpectByType: true,
+        ExpectedType: []tokens.TkType{
+            tokens.TkWord,
+        },
+        ExpectedString: "",
+        Children: map[StepType]*FsmNode{},
+    }
+
     beginStep := NewFsm()
     beginStep.
         // creame db
@@ -438,11 +447,11 @@ func defaultParseFsm() *FsmNode {
         AddRule(&FsmNode{
             ExpectedString: "{",
         }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName, FsmReturningKey, FsmOpenList).
-        AddRule(retrieveFieldKey, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey).
+        AddRule(insertReturningFieldKey, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey).
         AddRule(&FsmNode{
             ExpectedString: ",",
         }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmListSeparator).
-        AddRule(retrieveFieldKey, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmListSeparator, FsmReturningFieldKey).
+        AddRule(insertReturningFieldKey, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmListSeparator, FsmReturningFieldKey).
         AddRule(&FsmNode{
             ExpectedString: "}",
         }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmCloseList).
