@@ -13,6 +13,7 @@
 package common
 
 import (
+	"fmt"
 	"sync/atomic"
 	"time"
 )
@@ -60,3 +61,29 @@ type OID_t uint16
 const TXNStartID TxnID_t = 1 << 62
 
 const VarcharDefaultLength = 128
+
+func (pid *PageID_t) GetFileId() FileID_t {
+	return FileID_t(*pid >> 16)
+}
+
+func (pid *PageID_t) GetActualPageId() APageID_t {
+	return APageID_t(*pid & 0xFFFF)
+}
+
+func (pid *PageID_t) ToString() string {
+	return fmt.Sprintf("(%d,%d)", pid.GetFileId(), pid.GetActualPageId())
+}
+
+// ParsePageID: splits the pageID into fileID and apID.
+// @param pageID: the ID of the page
+// @return fileID: the ID of the file
+// @return apID: the ID of the actual page within the file
+func ParsePageID(pageID PageID_t) (FileID_t, APageID_t) {
+	fileID := pageID >> 16      // high 16 bits
+	apID := pageID & 0x0000FFFF // low 16 bits
+	return FileID_t(fileID), APageID_t(apID)
+}
+
+func NewPageIdFromParts(fileID FileID_t, actualPageID APageID_t) PageID_t {
+	return PageID_t(fileID)<<16 | PageID_t(actualPageID)
+}

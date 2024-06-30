@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/go-json-experiment/json"
@@ -58,10 +59,7 @@ func StartREPL(dbName string) error {
 
 	defer writeHistory(repl)
 
-	// Parsing debugging
-
 	parser := query.NewParser()
-	formatter := newFormatter()
 
 	symbolStack := stack{}
 	fullInput := ""
@@ -92,7 +90,16 @@ mainLoop:
 			}
 
 			if isEnd && symbolStack.Empty() {
-				executeAndDisplay(elena, repl, parser, formatter, fullInput)
+				repl.AppendHistory(strings.TrimSpace(fullInput))
+				elapsed, err := executeAndDisplay(elena, repl, parser, fullInput)
+				if err != nil {
+					fmt.Printf(
+						"\n\033[31mError:\033[0m %v"+
+							"\n🚄 0 row(s) (%s)\n",
+						err, elapsed,
+					)
+					fmt.Println()
+				}
 
 				prompt = PromptIdle
 				fullInput = ""
@@ -113,33 +120,39 @@ func executeAndDisplay(
 	elena *database.ElenaDB,
 	repl *liner.State,
 	parser *query.Parser,
-	formatter prettyjson.Formatter,
 	fullInput string,
-) {
-	fmt.Println("\n==== Parsing ====")
-	err := parseAndPrint(parser, &formatter, fullInput)
-	repl.AppendHistory(strings.TrimSpace(fullInput))
-
+) (*time.Duration, error) {
+	// 🚆 Database query execution!
+	start := time.Now()
+	tuples, schema, bindedQuery, plan, err := elena.ExecuteThisBaby(fullInput)
 	if err != nil {
-		fmt.Println("Syntax error:", err)
-	} else {
-		// 🚆 Database query execution!
-		tuples, schema, plan, err := elena.ExecuteThisBaby(fullInput)
-		if err != nil {
-			fmt.Println("Error:", err)
-		}
-		fmt.Println("\n==== Query plan ====")
-		fmt.Println(plan.ToString())
+		elapsed := time.Since(start)
+		return &elapsed, err
+	}
+	fmt.Println("\n===== Binding ======\n")
+	printQuery(bindedQuery)
 
-		fmt.Println("\n==== Results ====\n")
+	fmt.Println("\n==== Query plan ====\n")
+	fmt.Println(plan.ToString())
+
+	count := 0
+
+	if !schema.IsEmpty() {
+		fmt.Println("\n====== Results =====\n")
 		schema.PrintAsTableHeader()
 
 		for tuple := range tuples {
 			tuple.PrintAsRow(schema)
+			count++
 		}
 		schema.PrintTableDivisor()
-		fmt.Println()
+	} else {
+		count = 1
 	}
+
+	elapsed := time.Since(start)
+	fmt.Printf("\n🚄 %d row(s) (%s)\n\n", count, elapsed)
+	return &elapsed, nil
 }
 
 func newFormatter() prettyjson.Formatter {
@@ -153,13 +166,9 @@ func newFormatter() prettyjson.Formatter {
 	return *formatter
 }
 
-func parseAndPrint(parser *query.Parser, formatter *prettyjson.Formatter, input string) error {
-	parsedQuery, err := parser.Parse(strings.NewReader(input))
-	if err != nil {
-		return err
-	}
-
-	bytes, err := json.Marshal(parsedQuery, json.DefaultOptionsV2())
+func printQuery(query *query.Query) error {
+	formatter := newFormatter()
+	bytes, err := json.Marshal(query, json.DefaultOptionsV2())
 	if err != nil {
 		return err
 	}

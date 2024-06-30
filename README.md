@@ -73,9 +73,12 @@ ElenaDB internal workflow (spanish)
 - [x] [Tree traversing](pkg/storage/index/another_bptree.go): BFS and DFS are used to traverse the B+Tree.
   <https://en.wikipedia.org/wiki/Tree_traversal>
 
+- [x] [Greedy optimization](pkg/database/planner.go): By generating all the possible plans to fulfill a query,
+  we can choose the best one. <https://en.wikipedia.org/wiki/Greedy_algorithm>
+
 ## Data structures used
 
-- [ ] Bloom filters. A probabilistic data structure to test whether an element is on a set.
+- [x] Bloom filters. A probabilistic data structure to test whether an element is on a set.
   Used to implement fast Hash Table misses.
   <https://en.wikipedia.org/wiki/Bloom_filter>
 

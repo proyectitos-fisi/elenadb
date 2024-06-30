@@ -56,25 +56,25 @@ func NewFromRawData(schema *schema.Schema, reader *bytes.Reader) *Tuple {
 		switch col.ColumnType {
 		case value.TypeBoolean:
 			b := make([]byte, 1)
-			debugutils.NotNil(reader.Read(b))
+			debugutils.NotErr(reader.Read(b))
 			val = *value.NewBooleanValue(b[0] == 1)
 		case value.TypeInt32:
 			b := make([]byte, 4)
-			debugutils.NotNil(reader.Read(b))
+			debugutils.NotErr(reader.Read(b))
 			val = *value.NewInt32Value(int32(binary.LittleEndian.Uint32(b)))
 		case value.TypeFloat32:
 			b := make([]byte, 4)
-			debugutils.NotNil(reader.Read(b))
+			debugutils.NotErr(reader.Read(b))
 			val = *value.NewFloat32Value(math.Float32frombits(binary.LittleEndian.Uint32(b)))
 		case value.TypeVarChar:
 			b := make([]byte, 1)
-			debugutils.NotNil(reader.Read(b))
+			debugutils.NotErr(reader.Read(b))
 			size := b[0]
-			if size != byte(col.StorageSize) {
-				panic("tuple.NewFromRawData: Size mismatch in varchar")
+			if size > byte(col.StorageSize) {
+				panic(fmt.Sprintf("Size mismatch in varchar: %d != %d", size, col.StorageSize))
 			}
 			data := make([]byte, size)
-			debugutils.NotNil(reader.Read(data))
+			debugutils.NotErr(reader.Read(data))
 			val = *value.NewVarCharValue(string(data), int(size))
 		default:
 			panic("Unknown column type")
@@ -105,12 +105,15 @@ func calculateValuesSize(values []value.Value) uint16 {
 }
 
 func (t *Tuple) PrintAsRow(rowSchema *schema.Schema) {
-	fmt.Print("| ")
+	var formattedCols [][]string = make([][]string, len(t.Values))
+	maxRows := 0
 
 	for idx, val := range t.Values {
-		col := rowSchema.GetColumn(idx)
+		colName := schema.ExtractColumnName(rowSchema.GetColumn(idx).ColumnName)
+
 		var formattedValue string
 
+		// TODO: scape characters?
 		switch val.Type {
 		case value.TypeInt32:
 			formattedValue = fmt.Sprintf("%d", val.AsInt32())
@@ -121,19 +124,56 @@ func (t *Tuple) PrintAsRow(rowSchema *schema.Schema) {
 		case value.TypeBoolean:
 			formattedValue = fmt.Sprintf("%t", val.AsBoolean())
 		default:
-			panic("Unknown value type")
+			panic(fmt.Sprintf("Unknown type: '%s'", string(val.Type)))
 		}
 
-		spacing := utils.Max(
-			len(formattedValue),
-			len(col.ColumnName),
+		width := utils.Max(
+			len(colName),
 			schema.GetMinimumSpacingForType(val.Type),
 		)
 
-		fmt.Print(formattedValue)
-		fmt.Print(strings.Repeat(" ", spacing-len(formattedValue)))
+		nrows := int(math.Ceil(float64(len([]rune(formattedValue))) / float64(width)))
+		formattedCols[idx] = make([]string, 0, nrows)
+
+		if nrows > maxRows {
+			maxRows = nrows
+		}
+
+		for r := 0; r < nrows; r++ {
+			if r+1 != nrows {
+				formattedCols[idx] = append(formattedCols[idx], formattedValue[r*width:utils.Min((r+1)*width, len(formattedValue))])
+			} else {
+				formattedCols[idx] = append(formattedCols[idx], formattedValue[r*width:])
+			}
+		}
 	}
-	fmt.Print(" |\n")
+
+	if maxRows > 1 {
+		maxRows += 1
+	}
+
+	for row := 0; row < maxRows; row++ {
+		for idx, _ := range t.Values {
+			col := rowSchema.GetColumn(idx)
+			var formattedValue string
+
+			if row < len(formattedCols[idx]) {
+				formattedValue = formattedCols[idx][row]
+			} else {
+				formattedValue = ""
+			}
+			utf8len := len([]rune(formattedValue))
+
+			spacing := schema.GetTableColSpacingFromColumn(col)
+
+			fmt.Print("| ")
+			fmt.Print(formattedValue)
+			if spacing-utf8len >= 0 {
+				fmt.Print(strings.Repeat(" ", spacing-utf8len+1))
+			}
+		}
+		fmt.Print("|\n")
+	}
 }
 
 // func (t *Tuple) DeserializeFrom(reader *bytes.Reader) error {

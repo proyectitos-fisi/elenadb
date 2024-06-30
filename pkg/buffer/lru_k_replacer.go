@@ -143,7 +143,7 @@ func (lru *LRUKReplacer) Size() int {
 	return int(lru.size.Load())
 }
 
-// LRU-K Node implementations 🐢
+// LRU-K Node implementations
 
 // Creates a new frame node, registering the first access.
 func newNode(k int, frame_id FrameID) *LRUKNode {

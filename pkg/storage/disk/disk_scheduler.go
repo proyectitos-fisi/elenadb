@@ -13,6 +13,7 @@
 package storage_disk
 
 import (
+	"fisi/elenadb/pkg/catalog"
 	"fisi/elenadb/pkg/common"
 	"fmt"
 	"sync"
@@ -36,6 +37,7 @@ type DiskRequest struct {
 
 	// Channel used to signal to the request issuer when the request has been completed.
 	Callback chan bool
+	filename string
 }
 
 type DiskScheduler struct {
@@ -47,17 +49,21 @@ type DiskScheduler struct {
 	Mutex sync.Mutex
 	// Wait group for tracking the worker thread. */
 	WaitGroup sync.WaitGroup
+	Catalog   *catalog.Catalog
 }
 
 // Don't forget to start worker threads.
-func NewScheduler(dm *DiskManager) *DiskScheduler {
+func NewScheduler(dm *DiskManager, catalog *catalog.Catalog) *DiskScheduler {
 	return &DiskScheduler{
 		diskManager:  dm,
 		RequestQueue: *common.NewChannel[*DiskRequest](),
+		Catalog:      catalog,
 	}
 }
 
 func (ds *DiskScheduler) Schedule(request *DiskRequest) {
+	filename := ds.Catalog.FilenameFromFileId(request.PageID.GetFileId())
+	request.filename = *filename
 	ds.RequestQueue.Put(request)
 }
 
@@ -69,7 +75,7 @@ func (ds *DiskScheduler) StartWorkerThread() {
 				return
 			}
 			if request.IsWrite {
-				err := ds.diskManager.WritePage(request.PageID, request.Data)
+				err := ds.diskManager.WritePage(request.PageID, request.Data, request.filename)
 				if err != nil {
 					fmt.Println("unexpedted I/O error:", err.Error())
 					request.Callback <- false
@@ -77,10 +83,14 @@ func (ds *DiskScheduler) StartWorkerThread() {
 					request.Callback <- true
 				}
 			} else {
-				data, err := ds.diskManager.ReadPage(request.PageID)
+
+				data, err := ds.diskManager.ReadPage(request.PageID, request.filename)
 				if err != nil {
-					fmt.Println("unexpected I/O error:", err.Error())
-					request.Callback <- false
+					if err.Error() == "EOF" {
+						request.Callback <- false
+					} else {
+						panic(fmt.Sprintf("unexpected I/O error: %s", err.Error()))
+					}
 				} else {
 					copy(request.Data, data)
 					request.Callback <- true

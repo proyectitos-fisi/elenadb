@@ -110,5 +110,9 @@ func (v *Value) AsFloat32() float32 {
 }
 
 func (v *Value) AsVarchar() string {
-	return string(v.Data)
+	return string(v.Data[1 : v.Data[0]+1])
+}
+
+func (v *Value) SizeOnDisk() uint16 {
+	return uint16(len(v.Data))
 }

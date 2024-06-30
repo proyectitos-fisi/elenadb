@@ -1,6 +1,7 @@
 package common_test
 
 import (
+	"fisi/elenadb/pkg/catalog"
 	"fisi/elenadb/pkg/common"
 	storage_disk "fisi/elenadb/pkg/storage/disk"
 	"sync"
@@ -13,7 +14,7 @@ func TestChannelWorks(t *testing.T) {
 	dmanager, err := storage_disk.NewDiskManager("dummy_db")
 	assert.Nil(t, err)
 
-	scheduler := storage_disk.NewScheduler(dmanager)
+	scheduler := storage_disk.NewScheduler(dmanager, catalog.EmptyCatalog())
 	scheduler.StartWorkerThread()
 
 	data := make([]byte, common.ElenaPageSize)

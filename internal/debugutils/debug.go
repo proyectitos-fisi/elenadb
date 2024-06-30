@@ -15,8 +15,14 @@ func PrettyPrint(qu interface{}) {
 	fmt.Printf("%s", string(bytes))
 }
 
-func NotNil(_ any, maybeErr any) {
+func NotErr(_ any, maybeErr any) {
 	if maybeErr != nil {
 		panic(maybeErr)
+	}
+}
+
+func NotNil(maybeNil any) {
+	if maybeNil != nil {
+		panic(maybeNil)
 	}
 }

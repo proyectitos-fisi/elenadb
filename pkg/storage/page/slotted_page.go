@@ -5,6 +5,7 @@ import (
 	"fisi/elenadb/pkg/catalog/schema"
 	"fisi/elenadb/pkg/common"
 	"fisi/elenadb/pkg/storage/table/tuple"
+	"fmt"
 	"unsafe"
 )
 
@@ -16,6 +17,9 @@ import (
 // ________________ LastUsedOffset ______________|
 //
 
+const SLOTTED_PAGE_HEADER_SIZE = 12
+const SLOT_SIZE = 4
+
 // Page header format:
 // -------------------------------------------------------------------------
 // | NumTuples(2) | NumDeletedTuples(2) | FreeSpace(2) | LastUsedOffset(2) |
@@ -25,6 +29,7 @@ type SlottedPageHeader struct {
 	NumDeleted     uint16              // 2 bytes
 	FreeSpace      uint16              // 2 bytes
 	LastUsedOffset common.SlotOffset_t // 2 bytes
+	LastInsertedId int32               // 4 bytes
 }
 
 // Just a wrapper type for Pages
@@ -46,25 +51,18 @@ func (sd *SlotData) IsDeleted() bool {
 	return sd.Length == 0
 }
 
-func NewEmptySlottedPage() *SlottedPage {
+func NewEmptySlottedPage(p *Page) *SlottedPage {
 	h := &SlottedPageHeader{
 		NumTuples:      0,
 		NumDeleted:     0,
 		FreeSpace:      common.ElenaPageSize - SLOTTED_PAGE_HEADER_SIZE,
 		LastUsedOffset: common.SlotOffset_t(common.ElenaPageSize) - SLOTTED_PAGE_HEADER_SIZE,
+		LastInsertedId: 0,
 	}
-	rawEmptyPage := make([]byte, common.ElenaPageSize)
-	copy(rawEmptyPage[0:], (*(*[8]byte)(unsafe.Pointer(h)))[:])
+	copy(p.Data[0:], (*(*[SLOTTED_PAGE_HEADER_SIZE]byte)(unsafe.Pointer(h)))[:])
 
 	return &SlottedPage{
 		Header:   h,
-		PageData: rawEmptyPage,
-	}
-}
-
-func AsSlottedPage(p *Page) *SlottedPage {
-	return &SlottedPage{
-		Header:   NewSlottedPageHeaderFromRawPage(p),
 		PageData: p.Data,
 	}
 }
@@ -77,9 +75,6 @@ func AsSlottedPage(p *Page) *SlottedPage {
 // - Delete a tuple:
 //   - decrease the tuple count
 // - Read a tuple from slot:
-
-const SLOTTED_PAGE_HEADER_SIZE = 8
-const SLOT_SIZE = 4
 
 // Compile time checks
 var _ [0]struct{} = [unsafe.Sizeof(SlottedPageHeader{}) - SLOTTED_PAGE_HEADER_SIZE]struct{}{}
@@ -94,6 +89,13 @@ func (sp *SlottedPage) AsRawPageData() []byte {
 
 func NewSlottedPageHeaderFromRawPage(p *Page) *SlottedPageHeader {
 	return (*SlottedPageHeader)(unsafe.Pointer(&p.Data[0]))
+}
+
+func NewSlottedPageFromRawPage(p *Page) *SlottedPage {
+	return &SlottedPage{
+		Header:   NewSlottedPageHeaderFromRawPage(p),
+		PageData: p.Data,
+	}
 }
 
 func (sp *SlottedPage) SetNumTuples(numTuples uint16) {
@@ -116,9 +118,17 @@ func (sp *SlottedPage) SetLastUsedOffset(lastUsedOffset common.SlotOffset_t) {
 	copy(sp.PageData[6:], (*(*[2]byte)(unsafe.Pointer(&lastUsedOffset)))[:])
 }
 
+func (sp *SlottedPage) SetLastInsertedId(lastInsertedId int32) {
+	sp.Header.LastInsertedId = lastInsertedId
+	copy(sp.PageData[8:], (*(*[4]byte)(unsafe.Pointer(&lastInsertedId)))[:])
+}
+
 func (sp *SlottedPage) AppendTuple(t *tuple.Tuple) error {
 	if sp.Header.FreeSpace < t.Size {
-		return NoSpaceLeft{}
+		return NoSpaceLeft{
+			FreeSpace: sp.Header.FreeSpace,
+			TupleSize: t.Size,
+		}
 	}
 
 	slots := sp.GetSlotsArray()
@@ -132,7 +142,7 @@ func (sp *SlottedPage) AppendTuple(t *tuple.Tuple) error {
 }
 
 func (sp *SlottedPage) GetSlotsArray() []SlotData {
-	numSlots := sp.Header.NumTuples + sp.Header.NumDeleted
+	numSlots := sp.GetNSlots()
 	rawSlots := make([]byte, SLOT_SIZE*numSlots)
 	copy(rawSlots, sp.PageData[SLOTTED_PAGE_HEADER_SIZE:SLOTTED_PAGE_HEADER_SIZE+int(numSlots)*SLOT_SIZE])
 
@@ -146,6 +156,11 @@ func (sp *SlottedPage) GetSlotsArray() []SlotData {
 		slots = append(slots, slot)
 	}
 	return slots
+}
+
+// Since slots are not really deleted, but zeroed out, deleted tuples count as well
+func (sp *SlottedPage) GetNSlots() uint16 {
+	return sp.Header.NumTuples + sp.Header.NumDeleted
 }
 
 func (sp *SlottedPage) SetSlotsArray(slots []SlotData) {
@@ -187,6 +202,14 @@ func (sp *SlottedPage) DeleteTuple(slot common.SlotNumber_t) bool {
 	return false
 }
 
+func (sp *SlottedPage) MostRecentTuple() *tuple.Tuple {
+	slots := sp.GetSlotsArray()
+	if len(slots) == 0 {
+		return nil
+	}
+	return sp.ReadTuple(schema.EmptySchema(), common.SlotNumber_t(len(slots)-1))
+}
+
 // Given a slot number, read that tuple
 func (sp *SlottedPage) ReadTuple(schema *schema.Schema, slot common.SlotNumber_t) *tuple.Tuple {
 	slots := sp.GetSlotsArray()
@@ -196,20 +219,46 @@ func (sp *SlottedPage) ReadTuple(schema *schema.Schema, slot common.SlotNumber_t
 				return nil
 			}
 
+			pageStart := SLOTTED_PAGE_HEADER_SIZE + s.Offset
+			pageEnd := SLOTTED_PAGE_HEADER_SIZE + s.Offset + common.SlotOffset_t(s.Length)
 			return tuple.NewFromRawData(
 				schema,
-				bytes.NewReader(sp.PageData[SLOTTED_PAGE_HEADER_SIZE+s.Offset:SLOTTED_PAGE_HEADER_SIZE+s.Offset+common.SlotOffset_t(s.Length)]),
+				bytes.NewReader(sp.PageData[pageStart:pageEnd]),
 			)
 		}
 	}
 	return nil
 }
 
+// Creates a SlottedPage that doesn't write to an external [page.Page]. Mainly  used for tests.
+// Mainly used for tests
+func NewSelfContainedSlottedPage() *SlottedPage {
+	h := &SlottedPageHeader{
+		NumTuples:      0,
+		NumDeleted:     0,
+		FreeSpace:      common.ElenaPageSize - SLOTTED_PAGE_HEADER_SIZE,
+		LastUsedOffset: common.SlotOffset_t(common.ElenaPageSize) - SLOTTED_PAGE_HEADER_SIZE,
+		LastInsertedId: 0,
+	}
+	rawEmptyPage := make([]byte, common.ElenaPageSize)
+	copy(rawEmptyPage[0:], (*(*[SLOTTED_PAGE_HEADER_SIZE]byte)(unsafe.Pointer(h)))[0:])
+
+	return &SlottedPage{
+		Header:   h,
+		PageData: rawEmptyPage,
+	}
+}
+
+// ============ Errors ============
+
 // NoSpaceLeft error
-type NoSpaceLeft struct{}
+type NoSpaceLeft struct {
+	FreeSpace uint16
+	TupleSize uint16
+}
 
 func (nsl NoSpaceLeft) Error() string {
-	return "No space left in the page"
+	return "No space left in the page: " + fmt.Sprintf("left: %d, tuple size: %d", nsl.FreeSpace, nsl.TupleSize)
 }
 
 // to check if error is of type NoSpaceLeft

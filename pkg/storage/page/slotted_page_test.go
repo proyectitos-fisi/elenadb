@@ -17,7 +17,7 @@ func TestSlottedPages(t *testing.T) {
 	slots := []page.SlotData{}
 
 	// Create a new page
-	sp := page.NewEmptySlottedPage()
+	sp := page.NewSelfContainedSlottedPage()
 	sp.SetSlotsArray(slots)
 
 	// Append a tuple
@@ -86,7 +86,7 @@ func TestSlottedPageFlooding(t *testing.T) {
 		*value.NewVarCharValue("elena", 5),
 		*value.NewFloat32Value(69.69),
 	})
-	sp := page.NewEmptySlottedPage()
+	sp := page.NewSelfContainedSlottedPage()
 
 	appendedTupleSize := tpl.Size + page.SLOT_SIZE
 

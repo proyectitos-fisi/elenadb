@@ -1,10 +1,13 @@
 package buffer
 
 import (
+	"fisi/elenadb/pkg/catalog"
 	"fisi/elenadb/pkg/common"
 	storage_disk "fisi/elenadb/pkg/storage/disk"
 	"fisi/elenadb/pkg/storage/page"
+	"fisi/elenadb/pkg/utils"
 	"log"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 )
@@ -16,16 +19,18 @@ type BufferPoolManager struct {
 	replacer      LRUKReplacer
 	latch         sync.RWMutex
 	nextPageID    *atomic.Int32
+	dbName        string
 	freeList      []common.FrameID_t
+	log           *common.Logger
 }
 
-func NewBufferPoolManager(dbName string, poolSize uint32, k int) *BufferPoolManager {
+func NewBufferPoolManager(dbName string, poolSize uint32, k int, ctlg *catalog.Catalog) *BufferPoolManager {
 	diskManager, err := storage_disk.NewDiskManager(dbName)
 	if err != nil {
 		panic(err)
 	}
 
-	scheduler := storage_disk.NewScheduler(diskManager)
+	scheduler := storage_disk.NewScheduler(diskManager, ctlg)
 	freeList := make([]common.FrameID_t, poolSize)
 	pageTable := make(map[common.FrameID_t]*page.Page)
 	var nextPageID atomic.Int32
@@ -46,10 +51,11 @@ func NewBufferPoolManager(dbName string, poolSize uint32, k int) *BufferPoolMana
 		replacer:      *NewLRUK(poolSize, k),
 		nextPageID:    &nextPageID,
 		freeList:      freeList,
+		dbName:        dbName,
+		latch:         sync.RWMutex{},
+		log:           common.NewLogger('💾'),
 	}
 }
-
-// func (bp *BufferPoolManager)
 
 /**
  * TODO(P1): Add implementation
@@ -76,15 +82,36 @@ func (bp *BufferPoolManager) FetchPage(pageId common.PageID_t) *page.Page {
 	return bp.fetchPageUnlocked(pageId)
 }
 
+func (bp *BufferPoolManager) FetchLastPage(fileId common.FileID_t) *page.Page {
+	bp.latch.Lock()
+	defer bp.latch.Unlock()
+
+	filename := bp.diskScheduler.Catalog.FilenameFromFileId(fileId)
+	size, err := storage_disk.GetFileSize(filepath.Join(bp.dbName, *filename))
+	if err != nil {
+		panic(err)
+	}
+
+	if size == 0 {
+		return nil
+	}
+
+	apidOffset := utils.Min(size/common.ElenaPageSize-1, 0)
+	pageId := common.NewPageIdFromParts(fileId, common.APageID_t(apidOffset))
+	return bp.fetchPageUnlocked(pageId)
+}
+
 func (bp *BufferPoolManager) fetchPageUnlocked(pageId common.PageID_t) *page.Page {
 	// First search for page_id in the buffer pool
-	for _, page := range bp.pageTable {
+	for frameId, page := range bp.pageTable {
 		if page == nil {
 			continue
 		}
 
 		if page.PageId == pageId {
-			// if found, returneas la page pues
+			// if found, returneas la page pues, but you pin it
+			page.PinCount.Add(1)
+			bp.log.Debug("fetch page %s from frame '%d' (pins=%d)", pageId.ToString(), frameId, page.PinCount.Load())
 			return page
 		}
 	}
@@ -93,11 +120,15 @@ func (bp *BufferPoolManager) fetchPageUnlocked(pageId common.PageID_t) *page.Pag
 
 	// before fetching from disk, we check whether if there's a free frame
 	if len(bp.freeList) == 0 {
+		bp.log.Debug("no frames available, trying to evict")
+
 		frameId = bp.replacer.Evict() // obtain the next evictable frame
 		if frameId == common.InvalidFrameID {
+			bp.log.Error("unable to allocate page %s: no free frames available", pageId.ToString())
 			log.Println("MAYBE ERR: No free frames available")
 			return nil
 		}
+		bp.log.Debug("evicted frame '%d'", frameId)
 		// eviction can happen
 		if !bp.DeletePage(bp.pageTable[frameId].PageId) {
 			panic("DeletePage shouldn't have returned false since we just evicted that page")
@@ -105,7 +136,6 @@ func (bp *BufferPoolManager) fetchPageUnlocked(pageId common.PageID_t) *page.Pag
 	} else {
 		// there's a free frame to use!!11!!1!
 		frameId = bp.freeList[0]
-		bp.freeList = bp.freeList[1:]
 	}
 
 	data := make([]byte, common.ElenaPageSize)
@@ -122,10 +152,11 @@ func (bp *BufferPoolManager) fetchPageUnlocked(pageId common.PageID_t) *page.Pag
 	// TODO: @damaris should we wait for the callback?
 	read := <-callback
 	if !read {
-		panic("unexpected I/O error")
+		return nil
 	}
 
 	newPage := page.NewPageWithData(pageId, data, 1)
+	bp.log.Debug("saved page %s to frame '%d'", pageId.ToString(), frameId)
 	bp.pageTable[frameId] = newPage
 	bp.removeFromFreeList(frameId)
 
@@ -141,14 +172,20 @@ func (bp *BufferPoolManager) fetchPageUnlocked(pageId common.PageID_t) *page.Pag
  * @brief Allocate a page on disk. Caller should acquire the latch before calling this function.
  * @return the id of the allocated page
  */
-func (bp *BufferPoolManager) AllocatePage() common.PageID_t {
+func (bp *BufferPoolManager) AllocatePage(fileId common.FileID_t) common.PageID_t {
+	filename := bp.diskScheduler.Catalog.FilenameFromFileId(fileId)
+	bp.log.Debug("got filename %s from file_id %d", *filename, fileId)
+	size, err := storage_disk.GetFileSize(filepath.Join(bp.dbName, *filename))
+	if err != nil {
+		panic(err)
+	}
+	pageId := common.NewPageIdFromParts(fileId, common.APageID_t(size/common.ElenaPageSize))
+
 	// add one to the next page id
-	return common.PageID_t(bp.nextPageID.Add(1))
+	return pageId
 }
 
 /**
-* TODO(P1): Add implementation
-*
 * @brief Create a new page in the buffer pool.
 * ✅ Set page_id to the new page's id,
 * ✅ or nullptr if all frames
@@ -168,11 +205,7 @@ func (bp *BufferPoolManager) AllocatePage() common.PageID_t {
 * @param[out] page_id id of created page
 * @return nullptr if no new pages could be created, otherwise pointer to new page
  */
-
-func (bp *BufferPoolManager) NewPage() *page.Page {
-	bp.latch.Lock()
-	defer bp.latch.Unlock()
-
+func (bp *BufferPoolManager) newPageUnlocked(fileId common.FileID_t) *page.Page {
 	var frameId common.FrameID_t
 
 	if len(bp.freeList) == 0 {
@@ -190,10 +223,9 @@ func (bp *BufferPoolManager) NewPage() *page.Page {
 	} else {
 		// there's a free frame to use!!11!!1!
 		frameId = bp.freeList[0]
-		bp.freeList = bp.freeList[1:]
 	}
 
-	newPage := page.NewPage(bp.AllocatePage(), 1)
+	newPage := page.NewPage(bp.AllocatePage(fileId), 1)
 	bp.pageTable[frameId] = newPage
 	bp.removeFromFreeList(frameId)
 	// Una vez que hallamos creado la página, marcamos ese frame como not evictable
@@ -203,6 +235,12 @@ func (bp *BufferPoolManager) NewPage() *page.Page {
 	bp.replacer.SetEvictable(frameId, false) // ya entendí, paolo
 
 	return newPage
+}
+
+func (bp *BufferPoolManager) NewPage(fileId common.FileID_t) *page.Page {
+	bp.latch.Lock()
+	defer bp.latch.Unlock()
+	return bp.newPageUnlocked(fileId)
 }
 
 /**
@@ -280,13 +318,14 @@ func (bp *BufferPoolManager) UnpinPage(pageId common.PageID_t, isDirty bool) boo
 		}
 
 		if page.PageId == pageId {
+			page.IsDirty = isDirty
 			if page.PinCount.Load() <= 0 {
 				return false
 			}
 			if page.PinCount.Add(-1) == 0 {
 				bp.replacer.SetEvictable(frameId, true)
 			}
-			page.IsDirty = isDirty
+			// bp.log.Debug("unpin page %s in frame '%d' (is_dirty=%t, pins=%d)", pageId.ToString(), frameId, isDirty, page.PinCount.Load())
 			return true
 		}
 	}
@@ -322,7 +361,6 @@ func (bp *BufferPoolManager) flushPageNoLock(pageId common.PageID_t) bool {
 			if !page.IsDirty {
 				return true
 			}
-
 			cb := make(chan bool)
 			bp.diskScheduler.Schedule(&storage_disk.DiskRequest{
 				IsWrite:  true,

@@ -13,9 +13,12 @@
 package catalog
 
 import (
+	"fisi/elenadb/pkg/catalog/column"
 	"fisi/elenadb/pkg/catalog/schema"
 	"fisi/elenadb/pkg/common"
 	"fisi/elenadb/pkg/meta"
+	"fmt"
+	"strings"
 )
 
 type IndexType string
@@ -65,30 +68,26 @@ type Catalog struct {
 	// file_id -> filename
 	// table_name -> TableMetadata
 	// index_name -> IndexMetadata
-	FileIdToFilenameMap map[common.FileID_t]string
-	TableMetadataMap    map[string]*TableMetadata
-	IndexMetadataMap    map[string]*IndexMetadata
+	TableMetadataMap map[string]*TableMetadata
+	IndexMetadataMap map[string]*IndexMetadata
 }
 
 // un catalog skeleton, vacío no más
 func EmptyCatalog() *Catalog {
 	return &Catalog{
-		FileIdToFilenameMap: nil,
-		TableMetadataMap:    nil,
-		IndexMetadataMap:    nil,
+		TableMetadataMap: make(map[string]*TableMetadata),
+		IndexMetadataMap: make(map[string]*IndexMetadata),
 	}
 }
 
 // un catalog que será llenado
 func FillCatalog(
-	fileIdToFilenameMap map[common.FileID_t]string,
 	tableMetadataMap map[string]*TableMetadata,
 	indexMetadataMap map[string]*IndexMetadata,
 ) *Catalog {
 	return &Catalog{
-		FileIdToFilenameMap: fileIdToFilenameMap,
-		TableMetadataMap:    tableMetadataMap,
-		IndexMetadataMap:    indexMetadataMap,
+		TableMetadataMap: tableMetadataMap,
+		IndexMetadataMap: indexMetadataMap,
 	}
 }
 
@@ -96,8 +95,29 @@ func (c *Catalog) IndexMetadata(table string) *IndexMetadata {
 	return c.IndexMetadataMap[table]
 }
 
-func (c *Catalog) FilenameFromFileId(fileId common.FileID_t) string {
-	return c.FileIdToFilenameMap[fileId]
+func (c *Catalog) FilenameFromFileId(fileId common.FileID_t) *string {
+	if fileId == 0 {
+		__ := meta.ELENA_META_TABLE_FILE
+		return &__
+	}
+
+	for _, table := range c.TableMetadataMap {
+		if table.FileID == fileId {
+			__ := fmt.Sprintf("%s.table", table.Name)
+			return &__
+		}
+	}
+	for _, index := range c.IndexMetadataMap {
+		if index.FileID == fileId {
+			__ := fmt.Sprintf("%s.index", index.Name)
+			return &__
+		}
+	}
+	return nil
+}
+
+func (c *Catalog) RegisterTableMetadata(table string, metadata *TableMetadata) {
+	c.TableMetadataMap[table] = metadata
 }
 
 func (c *Catalog) GetTableMetadata(table string) *TableMetadata {
@@ -111,28 +131,17 @@ func (c *Catalog) GetTableMetadata(table string) *TableMetadata {
 	return c.TableMetadataMap[table]
 }
 
-// if table == database.ELENA_META_TABLE_NAME {
-// 	return &TableMetadata{
-// 		Name:      database.ELENA_META_TABLE_NAME,
-// 		SqlCreate: database.ELENA_META_CREATE_SQL,
-// 		Schema:    *database.ElenaMetaSchema,
-// 	}
-// }
+// tableCol is a string in the format "table.column"
+func (c *Catalog) getTableColumnMetadata(tableCol string) *column.Column {
+	table_column := strings.Split(tableCol, ".")
+	table := table_column[0]
+	column := table_column[1]
 
-// result, _, _, err := c.Db.ExecuteThisBaby(
-// 	"dame { table_name, sql } de elena_meta donde { table_name = " + table + " } pe",
-// )
+	for _, col := range c.TableMetadataMap[table].Schema.GetColumns() {
+		if col.ColumnName == column {
+			return &col
+		}
+	}
 
-// if err != nil {
-// 	panic("Unable to query elena_meta: " + err.Error())
-// }
-
-// tuple := <-result
-
-// if nil != <-result {
-// 	panic("Multiple rows returned for table " + table)
-// }
-
-// if tuple == nil {
-// 	return nil
-// }
+	return nil
+}

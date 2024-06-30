@@ -8,6 +8,8 @@ type Column struct {
 	StorageSize uint16
 	IsUnique    bool
 	IsNullable  bool
+	IsForeign   bool
+	IsIdentity  bool
 }
 
 func CopyColumn(c Column) Column {
@@ -17,6 +19,8 @@ func CopyColumn(c Column) Column {
 		StorageSize: c.StorageSize,
 		IsUnique:    c.IsUnique,
 		IsNullable:  c.IsNullable,
+		IsForeign:   c.IsForeign,
+		IsIdentity:  c.IsIdentity,
 	}
 }
 

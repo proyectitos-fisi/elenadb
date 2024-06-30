@@ -8,7 +8,7 @@ var identifiers = []string{
 	"dame", "de", "donde", "pe",
 	"creame", "tabla",
 	"mete", "en",
-	"borra",
+	"borra", "retornando",
 }
 
 var types = []string{
