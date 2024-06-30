@@ -2,6 +2,7 @@ package buffer_test
 
 import (
 	"fisi/elenadb/pkg/buffer"
+	"fisi/elenadb/pkg/catalog"
 	"fisi/elenadb/pkg/common"
 	"math"
 	"math/rand"
@@ -12,7 +13,8 @@ import (
 )
 
 func TestBufferPoolManagerTestBinaryDataTest(t *testing.T) {
-	db_dir := "db.elena"
+	db_dir := "db.elena/"
+	common.GloablDbDir = db_dir
 	buffer_pool_size := 10
 	k := 5
 
@@ -23,11 +25,16 @@ func TestBufferPoolManagerTestBinaryDataTest(t *testing.T) {
 		return lower_bound + rand.Intn(upper_bound-lower_bound)
 	}
 
+	os.MkdirAll(db_dir, os.ModePerm)
+	os.Create(db_dir + "elena_meta.table")
 	defer os.RemoveAll(db_dir)
-	assert.Nil(t, nil)
-	bpm := buffer.NewBufferPoolManager(db_dir, uint32(buffer_pool_size), k)
 
-	page0 := bpm.NewPage()
+	// defer os.RemoveAll(db_dir)
+	assert.Nil(t, nil)
+	bpm := buffer.NewBufferPoolManager(db_dir, uint32(buffer_pool_size), k, catalog.EmptyCatalog())
+	catalogFileId := common.FileID_t(0)
+
+	page0 := bpm.NewPage(catalogFileId)
 	page_id_temp := page0.PageId
 
 	// Scenario: The buffer pool is empty. We should be able to create a new page.
@@ -50,22 +57,23 @@ func TestBufferPoolManagerTestBinaryDataTest(t *testing.T) {
 
 	// Scenario: We should be able to create new pages until we fill up the buffer pool.
 	for i := 1; i < buffer_pool_size; i++ {
-		assert.NotNil(t, bpm.NewPage())
+		assert.NotNil(t, bpm.NewPage(catalogFileId))
 	}
 
 	// Scenario: Once the buffer pool is full, we should not be able to create any new pages.
 	for i := buffer_pool_size; i < buffer_pool_size*2; i++ {
-		assert.Nil(t, bpm.NewPage())
+		assert.Nil(t, bpm.NewPage(catalogFileId))
 	}
 
 	// Scenario: After unpinning pages {0, 1, 2, 3, 4}, we should be able to create 5 new pages
 	for i := 0; i < 5; i++ {
-		unpinned := bpm.UnpinPage(common.PageID_t(i), true)
+		pageId := common.NewPageIdFromParts(catalogFileId, common.APageID_t(i))
+		unpinned := bpm.UnpinPage(pageId, true)
 		assert.True(t, unpinned)
-		bpm.FlushPage(common.PageID_t(i))
+		bpm.FlushPage(pageId)
 	}
 	for i := 0; i < 5; i++ {
-		p := bpm.NewPage()
+		p := bpm.NewPage(catalogFileId)
 		assert.NotNil(t, p)
 		// Unpin the page here to allow future fetching
 		bpm.UnpinPage(p.PageId, false)
@@ -83,15 +91,19 @@ func TestBufferPoolManagerTestBinaryDataTest(t *testing.T) {
 }
 
 func TestBufferPoolManagerTestSampleTest(t *testing.T) {
-	db_dir := "db.elena"
+	db_dir := "db.elena/"
+	common.GloablDbDir = db_dir
 	buffer_pool_size := 10
 	k := 5
 
+	os.MkdirAll(db_dir, os.ModePerm)
+	os.Create(db_dir + "elena_meta.table")
 	defer os.RemoveAll(db_dir)
-	// assert.Nil(t, err)
-	bpm := buffer.NewBufferPoolManager(db_dir, uint32(buffer_pool_size), k)
 
-	page0 := bpm.NewPage()
+	bpm := buffer.NewBufferPoolManager(db_dir, uint32(buffer_pool_size), k, catalog.EmptyCatalog())
+	catalogFileId := common.FileID_t(0)
+
+	page0 := bpm.NewPage(catalogFileId)
 	assert.NotNil(t, page0)
 	page_id_temp := page0.PageId
 
@@ -105,14 +117,14 @@ func TestBufferPoolManagerTestSampleTest(t *testing.T) {
 
 	// Scenario: We should be able to create new pages until we fill up the buffer pool.
 	for i := 1; i < buffer_pool_size; i++ {
-		p := bpm.NewPage()
+		p := bpm.NewPage(catalogFileId)
 		assert.NotNil(t, p)
 		assert.Equal(t, p.PageId, common.PageID_t(i))
 	}
 
 	// Scenario: Once the buffer pool is full, we should not be able to create any new pages.
 	for i := buffer_pool_size; i < buffer_pool_size*2; i++ {
-		assert.Nil(t, bpm.NewPage())
+		assert.Nil(t, bpm.NewPage(catalogFileId))
 	}
 
 	// Scenario: After unpinning pages {0, 1, 2, 3, 4} and pinning another 4 new pages,
@@ -121,7 +133,7 @@ func TestBufferPoolManagerTestSampleTest(t *testing.T) {
 		assert.True(t, bpm.UnpinPage(common.PageID_t(i), true))
 	}
 	for i := 0; i < 4; i++ {
-		assert.NotNil(t, bpm.NewPage())
+		assert.NotNil(t, bpm.NewPage(catalogFileId))
 	}
 
 	// Scenario: We should be able to fetch the data we wrote a while ago.
@@ -132,7 +144,7 @@ func TestBufferPoolManagerTestSampleTest(t *testing.T) {
 	// Scenario: If we unpin page 0 and then make a new page, all the buffer pages should
 	// now be pinned. Fetching page 0 again should fail.
 	assert.True(t, bpm.UnpinPage(0, true))
-	pp := bpm.NewPage()
+	pp := bpm.NewPage(catalogFileId)
 	assert.NotNil(t, pp)
 	assert.Nil(t, bpm.FetchPage(0))
 

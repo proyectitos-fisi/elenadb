@@ -173,13 +173,42 @@ func (bp *BufferPoolManager) fetchPageUnlocked(pageId common.PageID_t) *page.Pag
  * @return the id of the allocated page
  */
 func (bp *BufferPoolManager) AllocatePage(fileId common.FileID_t) common.PageID_t {
+	// In order to know what's the next apid (actual page id) to allocate for this fileId
+	// we need to visit our frames, since there may be pages that are in memory but not
 	filename := bp.diskScheduler.Catalog.FilenameFromFileId(fileId)
-	bp.log.Debug("got filename %s from file_id %d", *filename, fileId)
+
+	maxActualPageId := common.APageID_t(0)
+	foundOnBuffer := false
+
+	for _, page := range bp.pageTable {
+		if page == nil {
+			continue
+		}
+
+		if fileId == page.PageId.GetFileId() {
+			foundOnBuffer = true
+			if page.PageId.GetActualPageId() > maxActualPageId {
+				maxActualPageId = page.PageId.GetActualPageId()
+			}
+		}
+	}
+
 	size, err := storage_disk.GetFileSize(filepath.Join(bp.dbName, *filename))
 	if err != nil {
 		panic(err)
 	}
-	pageId := common.NewPageIdFromParts(fileId, common.APageID_t(size/common.ElenaPageSize))
+
+	var nextActualPageId common.APageID_t
+	if !foundOnBuffer {
+		// IF this file doesn't have pages on memory we choose the next actual page id
+		// based on its size
+		nextActualPageId = common.APageID_t(size / common.ElenaPageSize)
+	} else {
+		// IF this file has pages on memory we choose the next actual page id
+		nextActualPageId = utils.Max(maxActualPageId+1, common.APageID_t(size/common.ElenaPageSize))
+	}
+
+	pageId := common.NewPageIdFromParts(fileId, nextActualPageId)
 
 	// add one to the next page id
 	return pageId

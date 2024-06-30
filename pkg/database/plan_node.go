@@ -199,7 +199,7 @@ func (c *CreamePlanNode) ToString() string {
 		fields.WriteString(", ")
 	}
 
-	return "CreatePlanNode(" + c.Table + "){ " + fields.String() + "}"
+	return "CreamePlanNode(" + c.Table + "){ " + fields.String() + "}"
 }
 
 // ============== "mete" ==============
@@ -233,7 +233,7 @@ func (plan *MetePlanNode) Next() *tuple.Tuple {
 	if pageToWrite == nil {
 		// file is empty. this page is zeroed
 		pageToWrite = plan.Database.bufferPool.NewPage(fileId)
-		plan.Database.log.Debug("About to write into page %s", pageToWrite.PageId.ToString())
+		// plan.Database.log.Debug("About to write into page %s", pageToWrite.PageId.ToString())
 		slottedPage = page.NewEmptySlottedPage(pageToWrite)
 	} else {
 		// file exists and it's a slotted page so we parse it
