@@ -37,6 +37,9 @@ const (
     FsmFieldValue
     FsmFieldAnnotation
 
+    FsmReturningKey
+    FsmReturningFieldKey
+
     FsmNumber
 
     FsmFieldFkey
@@ -425,9 +428,31 @@ func defaultParseFsm() *FsmNode {
                 tokens.TkWord,
             },
             ExpectedString: "",
-        }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName).
+            }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName).
+        AddRule(beginStep, // "mete" queries without "retornando" ends here
+            FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName, FsmBeginStep).
+        // has the syntax: retornando {a,b,c} pe
+        AddRule(&FsmNode{
+            ExpectedString: "retornando",
+        }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName, FsmReturningKey).
+        AddRule(&FsmNode{
+            ExpectedString: "{",
+        }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName, FsmReturningKey, FsmOpenList).
+        AddRule(retrieveFieldKey, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey).
+        AddRule(&FsmNode{
+            ExpectedString: ",",
+        }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmListSeparator).
+        AddRule(retrieveFieldKey, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmListSeparator, FsmReturningFieldKey).
+        AddRule(&FsmNode{
+            ExpectedString: "}",
+        }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmCloseList).
+        AddRule(&FsmNode{
+            ExpectedString: "}",
+        }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmListSeparator, FsmReturningFieldKey, FsmCloseList).
         AddRule(beginStep,
-            FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName, FsmBeginStep)
+           FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmListSeparator, FsmReturningFieldKey, FsmCloseList, FsmBeginStep).
+        AddRule(beginStep, // "mete" queries with "retornando" ends here
+           FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmCloseList, FsmBeginStep)
 
     fmt.Println(createTableFieldKey)
 

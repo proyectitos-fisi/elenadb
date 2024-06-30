@@ -63,6 +63,11 @@ func parseFieldKeyFn(qb *QueryBuilder, data string) error {
     return nil
 }
 
+func parseReturningFieldKeyFn(qb *QueryBuilder, data string) error {
+    qb.qu[len(qb.qu)-1].Returning = append(qb.qu[len(qb.qu)-1].Returning, data)
+    return nil
+}
+
 func parseTypeFn(qb *QueryBuilder, data string) error {
     fields := qb.qu[len(qb.qu)-1].Fields
     fields[len(fields)-1].Type = value.NewValueTypeFromUserType(data)
@@ -133,6 +138,7 @@ var defaultParseFnTable map[StepType]ParseFn = map[StepType]ParseFn{
     FsmFieldFkeyPath: parseFkeyPathFn,
     FsmRetrieveFromSome: parseTableNameFn,
     FsmRetrieveFields: parseFieldKeyFn,
+    FsmReturningFieldKey: parseReturningFieldKeyFn,
 }
 
 
