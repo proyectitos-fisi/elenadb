@@ -119,7 +119,6 @@ func (elena *ElenaDB) PopulateCatalog() error {
 
 	elena.Catalog.TableMetadataMap = tableMetadataMap
 	elena.Catalog.IndexMetadataMap = indexMetadataMap
-	// TODO: parse file_id -> filename mapping
 	return nil
 }
 
@@ -333,6 +332,20 @@ func (db *ElenaDB) sqlPipeline(input string) (*query.Query, error) {
 			}
 		}
 	}
+
+	// creame
+	if parsedQuery.QueryType == query.QueryCreate {
+		identityCols := 0
+		for _, field := range parsedQuery.Fields {
+			if field.HasAnnotation("id") {
+				identityCols++
+			}
+		}
+		if identityCols != 1 {
+			return nil, fmt.Errorf("Table must have exactly one @id column")
+		}
+	}
+
 	// TODO(@pandadiestro): analize query filters
 	// TODO(@pandadiestro): prepare: resolve wildcards, order 'mete' statements fields, etc.
 	return parsedQuery, nil
