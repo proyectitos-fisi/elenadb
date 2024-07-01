@@ -203,10 +203,6 @@ var defaultParseFnTable map[StepType]ParseFn = map[StepType]ParseFn{
     FsmErase: parseEraseFn,
 
     FsmChange: parseChangeFn,
-
-    FsmInsertAt: parseInsertFn,
-
-    FsmEraseFrom: parseEraseFn,
 }
 
 

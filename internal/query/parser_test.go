@@ -75,4 +75,24 @@ func TestParsingMeteWithoutRetornando(t *testing.T) {
 	assert.Nil(t, result.Returning)
 }
 
+func TestBorra(t *testing.T) {
+	input := "borra de some_table donde (id == 5 y name == andrius) pe"
+
+	parser := query.NewParser()
+	results, err := parser.Parse(strings.NewReader(input))
+
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	result := results[0]
+	if result.QueryType != query.QueryErase {
+		t.Fatalf("unexpected query type: %s", result.QueryType)
+	}
+
+	assert.Equal(t, "some_table", result.QueryInstrName)
+    t.Log(result.Filter.Out.GetAll())
+	assert.Nil(t, result.Returning)
+}
+
 

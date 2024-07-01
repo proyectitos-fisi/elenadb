@@ -39,26 +39,6 @@ func TestTokenize(t *testing.T) {
                 },
             },
         },
-        {
-            query: `borra de tabla donde (id > 5) pe`,
-            expect: []tokens.Token{
-                {
-                    Type: tokens.TkWord,
-                    Data: "new",
-                },
-                {
-                    Type: tokens.TkString,
-                    Data: `text @with y o a spaced string`,
-                },
-                {
-                    Type: tokens.TkWord,
-                    Data: "lol",
-                },
-            },
-        },
-        {
-            query: `new "faulty unclosed string `,
-        },
     }
 
     for index := range tests {

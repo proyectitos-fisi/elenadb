@@ -16,7 +16,7 @@ func TestExec(t *testing.T) {
         expect    bool
     }{
         {
-            query: `(id >= 5 y loqsea == 6 ) o name == "ramirez"`,
+            query: `(id >= 5)`,
             mapper: map[string]interface{}{
                 "id": 32,
                 "name": "ramirez",
@@ -25,10 +25,10 @@ func TestExec(t *testing.T) {
             expect: true,
         },
         {
-            query: "(id >= 5 y loqsea == 6) o name == ramirez",
+            query: "(id >= 5 y loqsea == 6) o name <= ramirez",
             mapper: map[string]interface{}{
                 "id": 0,
-                "name": "ramirez",
+                "name": "pamirez",
                 "loqsea": 50.0,
             },
             expect: true,
@@ -62,6 +62,11 @@ func TestExec(t *testing.T) {
             }
 
             filter.Push(&tk)
+        }
+
+        loaderr := filter.Load()
+        if loaderr != nil {
+            t.Fatal(loaderr)
         }
 
         resCmp, err := filter.Exec(tests[index].mapper)

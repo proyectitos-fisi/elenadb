@@ -49,9 +49,9 @@ func CompareBool(field string, cmp string, value string, mapper map[string]inter
 
     switch cmp {
     case "!=":
-        return (actualBool != mapper[field].(bool)), nil
+        return (mapper[field].(bool) != actualBool), nil
     case "==":
-        return (actualBool == mapper[field].(bool)), nil
+        return (mapper[field].(bool) == actualBool), nil
     default:
         return false, fmt.Errorf("invalid boolean operation %s", cmp)
     }
@@ -66,42 +66,42 @@ func CompareInt32(field string, cmp string, value string, mapper map[string]inte
     actuali32 := int32(actuali64)
     switch cmp {
     case "<=":
-        return (actuali32 <= int32(mapper[field].(int))), nil
+        return (int32(mapper[field].(int)) <= actuali32), nil
     case "<":
-        return (actuali32 < int32(mapper[field].(int))), nil
+        return (int32(mapper[field].(int)) < actuali32), nil
     case ">=":
-        return (actuali32 >= int32(mapper[field].(int))), nil
+        return (int32(mapper[field].(int)) >= actuali32), nil
     case ">":
-        return (actuali32 > int32(mapper[field].(int))), nil
+        return (int32(mapper[field].(int)) > actuali32), nil
     case "!=":
-        return (actuali32 != int32(mapper[field].(int))), nil
+        return (int32(mapper[field].(int)) != actuali32), nil
     case "==":
-        return (actuali32 == int32(mapper[field].(int))), nil
+        return (int32(mapper[field].(int)) == actuali32), nil
     default:
         return false, fmt.Errorf("invalid boolean operation %s", cmp)
     }
 }
 
 func CompareFloat32(field string, cmp string, value string, mapper map[string]interface{}) (bool, error) {
-    actuali64, convErr := strconv.ParseFloat(value, 64)
+    actualf64, convErr := strconv.ParseFloat(value, 64)
     if convErr != nil {
         return false, convErr
     }
 
-    actuali32 := float32(actuali64)
+    actualf32 := float32(actualf64)
     switch cmp {
     case "<=":
-        return (actuali32 <= float32(mapper[field].(float64))), nil
+        return (float32(mapper[field].(float64)) <= actualf32), nil
     case "<":
-        return (actuali32 < float32(mapper[field].(float64))), nil
+        return (float32(mapper[field].(float64)) < actualf32), nil
     case ">=":
-        return (actuali32 >= float32(mapper[field].(float64))), nil
+        return (float32(mapper[field].(float64)) >= actualf32), nil
     case ">":
-        return (actuali32 > float32(mapper[field].(float64))), nil
+        return (float32(mapper[field].(float64)) > actualf32), nil
     case "!=":
-        return (actuali32 != float32(mapper[field].(float64))), nil
+        return (float32(mapper[field].(float64)) != actualf32), nil
     case "==":
-        return (actuali32 == float32(mapper[field].(float64))), nil
+        return (float32(mapper[field].(float64)) == actualf32), nil
     default:
         return false, fmt.Errorf("invalid boolean operation %s", cmp)
     }
@@ -110,17 +110,17 @@ func CompareFloat32(field string, cmp string, value string, mapper map[string]in
 func CompareString(field string, cmp string, value string, mapper map[string]interface{}) (bool, error) {
     switch cmp {
     case "<=":
-        return (value <= mapper[field].(string)), nil
+        return (mapper[field].(string) <= value), nil
     case "<":
-        return (value < mapper[field].(string)), nil
+        return (mapper[field].(string) < value), nil
     case ">=":
-        return (value >= mapper[field].(string)), nil
+        return (mapper[field].(string) >= value), nil
     case ">":
-        return (value > mapper[field].(string)), nil
+        return (mapper[field].(string) > value), nil
     case "!=":
-        return (value != mapper[field].(string)), nil
+        return (mapper[field].(string) != value), nil
     case "==":
-        return (value == mapper[field].(string)), nil
+        return (mapper[field].(string) == value), nil
     default:
         return false, fmt.Errorf("invalid boolean operation %s", cmp)
     }
