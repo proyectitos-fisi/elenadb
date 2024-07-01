@@ -58,12 +58,12 @@ func (par *Parser) Test(tk *tokens.Token) error {
     return fmt.Errorf("expected one of %v, got %s instead", expKeys, tk.Data)
 }
 
-func (par *Parser) stepParseExec(qu *QueryBuilder, data string) error {
+func (par *Parser) stepParseExec(qu *QueryBuilder, tk *tokens.Token) error {
     if par.parseFnMap[par.fsm.Step] == nil {
         return nil
     }
 
-    err := par.parseFnMap[par.fsm.Step](qu, data)
+    err := par.parseFnMap[par.fsm.Step](qu, tk)
     if err != nil {
         return err
     }
@@ -85,6 +85,10 @@ func (par *Parser) Parse(rd io.Reader) ([]Query, error) {
         tk, err := tokenIter.Next()
         if err != nil {
             if len(par.fsm.Children) == 0 || par.fsm.Eof {
+                parseErr := par.stepParseExec(newQuery, &tk)
+                if parseErr != nil {
+                    return nil, parseErr
+                }
                 break
             }
 
@@ -106,7 +110,7 @@ func (par *Parser) Parse(rd io.Reader) ([]Query, error) {
             return nil, tkTestErr
         }
 
-        parseErr := par.stepParseExec(newQuery, tk.Data)
+        parseErr := par.stepParseExec(newQuery, &tk)
         if parseErr != nil {
             return nil, parseErr
         }

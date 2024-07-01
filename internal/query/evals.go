@@ -1,8 +1,14 @@
 package query
 
-import "fisi/elenadb/internal/tokens"
+import (
+	"fisi/elenadb/internal/tokens"
+)
 
 type EvalFn func(*tokens.Token) bool
+
+func evalBeginStep(_ *tokens.Token) bool {
+    return true
+}
 
 func evalFieldTypeFn(tk *tokens.Token) bool {
     _, ok :=  isBasicTypeMap[tk.Data]
@@ -14,13 +20,21 @@ func evalCompositeFieldTypeFn(tk *tokens.Token) bool {
     return ok
 }
 
+func evalSelectorNexusFn(tk *tokens.Token) bool {
+    return tk.Data == "y" || tk.Data == "o"
+}
+
+func evalSelectorKeyFn(tk *tokens.Token) bool {
+    return !isKeyword(tk)
+}
 
 var defaultEvalFnTable map[StepType]EvalFn = map[StepType]EvalFn{
-    FsmCreateStep: nil,
-    FsmRetrieveStep: nil,
+    FsmBeginStep: nil,
+    FsmCreate: nil,
+    FsmRetrieve: nil,
     FsmInsertStep: nil,
     FsmDb: nil,
-    FsmName: nil,
+    FsmTableName: nil,
     FsmFieldKey: nil,
     FsmFieldType: evalFieldTypeFn,
     FsmFieldCompositeType: evalCompositeFieldTypeFn,
@@ -30,6 +44,17 @@ var defaultEvalFnTable map[StepType]EvalFn = map[StepType]EvalFn{
     FsmFieldAnnotation: nil,
     FsmFieldFkey: nil,
     FsmFieldFkeyPath: nil,
-    FsmRetrieveFromSome: nil,
-    FsmRetrieveFields: nil,
+    FsmRetrieveTableName: nil,
+    FsmRetrieveAll: nil,
+    FsmSelector: nil,
+    FsmSelectorOpenBranch: nil,
+    FsmSelectorKey: nil,
+    FsmSelectorCmp: nil,
+    FsmSelectorValue: nil,
+    FsmSelectorNexus: evalSelectorNexusFn,
+    FsmSelectorCloseBranch: nil,
+    FsmSelectorEos: nil,
+    FsmErase: nil,
+    FsmEraseFrom: nil,
+    FsmEraseTableName: nil,
 }

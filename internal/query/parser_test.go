@@ -74,3 +74,5 @@ func TestParsingMeteWithoutRetornando(t *testing.T) {
 	assert.Equal(t, "abcdefg", result.Fields[1].Value)
 	assert.Nil(t, result.Returning)
 }
+
+

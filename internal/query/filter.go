@@ -52,9 +52,9 @@ func CompareBool(field string, cmp string, value string, mapper map[string]inter
         return (actualBool != mapper[field].(bool)), nil
     case "==":
         return (actualBool == mapper[field].(bool)), nil
+    default:
+        return false, fmt.Errorf("invalid boolean operation %s", cmp)
     }
-
-    return false, nil
 }
 
 func CompareInt32(field string, cmp string, value string, mapper map[string]interface{}) (bool, error) {
@@ -77,9 +77,9 @@ func CompareInt32(field string, cmp string, value string, mapper map[string]inte
         return (actuali32 != int32(mapper[field].(int))), nil
     case "==":
         return (actuali32 == int32(mapper[field].(int))), nil
+    default:
+        return false, fmt.Errorf("invalid boolean operation %s", cmp)
     }
-
-    return false, nil
 }
 
 func CompareFloat32(field string, cmp string, value string, mapper map[string]interface{}) (bool, error) {
@@ -102,9 +102,9 @@ func CompareFloat32(field string, cmp string, value string, mapper map[string]in
         return (actuali32 != float32(mapper[field].(float64))), nil
     case "==":
         return (actuali32 == float32(mapper[field].(float64))), nil
+    default:
+        return false, fmt.Errorf("invalid boolean operation %s", cmp)
     }
-
-    return false, nil
 }
 
 func CompareString(field string, cmp string, value string, mapper map[string]interface{}) (bool, error) {
@@ -121,9 +121,9 @@ func CompareString(field string, cmp string, value string, mapper map[string]int
         return (value != mapper[field].(string)), nil
     case "==":
         return (value == mapper[field].(string)), nil
+    default:
+        return false, fmt.Errorf("invalid boolean operation %s", cmp)
     }
-
-    return false, nil
 }
 
 func CastAndCompare(field string, cmp string, value string, mapper map[string]interface{}) (bool, error) {
@@ -141,49 +141,53 @@ func CastAndCompare(field string, cmp string, value string, mapper map[string]in
     }
 }
 
-func (qf *QueryFilter) Push(tk *tokens.Token) {
+func (qf *QueryFilter) Push(tk *tokens.Token) error {
     if tk.Type == tokens.TkParenOpen {
         qf.In.Push(*tk)
-        return
+        return nil
     }
 
     if (tk.Type == tokens.TkWord || tk.Type == tokens.TkString) && tk.Data != "y" && tk.Data != "o" {
         qf.Out.Push(*tk)
-        return
+        return nil
     }
 
     if tk.Type != tokens.TkParenClosed {
         if tk.Data != "y" && tk.Data != "o" {
             qf.In.Push(*tk)
-            return
+            return nil
         }
 
         peekTk, peekErr := qf.In.Peek()
         if peekErr != nil {
             qf.In.Push(*tk)
-            return
+            return nil
         }
 
         if peekTk.Data != "y" && peekTk.Data != "o" && peekTk.Type != tokens.TkParenOpen {
             tkN, _ := qf.In.Pop()
             qf.Out.Push(tkN)
             qf.In.Push(*tk)
-            return
+            return nil
         }
     }
 
     for {
         tk, err := qf.In.Pop()
         if err != nil {
-            return
+            break
         }
 
         if tk.Type == tokens.TkParenOpen {
-            return
+            return nil
         }
 
         qf.Out.Push(tk)
     }
+
+    qf.In = nil
+    qf.Out = nil
+    return fmt.Errorf("not enough open parentheses to close")
 }
 
 func (qf *QueryFilter) execrec(mapper map[string]interface{}) (string, bool, error) {
@@ -221,16 +225,24 @@ func (qf *QueryFilter) execrec(mapper map[string]interface{}) (string, bool, err
     return "", cmpBool, nil
 }
 
-func (qf *QueryFilter) Exec(mapper map[string]interface{}) (bool, error) {
+func (qf *QueryFilter) Load() (error) {
     for qf.In.Len() > 0 {
         tk, err := qf.In.Pop()
         if err != nil {
             break
         }
 
+        if tk.Type == tokens.TkParenOpen {
+            return fmt.Errorf("some parentheses were left opened")
+        }
+
         qf.Out.Push(tk)
     }
 
+    return nil
+}
+
+func (qf *QueryFilter) Exec(mapper map[string]interface{}) (bool, error) {
     _, execbool, execerr := qf.execrec(mapper)
     return execbool, execerr
 }

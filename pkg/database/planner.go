@@ -137,7 +137,7 @@ func MakeQueryPlan(inputQuery *query.Query, db *ElenaDB) (PlanNode, error) {
 		return SelectPlanBuilder(inputQuery, db)
 	case query.QueryInsert: // mete
 		return InsertPlanBuilder(inputQuery, db)
-	case query.QueryDelete: // borra
+	case query.QueryErase: // borra
 		return DeletePlanBuilder(inputQuery, db)
 	case query.QueryUpdate: // cambia
 		return UpdatePlanBuilder(inputQuery, db)

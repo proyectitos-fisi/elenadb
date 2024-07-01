@@ -49,6 +49,7 @@ func TestExec(t *testing.T) {
         filter := query.NewQueryFilter()
         read := bufio.NewReader(strings.NewReader(tests[index].query))
         tks, tksE := tokens.Tokenize(read)
+
         if tksE != nil {
             t.Log("error on tokenizer:", tksE)
             t.FailNow()

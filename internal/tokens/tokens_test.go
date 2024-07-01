@@ -40,7 +40,7 @@ func TestTokenize(t *testing.T) {
             },
         },
         {
-            query: `dame { a, todo, c } y o yo oyu oo yde elena_meta pe`,
+            query: `borra de tabla donde (id > 5) pe`,
             expect: []tokens.Token{
                 {
                     Type: tokens.TkWord,

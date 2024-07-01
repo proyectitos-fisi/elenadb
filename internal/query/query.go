@@ -14,7 +14,7 @@ const (
 	QueryCreate   QueryInstrType = "creame"
 	QueryRetrieve QueryInstrType = "dame"
 	QueryInsert   QueryInstrType = "mete"
-	QueryDelete   QueryInstrType = "borra"
+	QueryErase    QueryInstrType = "borra"
 	QueryUpdate   QueryInstrType = "cambia"
 )
 
@@ -42,7 +42,7 @@ type Query struct {
 	QueryDbInstr   bool
 	Fields         []QueryField
 	Filter         *QueryFilter
-    Returning      []string
+	Returning      []string
 }
 
 // WARNING: This function may lose information if your query is one of: ["meta", "borra", "cambia"]
