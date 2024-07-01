@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"fisi/elenadb/cli/commands"
-	"fisi/elenadb/cli/repl"
+	"fisi/elenadb/elena/commands"
+	"fisi/elenadb/elena/repl"
 	"fisi/elenadb/pkg/common"
 	"fisi/elenadb/pkg/utils"
 

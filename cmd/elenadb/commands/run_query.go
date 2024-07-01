@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"fisi/elenadb/cli/repl"
+	"fisi/elenadb/elena/repl"
 	"fisi/elenadb/internal/query"
 	"fisi/elenadb/pkg/database"
 	"fmt"

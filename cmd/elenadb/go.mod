@@ -1,4 +1,4 @@
-module fisi/elenadb/cli
+module fisi/elenadb/elena
 
 go 1.22
 
