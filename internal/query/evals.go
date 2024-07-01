@@ -53,8 +53,6 @@ var defaultEvalFnTable map[StepType]EvalFn = map[StepType]EvalFn{
     FsmSelectorValue: nil,
     FsmSelectorNexus: evalSelectorNexusFn,
     FsmSelectorCloseBranch: nil,
-    FsmSelectorEos: nil,
     FsmErase: nil,
     FsmEraseFrom: nil,
-    FsmEraseTableName: nil,
 }
