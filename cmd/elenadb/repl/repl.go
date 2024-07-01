@@ -91,7 +91,7 @@ mainLoop:
 
 			if isEnd && symbolStack.Empty() {
 				repl.AppendHistory(strings.TrimSpace(fullInput))
-				elapsed, err := executeAndDisplay(elena, repl, parser, fullInput)
+				elapsed, err := ExecuteAndDisplay(elena, parser, fullInput)
 				if err != nil {
 					fmt.Printf(
 						"\n\033[31mError:\033[0m %v"+
@@ -116,9 +116,8 @@ mainLoop:
 	}
 }
 
-func executeAndDisplay(
+func ExecuteAndDisplay(
 	elena *database.ElenaDB,
-	repl *liner.State,
 	parser *query.Parser,
 	fullInput string,
 ) (*time.Duration, error) {
@@ -136,11 +135,15 @@ func executeAndDisplay(
 	// 🚆 Database query execution!
 	start := time.Now()
 	tuples, schema, bindedQuery, plan, err := elena.ExecuteThisBaby(input, isExplain)
+	if err != nil {
+		elapsed := time.Since(start)
+		return &elapsed, err
+	}
+	if tuples == nil {
+		return nil, nil
+	}
+
 	if isExplain {
-		if err != nil {
-			elapsed := time.Since(start)
-			return &elapsed, err
-		}
 		fmt.Println("\n===== Binding ======\n")
 		printQuery(bindedQuery)
 
@@ -148,21 +151,25 @@ func executeAndDisplay(
 		fmt.Println(plan.ToString())
 	}
 	count := 0
+	shouldPrintResults := !isExplain && !schema.IsEmpty()
 
-	if !isExplain {
-		if !schema.IsEmpty() {
-			fmt.Println("\n====== Results =====\n")
-			schema.PrintAsTableHeader()
-
-			for tuple := range tuples {
-				tuple.PrintAsRow(schema)
-				count++
-			}
-			schema.PrintTableDivisor()
-		}
+	if shouldPrintResults {
+		schema.PrintAsTableHeader()
 	}
+
+	for tuple := range tuples {
+		if shouldPrintResults {
+			tuple.PrintAsRow(schema)
+		}
+		count++
+	}
+	if shouldPrintResults {
+		schema.PrintTableDivisor()
+		fmt.Println()
+	}
+
 	elapsed := time.Since(start)
-	fmt.Printf("\n🚄 %d row(s) (%s)\n\n", count, elapsed)
+	fmt.Printf("🚄 %d row(s) (%s)\n\n", count, elapsed)
 	return &elapsed, nil
 }
 

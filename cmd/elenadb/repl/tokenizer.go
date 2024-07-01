@@ -7,8 +7,10 @@ import (
 var identifiers = []string{
 	"dame", "de", "donde", "pe",
 	"creame", "tabla",
-	"mete", "en",
-	"borra", "retornando",
+	"mete", "en", "retornando",
+	"borra",
+	"explicame",
+	"set",
 }
 
 var types = []string{
@@ -28,6 +30,7 @@ const (
 	Whitespace
 	Literal
 	Unknown
+	Command
 )
 
 type Token struct {
@@ -151,7 +154,8 @@ var TokenColor = map[TokenType]color.Color{
 	Unknown:        *color.New(color.FgWhite),
 	Annotation:     *color.New(color.FgMagenta),
 	DataType:       *color.New(color.FgGreen),
-	Literal:        *color.New(color.FgRed),
+	Literal:        *color.New(color.FgMagenta),
+	Command:        *color.New(color.FgBlue),
 }
 
 func token(walked WalkedRange, tokenType TokenType) Token {
@@ -180,7 +184,8 @@ func isDataType(input []rune) bool {
 }
 
 func isLiteral(input []rune) bool {
-	if string(input) == "true" || string(input) == "false" {
+	str := string(input)
+	if str == "true" || str == "false" {
 		return true
 	}
 	return false

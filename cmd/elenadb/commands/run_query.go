@@ -1,18 +1,28 @@
 package commands
 
 import (
-	"fisi/elenadb/pkg/utils"
+	"fisi/elenadb/cli/repl"
+	"fisi/elenadb/internal/query"
+	"fisi/elenadb/pkg/database"
 	"fmt"
 
 	"github.com/urfave/cli/v2"
 )
 
-func RunQuery(_ *cli.Context, dbDir string, query string) error {
-	if !utils.DirExists(dbDir) {
-		return fmt.Errorf("database %s does not exist", dbDir)
+func RunQuery(_ *cli.Context, dbDir string, inputQuery string) error {
+	elena, err := database.StartElenaBusiness(dbDir)
+	defer elena.RestInPeace()
+	if err != nil {
+		return err
 	}
-
-	// TODO: run db logic
-	fmt.Printf("🚆 Running query '%s' on database '%s'\n", query, dbDir)
+	parser := query.NewParser()
+	elapsed, err := repl.ExecuteAndDisplay(elena, parser, inputQuery)
+	if err != nil {
+		fmt.Printf(
+			"\n\033[31mError:\033[0m %v"+
+				"\n🚄 0 row(s) (%s)\n",
+			err, elapsed,
+		)
+	}
 	return nil
 }

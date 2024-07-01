@@ -47,7 +47,7 @@ func GetMinimumSpacingForType(columnType value.ValueType) int {
 	case value.TypeBoolean:
 		return 4
 	case value.TypeInt32:
-		return 4
+		return 6
 	case value.TypeFloat32:
 		return 6
 	case value.TypeVarChar:
@@ -88,6 +88,7 @@ func (s *Schema) PrintTableDivisor() {
 }
 
 func (s *Schema) PrintAsTableHeader() {
+	fmt.Println()
 	s.PrintTableDivisor()
 	for _, column := range s.columns {
 		colName := ExtractColumnName(column.ColumnName)

@@ -96,7 +96,7 @@ func (bp *BufferPoolManager) FetchLastPage(fileId common.FileID_t) *page.Page {
 		return nil
 	}
 
-	apidOffset := utils.Min(size/common.ElenaPageSize-1, 0)
+	apidOffset := utils.Max(size/common.ElenaPageSize-1, 0)
 	pageId := common.NewPageIdFromParts(fileId, common.APageID_t(apidOffset))
 	return bp.fetchPageUnlocked(pageId)
 }
@@ -156,7 +156,7 @@ func (bp *BufferPoolManager) fetchPageUnlocked(pageId common.PageID_t) *page.Pag
 	}
 
 	newPage := page.NewPageWithData(pageId, data, 1)
-	bp.log.Debug("saved page %s to frame '%d'", pageId.ToString(), frameId)
+	bp.log.Debug("cache page %s to frame '%d'", pageId.ToString(), frameId)
 	bp.pageTable[frameId] = newPage
 	bp.removeFromFreeList(frameId)
 

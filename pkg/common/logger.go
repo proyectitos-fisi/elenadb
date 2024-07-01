@@ -6,12 +6,14 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/fatih/color"
 )
 
 var GloablDbDir string = ""
+var DebugEnabled atomic.Bool = atomic.Bool{}
 
 type Logger struct {
 	logFile  *os.File
@@ -50,7 +52,7 @@ func (l *Logger) Log(level string, format string, a ...any) {
 	_, err := l.logFile.WriteString(
 		fmt.Sprintf(
 			"%v%v [%v] %v %v\n",
-			newline, now.Format("15:04:05"), level, string(l.logEmoji), fmt.Sprintf(format, a...),
+			newline, now.Format("15:04:05.000"), level, string(l.logEmoji), fmt.Sprintf(format, a...),
 		),
 	)
 	l.logFile.Sync()
@@ -60,21 +62,36 @@ func (l *Logger) Log(level string, format string, a ...any) {
 }
 
 func (l *Logger) Boot(format string, a ...any) {
+	if !DebugEnabled.Load() {
+		return
+	}
 	l.Log(fmt.Sprintf(color.New(color.FgMagenta).Sprint("BOOT")), format, a...)
 }
 
 func (l *Logger) Info(format string, a ...any) {
+	if !DebugEnabled.Load() {
+		return
+	}
 	l.Log(fmt.Sprintf(color.New(color.FgGreen).Sprint("INFO")), format, a...)
 }
 
 func (l *Logger) Error(format string, a ...any) {
+	if !DebugEnabled.Load() {
+		return
+	}
 	l.Log(fmt.Sprintf(color.New(color.FgRed).Sprint(" ERR")), format, a...)
 }
 
 func (l *Logger) Warn(format string, a ...any) {
+	if !DebugEnabled.Load() {
+		return
+	}
 	l.Log(fmt.Sprintf(color.New(color.FgYellow).Sprint("WARN")), format, a...)
 }
 
 func (l *Logger) Debug(format string, a ...any) {
+	if !DebugEnabled.Load() {
+		return
+	}
 	l.Log(fmt.Sprintf(color.New(color.FgBlue).Sprint("DEBG")), format, a...)
 }

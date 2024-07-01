@@ -46,6 +46,7 @@ type ElenaDB struct {
 func StartElenaBusiness(dbPath string) (*ElenaDB, error) {
 	dbPath = utils.WithTrailingSlash(dbPath)
 	common.GloablDbDir = dbPath
+	common.DebugEnabled.Store(false)
 
 	ctlg := catalog.EmptyCatalog()
 	bpm := buffer.NewBufferPoolManager(dbPath, common.BufferPoolSize, common.LRUKReplacerK, ctlg)
@@ -130,6 +131,10 @@ func (elena *ElenaDB) PopulateCatalog() error {
 // - Optimize the plan
 // - Execute the plan, fetching the tuples one by one
 func (db *ElenaDB) ExecuteThisBaby(input string, isExplain bool) (chan *tuple.Tuple, *schema.Schema, *query.Query, PlanNode, error) {
+	if CheckForEspecialQueries(input) {
+		return nil, nil, nil, nil, nil
+	}
+
 	queryId := db.NextQueryId()
 	db.log.Info("\nquery(%d): %s", queryId, input)
 
@@ -162,8 +167,21 @@ func (db *ElenaDB) ExecuteThisBaby(input string, isExplain bool) (chan *tuple.Tu
 			db.log.Info("query(%d): -> %d tuples", queryId, count)
 			close(tuples)
 		}()
+	} else {
+		close(tuples)
 	}
 	return tuples, nodePlan.Schema(), parsedQuery, nodePlan, nil
+}
+
+func CheckForEspecialQueries(input string) bool {
+	// we only support "debug" config, we may support more configs in the future
+	if strings.HasPrefix(input, "set debug") {
+		isOn := strings.HasSuffix(input, "true pe")
+		common.DebugEnabled.Store(isOn)
+		fmt.Printf("DEBUG mode: %v\n\n", isOn)
+		return true
+	}
+	return false
 }
 
 func (e *ElenaDB) CreateDatabaseIfNotExists() error {
@@ -249,7 +267,7 @@ func (db *ElenaDB) sqlPipeline(input string) (*query.Query, error) {
 					}
 				}
 				if !exists {
-					return nil, fmt.Errorf("Column \"%s\" does not exist in  table \"%s\"", field.Name, parsedQuery.QueryInstrName)
+					return nil, ColumnNotFoundError{field.Name, tableMetaData.Name}
 				}
 			}
 		}
@@ -332,12 +350,20 @@ func (db *ElenaDB) sqlPipeline(input string) (*query.Query, error) {
 			}
 		}
 
+		revisedReturning := make([]string, 0)
 		// The final check if to see if the fields defined in "retornando" exist in the table
 		for _, field := range parsedQuery.Returning {
+			if field == "todo" {
+				for _, col := range tableMetaData.Schema.GetColumns() {
+					revisedReturning = append(revisedReturning, col.ColumnName)
+				}
+				continue
+			}
 			exists := false
 			for _, col := range tableMetaData.Schema.GetColumns() {
 				if field == col.ColumnName {
 					exists = true
+					revisedReturning = append(revisedReturning, col.ColumnName)
 					break
 				}
 			}
@@ -345,6 +371,7 @@ func (db *ElenaDB) sqlPipeline(input string) (*query.Query, error) {
 				return nil, ColumnNotFoundError{field, tableMetaData.Name}
 			}
 		}
+		parsedQuery.Returning = revisedReturning
 	}
 
 	// creame
@@ -427,7 +454,6 @@ func (e ColumnNotFoundError) Error() string {
 	return fmt.Sprintf("Column \"%s\" not found in table \"%s\"", e.column, e.table)
 }
 
-func (e *ElenaDB) Close() {
+func (e *ElenaDB) RestInPeace() {
 	e.bufferPool.FlushEntirePool() // clueless
-	// TODO: flush elena_meta
 }

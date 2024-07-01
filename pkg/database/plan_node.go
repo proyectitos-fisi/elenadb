@@ -58,18 +58,20 @@ type SeqScanPlanNode struct {
 	Query         *query.Query
 	TableMetadata *catalog.TableMetadata
 	Cursor        *PagesCursor
+	CurrentPage   *page.Page
 }
 
 func (plan *SeqScanPlanNode) Next() *tuple.Tuple {
-	// FIXME: hacer fetchPage 10 veces crashea el programa
-
 	for {
-		pageToScan := plan.Database.bufferPool.FetchPage(plan.Cursor.PageId)
-		if pageToScan == nil {
+		if plan.CurrentPage == nil || plan.CurrentPage.PageId != plan.Cursor.PageId {
+			plan.CurrentPage = plan.Database.bufferPool.FetchPage(plan.Cursor.PageId)
+		}
+
+		if plan.CurrentPage == nil {
+			plan.Database.bufferPool.UnpinPage(plan.Cursor.PageId, false)
 			return nil
 		}
-		defer plan.Database.bufferPool.UnpinPage(plan.Cursor.PageId, false)
-		slottedPage := page.NewSlottedPageFromRawPage(pageToScan)
+		slottedPage := page.NewSlottedPageFromRawPage(plan.CurrentPage)
 		for i := plan.Cursor.SlotNum; uint16(i) < slottedPage.GetNSlots(); i++ {
 			// plan.Database.log.Debug("iterating over slots (%d/%d)", i, slottedPage.GetNSlots())
 			t := slottedPage.ReadTuple(&plan.TableMetadata.Schema, i)
@@ -82,6 +84,7 @@ func (plan *SeqScanPlanNode) Next() *tuple.Tuple {
 		}
 
 		// We finished scanning the page, let's move to the next one
+		plan.Database.bufferPool.UnpinPage(plan.Cursor.PageId, false)
 		plan.Cursor.NextPage()
 	}
 }
@@ -241,6 +244,7 @@ func (plan *MetePlanNode) Next() *tuple.Tuple {
 		if slottedPage.Header.FreeSpace < tupleSize {
 			// We need to create a new page
 			nextId = int32(slottedPage.Header.LastInsertedId) + 1
+			plan.Database.bufferPool.UnpinPage(pageToWrite.PageId, true)
 			pageToWrite = plan.Database.bufferPool.NewPage(fileId)
 			slottedPage = page.NewEmptySlottedPage(pageToWrite)
 		}
@@ -281,6 +285,7 @@ func (plan *MetePlanNode) Next() *tuple.Tuple {
 		return nil
 	}
 
+	// Map the tuple to match the "retornando" fields
 	mappedValues := make([]value.Value, len(plan.Query.Returning))
 
 	for idx, field := range plan.Query.Returning {
