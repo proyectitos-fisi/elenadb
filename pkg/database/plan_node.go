@@ -166,8 +166,7 @@ func (plan *CreamePlanNode) Next() *tuple.Tuple {
 		fmt.Sprintf(
 			"mete { type: \"table\", name: \"%s\", root: 0, sql: \"%s\" } en %s retornando { file_id } pe",
 			plan.Table, queryText, meta.ELENA_META_TABLE_NAME,
-		),
-	)
+		), false)
 	if err != nil {
 		panic(err)
 	}

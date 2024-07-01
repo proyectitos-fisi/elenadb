@@ -1,0 +1,40 @@
+
+23:08:49 [[35mBOOT[0m] 🚄 🌫  ElenaDB just started
+23:08:49 [[35mBOOT[0m] 🚄 creating meta table 'elena_meta.table'
+
+23:08:49 [[32mINFO[0m] 🚄 query(1): creame tabla elena_meta {
+	file_id int       @id,
+	type    char(5),
+	name    char(255) @unique,
+	root    int,
+	sql     char(255),
+} pe
+
+23:08:49 [[32mINFO[0m] 🚄 query(2): mete { type: "table", name: "elena_meta", root: 0, sql: "creame tabla elena_meta { file_id int @id, type char(5), name char(255) @unique, root int, sql char(255), } pe" } en elena_meta pe
+23:08:49 [[32mINFO[0m] 📀 writing 4096 bytes to 'elena_meta.table' (file_id=0, apage_id=0)
+23:08:49 [[32mINFO[0m] 🚄 query(2): -> 0 tuples
+
+23:14:13 [[35mBOOT[0m] 🚄 🌫  ElenaDB just started
+23:14:13 [[35mBOOT[0m] 🚄 found meta table 'elena_meta.table'
+23:14:13 [[35mBOOT[0m] 🚄 populating catalog
+
+23:14:13 [[32mINFO[0m] 🚄 query(1): dame todo de elena_meta pe
+23:14:13 [[32mINFO[0m] 📀 reading 4096 bytes from 'elena_meta.table' (file_id=0, apage_id=0)
+23:14:13 [[34mDEBG[0m] 💾 saved page (0,0) to frame '0'
+23:14:13 [[34mDEBG[0m] 💾 fetch page (0,0) from frame '0' (pins=1)
+23:14:13 [[32mINFO[0m] 🚄 query(1): -> 1 tuples
+
+23:15:20 [[35mBOOT[0m] 🚄 🌫  ElenaDB just started
+23:15:20 [[35mBOOT[0m] 🚄 found meta table 'elena_meta.table'
+23:15:20 [[35mBOOT[0m] 🚄 populating catalog
+
+23:15:20 [[32mINFO[0m] 🚄 query(1): dame todo de elena_meta pe
+23:15:20 [[32mINFO[0m] 📀 reading 4096 bytes from 'elena_meta.table' (file_id=0, apage_id=0)
+23:15:20 [[34mDEBG[0m] 💾 saved page (0,0) to frame '0'
+23:15:20 [[34mDEBG[0m] 💾 fetch page (0,0) from frame '0' (pins=1)
+23:15:20 [[32mINFO[0m] 🚄 query(1): -> 1 tuples
+
+23:15:25 [[32mINFO[0m] 🚄 query(2): dame todo de elena_meta pe 
+23:15:25 [[34mDEBG[0m] 💾 fetch page (0,0) from frame '0' (pins=1)
+23:15:25 [[34mDEBG[0m] 💾 fetch page (0,0) from frame '0' (pins=1)
+23:15:25 [[32mINFO[0m] 🚄 query(2): -> 1 tuples

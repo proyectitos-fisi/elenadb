@@ -83,7 +83,7 @@ func (elena *ElenaDB) PopulateCatalog() error {
 	tableMetadataMap := make(map[string]*catalog.TableMetadata)
 	indexMetadataMap := make(map[string]*catalog.IndexMetadata)
 
-	tuples, _, _, _, err := elena.ExecuteThisBaby("dame todo de elena_meta pe")
+	tuples, _, _, _, err := elena.ExecuteThisBaby("dame todo de elena_meta pe", false)
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func (elena *ElenaDB) PopulateCatalog() error {
 // - Make a plan based on the query
 // - Optimize the plan
 // - Execute the plan, fetching the tuples one by one
-func (db *ElenaDB) ExecuteThisBaby(input string) (chan *tuple.Tuple, *schema.Schema, *query.Query, PlanNode, error) {
+func (db *ElenaDB) ExecuteThisBaby(input string, isExplain bool) (chan *tuple.Tuple, *schema.Schema, *query.Query, PlanNode, error) {
 	queryId := db.NextQueryId()
 	db.log.Info("\nquery(%d): %s", queryId, input)
 
@@ -149,34 +149,35 @@ func (db *ElenaDB) ExecuteThisBaby(input string) (chan *tuple.Tuple, *schema.Sch
 
 	count := 0
 	tuples := make(chan *tuple.Tuple)
-
-	go func() {
-		for {
-			tuple := nodePlan.Next() // executor
-			if tuple == nil {
-				break
+	if !isExplain {
+		go func() {
+			for {
+				tuple := nodePlan.Next() // executor
+				if tuple == nil {
+					break
+				}
+				count++
+				tuples <- tuple
 			}
-			count++
-			tuples <- tuple
-		}
-		db.log.Info("query(%d): -> %d tuples", queryId, count)
-		close(tuples)
-	}()
-
+			db.log.Info("query(%d): -> %d tuples", queryId, count)
+			close(tuples)
+		}()
+	}
 	return tuples, nodePlan.Schema(), parsedQuery, nodePlan, nil
 }
 
-func (db *ElenaDB) CreateDatabaseIfNotExists() error {
-	if utils.DirExists(db.DbPath) {
+func (e *ElenaDB) CreateDatabaseIfNotExists() error {
+	if utils.DirExists(e.DbPath) {
 		return nil
 	}
 
-	err := os.Mkdir(db.DbPath, os.ModePerm)
+	err := os.Mkdir(e.DbPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	db.IsJustCreated = true
+	e.IsJustCreated = true
+
 	return nil
 }
 
@@ -187,7 +188,7 @@ func (db *ElenaDB) CreateMetaTableIfNotExists() error {
 	}
 
 	db.log.Boot("creating meta table 'elena_meta.table'")
-	result, _, _, _, err := db.ExecuteThisBaby(meta.ELENA_META_CREATE_SQL)
+	result, _, _, _, err := db.ExecuteThisBaby(meta.ELENA_META_CREATE_SQL, false)
 	if err != nil {
 		return err
 	}

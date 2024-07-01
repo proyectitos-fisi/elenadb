@@ -122,32 +122,45 @@ func executeAndDisplay(
 	parser *query.Parser,
 	fullInput string,
 ) (*time.Duration, error) {
+	// chequear si begins con explicame
+	const explainPrefix = "explicame "
+	explainMode := strings.HasPrefix(strings.ToLower(fullInput), explainPrefix)
+	input := strings.TrimPrefix(strings.TrimSpace(fullInput), explainPrefix)
+
+	// Variable para indicar si estamos en modo "explicame"
+	var isExplain bool
+	if explainMode {
+		isExplain = true
+	}
+
 	// 🚆 Database query execution!
 	start := time.Now()
-	tuples, schema, bindedQuery, plan, err := elena.ExecuteThisBaby(fullInput)
-	if err != nil {
-		elapsed := time.Since(start)
-		return &elapsed, err
+	tuples, schema, bindedQuery, plan, err := elena.ExecuteThisBaby(input, isExplain)
+	if isExplain {
+		if err != nil {
+			elapsed := time.Since(start)
+			return &elapsed, err
+		}
+		fmt.Println("\n===== Binding ======\n")
+		printQuery(bindedQuery)
+
+		fmt.Println("\n==== Query plan ====\n")
+		fmt.Println(plan.ToString())
 	}
-	fmt.Println("\n===== Binding ======\n")
-	printQuery(bindedQuery)
-
-	fmt.Println("\n==== Query plan ====\n")
-	fmt.Println(plan.ToString())
-
 	count := 0
 
-	if !schema.IsEmpty() {
-		fmt.Println("\n====== Results =====\n")
-		schema.PrintAsTableHeader()
+	if !isExplain {
+		if !schema.IsEmpty() {
+			fmt.Println("\n====== Results =====\n")
+			schema.PrintAsTableHeader()
 
-		for tuple := range tuples {
-			tuple.PrintAsRow(schema)
-			count++
+			for tuple := range tuples {
+				tuple.PrintAsRow(schema)
+				count++
+			}
+			schema.PrintTableDivisor()
 		}
-		schema.PrintTableDivisor()
 	}
-
 	elapsed := time.Since(start)
 	fmt.Printf("\n🚄 %d row(s) (%s)\n\n", count, elapsed)
 	return &elapsed, nil
