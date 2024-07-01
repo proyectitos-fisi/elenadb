@@ -91,8 +91,9 @@ func (t *Tuple) GetValue(idx int) value.Value {
 
 func Empty() *Tuple {
 	return &Tuple{
-		RowId: *common.InvalidRID(),
-		Size:  0,
+		RowId:  *common.InvalidRID(),
+		Values: []value.Value{},
+		Size:   0,
 	}
 }
 
@@ -175,41 +176,6 @@ func (t *Tuple) PrintAsRow(rowSchema *schema.Schema) {
 		fmt.Print("|\n")
 	}
 }
-
-// func (t *Tuple) DeserializeFrom(reader *bytes.Reader) error {
-// 	var size uint32
-// 	err := binary.Read(reader, binary.LittleEndian, &size)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	t.Data = make([]byte, size)
-// 	n, err := reader.Read(t.Data)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if n != int(size) {
-// 		panic("Failed to read all data")
-// 	}
-
-// 	return nil
-// }
-
-// func (t *Tuple) SerializeTo(writer *bytes.Buffer) error {
-// 	err := binary.Write(writer, binary.LittleEndian, uint32(len(t.Data)))
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	_, err = writer.Write(t.Data)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
-// func (t* Tuple) Serialize
 
 func (t *Tuple) IsNull() bool {
 	return false

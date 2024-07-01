@@ -36,6 +36,10 @@ func (s *Schema) GetColumn(col_idx int) column.Column {
 	return s.columns[col_idx]
 }
 
+func (s *Schema) AppendColumn(col column.Column) {
+	s.columns = append(s.columns, col)
+}
+
 // === Display functions ===
 
 func GetMinimumSpacingForType(columnType value.ValueType) int {

@@ -146,8 +146,6 @@ func executeAndDisplay(
 			count++
 		}
 		schema.PrintTableDivisor()
-	} else {
-		count = 1
 	}
 
 	elapsed := time.Since(start)

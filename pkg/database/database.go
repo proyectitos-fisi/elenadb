@@ -328,18 +328,38 @@ func (db *ElenaDB) sqlPipeline(input string) (*query.Query, error) {
 				}
 			}
 			if !exists {
-				return nil, fmt.Errorf("Column \"%s\" not found in \"%s\"", field.Name, tableMetaData.Name)
+				return nil, ColumnNotFoundError{field.Name, tableMetaData.Name}
+			}
+		}
+
+		// The final check if to see if the fields defined in "retornando" exist in the table
+		for _, field := range parsedQuery.Returning {
+			exists := false
+			for _, col := range tableMetaData.Schema.GetColumns() {
+				if field == col.ColumnName {
+					exists = true
+					break
+				}
+			}
+			if !exists {
+				return nil, ColumnNotFoundError{field, tableMetaData.Name}
 			}
 		}
 	}
 
 	// creame
 	if parsedQuery.QueryType == query.QueryCreate {
+		columnsSet := make(map[string]bool)
+
 		identityCols := 0
 		for _, field := range parsedQuery.Fields {
+			if columnsSet[field.Name] {
+				return nil, fmt.Errorf("Column \"%s\" is duplicated", field.Name)
+			}
 			if field.HasAnnotation("id") {
 				identityCols++
 			}
+			columnsSet[field.Name] = true
 		}
 		if identityCols != 1 {
 			return nil, fmt.Errorf("Table must have exactly one @id column")
@@ -396,6 +416,15 @@ type InvalidValueForTypeError struct {
 
 func (e InvalidValueForTypeError) Error() string {
 	return fmt.Sprintf("Invalid value \"%s\" for type %s", e.val, e.vvalType)
+}
+
+type ColumnNotFoundError struct {
+	column string
+	table  string
+}
+
+func (e ColumnNotFoundError) Error() string {
+	return fmt.Sprintf("Column \"%s\" not found in table \"%s\"", e.column, e.table)
 }
 
 func (e *ElenaDB) Close() {

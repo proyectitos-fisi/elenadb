@@ -277,14 +277,38 @@ func (plan *MetePlanNode) Next() *tuple.Tuple {
 
 	plan.Database.bufferPool.FlushPage(pageToWrite.PageId) // FIXME: don't flush
 	plan.Inserted = true
-	return tupleToInsert
+
+	if len(plan.Query.Returning) == 0 {
+		return nil
+	}
+
+	mappedValues := make([]value.Value, len(plan.Query.Returning))
+
+	for idx, field := range plan.Query.Returning {
+		for i, col := range plan.TableMetadata.Schema.GetColumns() {
+			if schema.ExtractColumnName(field) == col.ColumnName {
+				mappedValues[idx] = tupleToInsert.Values[i]
+				break
+			}
+		}
+	}
+
+	return tuple.NewFromValues(mappedValues)
 }
 
 func (plan *MetePlanNode) Schema() *schema.Schema {
-	// "mete" does not return
-	// NOTE: we may implement the "retornando" { a, b, c }
-	// return schema.EmptySchema()
-	return &plan.TableMetadata.Schema
+	schm := schema.EmptySchema()
+
+	for _, field := range plan.Query.Returning {
+		for _, col := range plan.TableMetadata.Schema.GetColumns() {
+			if schema.ExtractColumnName(field) == col.ColumnName {
+				schm.AppendColumn(col)
+				break
+			}
+		}
+	}
+
+	return schm
 }
 
 func (i *MetePlanNode) ToString() string {
