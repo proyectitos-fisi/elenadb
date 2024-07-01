@@ -1,4 +1,6 @@
-![elena](https://github.com/proyectitos-fisi/elenadb/assets/153166342/cf0dac2e-5602-4ee5-b28c-3b0de0d46b17)
+<div align="center">
+  <img width="856" alt="elenadborasi" src="https://github.com/proyectitos-fisi/elenadb/assets/153166342/558c9008-4c16-4779-8b73-c75daceb5536">
+</div>
 
 ## 🚂 Try elena
 
