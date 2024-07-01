@@ -164,7 +164,7 @@ func (plan *CreamePlanNode) Next() *tuple.Tuple {
 	// This is the metadata of the table
 	tuples, _, _, _, err := plan.Database.ExecuteThisBaby(
 		fmt.Sprintf(
-			"mete { type: \"table\", name: \"%s\", root: 0, sql: \"%s\" } en %s pe",
+			"mete { type: \"table\", name: \"%s\", root: 0, sql: \"%s\" } en %s retornando { file_id } pe",
 			plan.Table, queryText, meta.ELENA_META_TABLE_NAME,
 		),
 	)

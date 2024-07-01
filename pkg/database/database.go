@@ -166,18 +166,17 @@ func (db *ElenaDB) ExecuteThisBaby(input string) (chan *tuple.Tuple, *schema.Sch
 	return tuples, nodePlan.Schema(), parsedQuery, nodePlan, nil
 }
 
-func (e *ElenaDB) CreateDatabaseIfNotExists() error {
-	if utils.DirExists(e.DbPath) {
+func (db *ElenaDB) CreateDatabaseIfNotExists() error {
+	if utils.DirExists(db.DbPath) {
 		return nil
 	}
 
-	err := os.Mkdir(e.DbPath, os.ModePerm)
+	err := os.Mkdir(db.DbPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	e.IsJustCreated = true
-
+	db.IsJustCreated = true
 	return nil
 }
 
