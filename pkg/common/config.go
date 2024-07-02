@@ -23,7 +23,7 @@ const (
 	DisplayName = "🚄 Elena"
 	Description = "🚄 The Elena Database"
 	Version     = "0.0.69-alpha"
-	BirthDate   = "20240701"
+	BirthDate   = "2024/07/02"
 )
 
 // Cycle detection is performed every CYCLE_DETECTION_INTERVAL milliseconds.

@@ -29,7 +29,15 @@ var (
 )
 
 func StartREPL(dbName string) error {
-	fmt.Print("🚄 Elena DB\nSolution Version: " + common.Version + "\nBuilt Date: " + common.BirthDate + "\n\nElenaDB es un sistema de gestión de bases de datos construido por estudiantes de la UNMSM para el proyecto final del curso Algoritmos y Estructuras de Datos. Este sistema fue desarrollado con fines educativos y no debe usarse en entornos de producción (a menos que nos yapees).\n\nUtilice 'ayuda' para conocer su uso. Utilice 'limpia' para limpiar la página.\nEsta es la solución de referencia de ElenaDB que se ejecuta en su navegador.\n\n")
+	fmt.Printf(
+		"🚄 Elena DB v"+common.Version+"\n"+
+			"   Built Date: "+common.BirthDate+"\n\n"+
+			"   ElenaDB es una DBMS construida por estudiantes de la UNMSM como proyecto final\n"+
+			"   del Algoritmos y Estructuras de Datos. Este sistema fue desarrollado con fines\n"+
+			"   educativos y no debe usarse en entornos de producción (a menos que nos yapees).\n\n"+
+			"   Utilice \"%v\" para conocer su uso.\n\n",
+		color.YellowString("ayuda"),
+	)
 
 	elena, err := database.StartElenaBusiness(dbName)
 
@@ -193,16 +201,37 @@ func clearScreen() {
 }
 
 func displayHelp() {
-	fmt.Println(`Bienvenido a la shell de ElenaDB!
+	fmt.Printf(`
+   🚄🌫🌫 Bienvenido a la shell de ElenaDB!
 
-Comandos disponibles:
-- todas las queries terminan con pe, a excepción de limpia y ayuda
-- 'creame tabla <nombre de tabla> { <atributo>:<tipo> @id/unique } pe' -> Crea una tabla con los atributos especificados.
-- 'dame { <atributo>: <valor>, ... } de <nombre de tabla> pe' -> Muestra los registros que cumplan con las condiciones especificadas.
-- 'dame todo de <nombre de tabla> pe' -> Muestra toda la información de la tabla especificada.
-- mete { <atributo>: <valor>, ... } en <nombre de tabla> pe' -> Inserta un nuevo registro en la tabla especificada.
-- 'explica ...' antes de la query para ver su plan de ejecución.
-`)
+   Creación de tablas
+   %v
+
+   Obten todos los registros de una tabla
+   %v
+
+   Puedes utilizar filtro para obtener solo los atributos que desees
+   %v
+
+   Insertar un nuevo registro
+   %v
+
+   Añade "explica" al inicio de tu consulta para ver el plan de ejecución
+   %v
+
+   Notas importantes:
+   - todas las queries terminan con pe
+   - utiliza "limpia" para limpiar la pantalla
+   - utiliza "ayuda" para mostrar esta ayuda
+
+`,
+		Highlight("creame tabla <nombre> { <atributo>:<tipo> @id/@unique } pe"),
+		Highlight("dame todo de <tabla> pe"),
+		Highlight("dame { <atributo>, ... } de <tabla> pe"),
+		Highlight("mete { <atributo>: <valor>, ... } en <tabla> pe"),
+		Highlight("explicame <consulta> pe"),
+	)
+
 }
 
 func newFormatter() prettyjson.Formatter {

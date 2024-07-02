@@ -51,6 +51,10 @@ func SyntaxHighlighting(input []rune, pos int) []rune {
 	return []rune(highlighted.String())
 }
 
+func Highlight(input string) string {
+	return string(SyntaxHighlighting([]rune(input), 0))
+}
+
 var isNotQuote = func(r rune) bool {
 	return r != '"'
 }
