@@ -357,13 +357,15 @@ func (i *MetePlanNode) ToString() string {
 	numFields := len(fields)
 
 	for i, f := range fields {
-		formattedFields.WriteString("    ")
-		formattedFields.WriteString(f.Name)
-		formattedFields.WriteString(":")
-		formattedFields.WriteString(strings.ToUpper(string(f.Type)))
+		if f.Value != nil {
+			formattedFields.WriteString("    ")
+			formattedFields.WriteString(f.Name)
+			formattedFields.WriteString(":")
+			formattedFields.WriteString(strings.ToUpper(string(f.Type)))
 
-		if i < numFields-1 {
-			formattedFields.WriteString(",\n")
+			if i < numFields-1 {
+				formattedFields.WriteString(",\n")
+			}
 		}
 	}
 
