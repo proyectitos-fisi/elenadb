@@ -9,4 +9,4 @@ log/
 
 /.venv/
 
-/demo/demo.db/
+demo.db

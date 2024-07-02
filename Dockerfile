@@ -6,4 +6,4 @@ RUN go mod download
 
 RUN go build -o ./elena ./cmd/elenadb
 
-CMD ["./elena", "test.elena"]
+CMD ["./elena", "demo/demo.db"]
