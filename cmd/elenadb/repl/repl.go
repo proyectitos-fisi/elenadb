@@ -35,7 +35,7 @@ func StartREPL(dbName string) error {
 			"   ElenaDB es una DBMS construida por estudiantes de la UNMSM como proyecto final\n"+
 			"   del Algoritmos y Estructuras de Datos. Este sistema fue desarrollado con fines\n"+
 			"   educativos y no debe usarse en entornos de producción (a menos que nos yapees).\n\n"+
-			"   Utilice \"%v\" para conocer su uso.\n\n",
+			"   Utilice %v para conocer su uso.\n\n",
 		color.YellowString("ayuda"),
 	)
 
@@ -83,9 +83,15 @@ mainLoop:
 			switch strings.TrimSpace(input) {
 			case "limpia":
 				clearScreen()
+				repl.AppendHistory("limpia")
 				continue
 			case "ayuda":
 				displayHelp()
+				repl.AppendHistory("ayuda")
+				continue
+			case "tablas":
+				listTables(elena)
+				repl.AppendHistory("tablas")
 				continue
 			}
 
@@ -200,9 +206,30 @@ func clearScreen() {
 	fmt.Print("\033[H\033[2J")
 }
 
+func listTables(db *database.ElenaDB) {
+	fmt.Println()
+	for _, table := range db.Catalog.TableMetadataMap {
+		fmt.Println(table.Name)
+		for _, col := range table.Schema.GetColumns() {
+			fmt.Printf("  %s: %s", col.ColumnName, color.GreenString(col.ColumnType.AsString()))
+			if col.IsNullable {
+				fmt.Print("?")
+			}
+			if col.IsUnique {
+				fmt.Print(color.MagentaString(" @unique"))
+			}
+			if col.IsIdentity {
+				fmt.Print(color.MagentaString(" @id"))
+			}
+			fmt.Println()
+		}
+		fmt.Println()
+	}
+}
+
 func displayHelp() {
 	fmt.Printf(`
-   🚄🌫🌫 Bienvenido a la shell de ElenaDB!
+   🚄🌫🌫  Bienvenido a la shell de ElenaDB!
 
    Creación de tablas
    %v
@@ -221,8 +248,8 @@ func displayHelp() {
 
    Notas importantes:
    - todas las queries terminan con pe
-   - utiliza "limpia" para limpiar la pantalla
-   - utiliza "ayuda" para mostrar esta ayuda
+   - utiliza %s para limpiar la pantalla
+   - utiliza %s para mostrar esta ayuda
 
 `,
 		Highlight("creame tabla <nombre> { <atributo>:<tipo> @id/@unique } pe"),
@@ -230,6 +257,8 @@ func displayHelp() {
 		Highlight("dame { <atributo>, ... } de <tabla> pe"),
 		Highlight("mete { <atributo>: <valor>, ... } en <tabla> pe"),
 		Highlight("explicame <consulta> pe"),
+		color.YellowString("limpia"),
+		color.YellowString("ayuda"),
 	)
 
 }

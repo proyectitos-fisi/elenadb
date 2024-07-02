@@ -13,6 +13,7 @@ var identifiers = []string{
 	"set",
 	"limpia",
 	"ayuda",
+	"tablas",
 }
 
 var types = []string{
