@@ -307,15 +307,27 @@ func (plan *FilterPlanNode) Next() (*tuple.Tuple, error) {
 }
 
 func (plan *FilterPlanNode) Schema() *schema.Schema {
-	if plan.IsBorra {
-		return plan.Children[0].Schema()
-	}
-	return plan.FilterQuery.GetSchema()
+	return plan.Children[0].Schema()
 }
 
 func (plan *FilterPlanNode) ToString() string {
 	// TODO(@damaris): format nicely
-	return "FilterPlanNode(" + plan.TableMetadata.Name + ")"
+	bulder := strings.Builder{}
+	bulder.WriteString("FilterPlanNode {\n")
+	for _, f := range plan.FilterQuery.Fields {
+		bulder.WriteString("         ")
+		bulder.WriteString(f.Name)
+		bulder.WriteString(":")
+		bulder.WriteString(strings.ToUpper(f.Type.AsString()))
+		bulder.WriteString("\n")
+	}
+	bulder.WriteString("}\n")
+	for _, c := range plan.Children {
+		bulder.WriteString("    ")
+		bulder.WriteString(c.ToString())
+	}
+	return bulder.String()
+
 }
 
 // =========== projection ===========

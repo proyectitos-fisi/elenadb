@@ -60,11 +60,11 @@ func GetMinimumSpacingForType(columnType value.ValueType) int {
 
 func GetTableColSpacingFromColumn(column column.Column) int {
 	if column.ColumnType == value.TypeVarChar {
-		return utils.Min(
-			utils.Max(
-				len(ExtractColumnName(column.ColumnName)),
+		return utils.Max(
+			utils.Min(
+				GetMinimumSpacingForType(column.ColumnType),
 				int(column.StorageSize),
-			), GetMinimumSpacingForType(column.ColumnType),
+			), len(ExtractColumnName(column.ColumnName)),
 		)
 	} else {
 		return utils.Max(

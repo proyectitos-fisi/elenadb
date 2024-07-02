@@ -4,6 +4,7 @@ import (
 	"fisi/elenadb/internal/query"
 	"fisi/elenadb/pkg/common"
 	"fisi/elenadb/pkg/database"
+	"fisi/elenadb/pkg/storage/table/value"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -213,6 +214,9 @@ func listTables(db *database.ElenaDB) {
 		fmt.Println(table.Name)
 		for _, col := range table.Schema.GetColumns() {
 			fmt.Printf("  %s: %s", col.ColumnName, color.GreenString(col.ColumnType.AsString()))
+			if col.ColumnType == value.TypeVarChar {
+				fmt.Printf("(%d)", col.StorageSize)
+			}
 			if col.IsNullable {
 				fmt.Print("?")
 			}
