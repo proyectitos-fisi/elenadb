@@ -168,8 +168,13 @@ func ExecuteAndDisplay(
 	}
 
 	for tuple := range tuples {
+		if tuple.IsError() {
+			elapsed := time.Since(start)
+			return &elapsed, tuple.Error
+		}
+
 		if shouldPrintResults {
-			tuple.PrintAsRow(schema)
+			tuple.Value.PrintAsRow(schema)
 		}
 		count++
 	}

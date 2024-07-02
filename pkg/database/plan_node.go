@@ -15,7 +15,7 @@ import (
 )
 
 type PlanNode interface {
-	Next() *tuple.Tuple
+	Next() (*tuple.Tuple, error)
 	Schema() *schema.Schema
 	ToString() string
 }
@@ -61,7 +61,7 @@ type SeqScanPlanNode struct {
 	CurrentPage   *page.Page
 }
 
-func (plan *SeqScanPlanNode) Next() *tuple.Tuple {
+func (plan *SeqScanPlanNode) Next() (*tuple.Tuple, error) {
 	for {
 		if plan.CurrentPage == nil || plan.CurrentPage.PageId != plan.Cursor.PageId {
 			plan.CurrentPage = plan.Database.bufferPool.FetchPage(plan.Cursor.PageId)
@@ -69,7 +69,7 @@ func (plan *SeqScanPlanNode) Next() *tuple.Tuple {
 
 		if plan.CurrentPage == nil {
 			plan.Database.bufferPool.UnpinPage(plan.Cursor.PageId, false)
-			return nil
+			return nil, nil
 		}
 		slottedPage := page.NewSlottedPageFromRawPage(plan.CurrentPage)
 		for i := plan.Cursor.SlotNum; uint16(i) < slottedPage.GetNSlots(); i++ {
@@ -80,7 +80,7 @@ func (plan *SeqScanPlanNode) Next() *tuple.Tuple {
 				// deleted tuple
 				continue
 			}
-			return t
+			return t, nil
 		}
 
 		// We finished scanning the page, let's move to the next one
@@ -120,11 +120,14 @@ type FilterPlanNode struct {
 	TableMetadata *catalog.TableMetadata
 }
 
-func (plan *FilterPlanNode) Next() *tuple.Tuple {
+func (plan *FilterPlanNode) Next() (*tuple.Tuple, error) {
 	for _, child := range plan.Children {
 		for {
 			// For each child until exhausted (generally we only have one child)
-			tupleToFilter := child.Next()
+			tupleToFilter, err := child.Next()
+			if err != nil {
+				return nil, err
+			}
 			if tupleToFilter == nil {
 				break
 			}
@@ -141,21 +144,21 @@ func (plan *FilterPlanNode) Next() *tuple.Tuple {
 				case value.TypeVarChar:
 					valuesMap[col.ColumnName] = tupleToFilter.Values[idx].AsVarchar()
 				default:
-					panic("unreachable")
+					panic("unhandled type")
 				}
 			}
 
 			matches, err := plan.FilterQuery.Filter.Exec(valuesMap)
 			if err != nil {
-				panic(err)
+				return nil, err
 			}
 
 			if matches {
-				return tupleToFilter
+				return tupleToFilter, nil
 			}
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func (plan *FilterPlanNode) Schema() *schema.Schema {
@@ -175,11 +178,14 @@ type ProjectionPlanNode struct {
 	TableMetadata   *catalog.TableMetadata
 }
 
-func (p *ProjectionPlanNode) Next() *tuple.Tuple {
+func (p *ProjectionPlanNode) Next() (*tuple.Tuple, error) {
 	for _, child := range p.Children {
 		for {
 			// For each child until exhausted (generally we only have one child)
-			tupleToProject := child.Next()
+			tupleToProject, err := child.Next()
+			if err != nil {
+				return nil, err
+			}
 			if tupleToProject == nil {
 				break
 			}
@@ -193,10 +199,10 @@ func (p *ProjectionPlanNode) Next() *tuple.Tuple {
 					}
 				}
 			}
-			return tuple.NewFromValues(values)
+			return tuple.NewFromValues(values), nil
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func (p *ProjectionPlanNode) Schema() *schema.Schema {
@@ -240,9 +246,9 @@ type CreamePlanNode struct {
 	Created bool
 }
 
-func (plan *CreamePlanNode) Next() *tuple.Tuple {
+func (plan *CreamePlanNode) Next() (*tuple.Tuple, error) {
 	if plan.Created {
-		return nil
+		return nil, nil
 	}
 	// we create an empty table file!
 	os.Create(plan.Database.DbPath + plan.Table + ".table")
@@ -260,7 +266,11 @@ func (plan *CreamePlanNode) Next() *tuple.Tuple {
 	}
 	// update catalog that a new table was created
 	result := <-tuples
-	fileId := result.Values[0].AsInt32()
+	if result.IsError() {
+		return nil, result.Error
+	}
+
+	fileId := result.Value.Values[0].AsInt32()
 	plan.Database.Catalog.RegisterTableMetadata(plan.Table, &catalog.TableMetadata{
 		Name:      plan.Table,
 		Schema:    *plan.Query.GetSchema(),
@@ -268,7 +278,7 @@ func (plan *CreamePlanNode) Next() *tuple.Tuple {
 		SqlCreate: queryText,
 	})
 	plan.Created = true
-	return nil
+	return nil, nil
 }
 
 func (c *CreamePlanNode) Schema() *schema.Schema {
@@ -307,9 +317,9 @@ type MetePlanNode struct {
 	Inserted      bool
 }
 
-func (plan *MetePlanNode) Next() *tuple.Tuple {
+func (plan *MetePlanNode) Next() (*tuple.Tuple, error) {
 	if plan.Inserted {
-		return nil
+		return nil, nil
 	}
 	nextId := int32(0)
 
@@ -363,7 +373,7 @@ func (plan *MetePlanNode) Next() *tuple.Tuple {
 	slottedPage.SetLastInsertedId(nextId)
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	// Write the page back to disk
@@ -373,7 +383,7 @@ func (plan *MetePlanNode) Next() *tuple.Tuple {
 	plan.Inserted = true
 
 	if len(plan.Query.Returning) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	// Map the tuple to match the "retornando" fields
@@ -388,7 +398,7 @@ func (plan *MetePlanNode) Next() *tuple.Tuple {
 		}
 	}
 
-	return tuple.NewFromValues(mappedValues)
+	return tuple.NewFromValues(mappedValues), nil
 }
 
 func (plan *MetePlanNode) Schema() *schema.Schema {
@@ -434,19 +444,22 @@ type DeletePlanNode struct {
 	Query         *query.Query
 }
 
-func (plan *DeletePlanNode) Next() *tuple.Tuple {
+func (plan *DeletePlanNode) Next() (*tuple.Tuple, error) {
 	for _, child := range plan.Children {
 		for {
 			// For each child until exhausted (generally we only have one child)
-			tupleToDelete := child.Next()
+			tupleToDelete, err := child.Next()
+			if err != nil {
+				return nil, err
+			}
 			if tupleToDelete == nil {
 				break
 			}
 
-			return tupleToDelete
+			return tupleToDelete, nil
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func (plan *DeletePlanNode) Schema() *schema.Schema {

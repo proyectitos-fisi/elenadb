@@ -39,7 +39,7 @@ func CompareBool(field string, cmp string, value string, mapper map[string]inter
 
     actualBool, ok := boolTypes[strings.ToLower(value)]
     if !ok {
-        return false, fmt.Errorf("invalid boolean comparation of %s with %s", value, field)
+        return false, fmt.Errorf("invalid boolean comparison of %s with %s", value, field)
     }
 
     switch cmp {
@@ -48,14 +48,23 @@ func CompareBool(field string, cmp string, value string, mapper map[string]inter
     case "==":
         return (mapper[field].(bool) == actualBool), nil
     default:
-        return false, fmt.Errorf("invalid boolean operation %s", cmp)
+        return false, fmt.Errorf("invalid boolean operation: '%s'", cmp)
     }
+}
+
+type InvalidTypeError struct {
+    field string
+    expectedType string
+}
+
+func (e InvalidTypeError) Error() string {
+    return fmt.Sprintf("invalid type comparison for column \"%s\". expected %s", e.field, e.expectedType)
 }
 
 func CompareInt32(field string, cmp string, value string, mapper map[string]interface{}) (bool, error) {
     actuali64, convErr := strconv.ParseInt(value, 10, 32)
     if convErr != nil {
-        return false, convErr
+        return false, InvalidTypeError{field: field, expectedType: "int32"}
     }
 
     actuali32 := int32(actuali64)
@@ -80,7 +89,7 @@ func CompareInt32(field string, cmp string, value string, mapper map[string]inte
 func CompareFloat32(field string, cmp string, value string, mapper map[string]interface{}) (bool, error) {
     actualf64, convErr := strconv.ParseFloat(value, 64)
     if convErr != nil {
-        return false, convErr
+        return false, InvalidTypeError{field: field, expectedType: "float32"}
     }
 
     actualf32 := float32(actualf64)

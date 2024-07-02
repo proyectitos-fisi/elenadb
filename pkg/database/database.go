@@ -46,7 +46,7 @@ type ElenaDB struct {
 func StartElenaBusiness(dbPath string) (*ElenaDB, error) {
 	dbPath = utils.WithTrailingSlash(dbPath)
 	common.GloablDbDir = dbPath
-	common.DebugEnabled.Store(true)
+	common.DebugEnabled.Store(false)
 
 	ctlg := catalog.EmptyCatalog()
 	bpm := buffer.NewBufferPoolManager(dbPath, common.BufferPoolSize, common.LRUKReplacerK, ctlg)
@@ -90,11 +90,11 @@ func (elena *ElenaDB) PopulateCatalog() error {
 	}
 
 	for tuple := range tuples {
-		fileId := tuple.Values[0].AsInt32()
-		fileType := tuple.Values[1].AsVarchar()
-		name := tuple.Values[2].AsVarchar()
-		root := tuple.Values[3].AsInt32()
-		sql := tuple.Values[4].AsVarchar()
+		fileId := tuple.Value.Values[0].AsInt32()
+		fileType := tuple.Value.Values[1].AsVarchar()
+		name := tuple.Value.Values[2].AsVarchar()
+		root := tuple.Value.Values[3].AsInt32()
+		sql := tuple.Value.Values[4].AsVarchar()
 
 		if fileType == "table" {
 			parser := query.NewParser()
@@ -123,6 +123,15 @@ func (elena *ElenaDB) PopulateCatalog() error {
 	return nil
 }
 
+type TupleResult struct {
+	Value *tuple.Tuple
+	Error error
+}
+
+func (tr *TupleResult) IsError() bool {
+	return tr.Error != nil
+}
+
 // Executes a SQL query. The steps are as follows:
 // - (sqlPipeline) Parse the query
 // - (sqlPipeline) Analize/bind the query
@@ -130,7 +139,7 @@ func (elena *ElenaDB) PopulateCatalog() error {
 // - Make a plan based on the query
 // - Optimize the plan
 // - Execute the plan, fetching the tuples one by one
-func (db *ElenaDB) ExecuteThisBaby(input string, isExplain bool) (chan *tuple.Tuple, *schema.Schema, *query.Query, PlanNode, error) {
+func (db *ElenaDB) ExecuteThisBaby(input string, isExplain bool) (chan *TupleResult, *schema.Schema, *query.Query, PlanNode, error) {
 	if CheckForEspecialQueries(input) {
 		return nil, nil, nil, nil, nil
 	}
@@ -153,16 +162,20 @@ func (db *ElenaDB) ExecuteThisBaby(input string, isExplain bool) (chan *tuple.Tu
 	nodePlan = OptimizeQueryPlan(nodePlan)
 
 	count := 0
-	tuples := make(chan *tuple.Tuple)
+	tuples := make(chan *TupleResult)
 	if !isExplain {
 		go func() {
 			for {
-				tuple := nodePlan.Next() // executor
+				tuple, err := nodePlan.Next() // executor
+				if err != nil {
+					tuples <- &TupleResult{Value: nil, Error: err}
+					break
+				}
 				if tuple == nil {
 					break
 				}
 				count++
-				tuples <- tuple
+				tuples <- &TupleResult{Value: tuple, Error: nil}
 			}
 			db.log.Info("query(%d): -> %d tuples", queryId, count)
 			close(tuples)
