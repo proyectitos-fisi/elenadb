@@ -345,14 +345,16 @@ func (bp *BufferPoolManager) UnpinPage(pageId common.PageID_t, isDirty bool) boo
 		}
 
 		if page.PageId == pageId {
-			page.IsDirty = isDirty
+			if !page.IsDirty {
+				page.IsDirty = isDirty
+			}
 			if page.PinCount.Load() <= 0 {
 				return false
 			}
 			if page.PinCount.Add(-1) == 0 {
 				bp.replacer.SetEvictable(frameId, true)
 			}
-			// bp.log.Debug("unpin page %s in frame '%d' (is_dirty=%t, pins=%d)", pageId.ToString(), frameId, isDirty, page.PinCount.Load())
+			bp.Log.Debug("unpin page %s in frame '%d' (is_dirty=%t, pins=%d)", pageId.ToString(), frameId, page.IsDirty, page.PinCount.Load())
 			return true
 		}
 	}
@@ -412,6 +414,7 @@ func (bp *BufferPoolManager) flushPageNoLock(pageId common.PageID_t) bool {
 func (bp *BufferPoolManager) FlushEntirePool() {
 	bp.latch.Lock()
 	defer bp.latch.Unlock()
+	bp.Log.Info("Flushing entire pool to disk...")
 
 	for _, page := range bp.pageTable {
 		if page == nil {
@@ -419,6 +422,7 @@ func (bp *BufferPoolManager) FlushEntirePool() {
 		}
 
 		if page.IsDirty {
+			bp.Log.Debug("flushing page %s to disk", page.PageId.ToString())
 			cb := make(chan bool)
 			bp.diskScheduler.Schedule(&storage_disk.DiskRequest{
 				IsWrite:  true,
