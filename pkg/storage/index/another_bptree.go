@@ -7,18 +7,20 @@ import (
 	"fmt"
 )
 
-const numberNodes = 4
+const numberNodes = 250
 
 // BPTree es la estructura principal del B+ Tree
 type BPTree struct {
 	bufferPoolManager *buffer.BufferPoolManager
+	catalog           *common.FileID_t
 	rootPageID        common.PageID_t
 }
 
 // NewBPTree crea una nueva instancia del B+ Tree
-func NewBPTree(bufferPoolManager *buffer.BufferPoolManager) *BPTree {
+func NewBPTree(bufferPoolManager *buffer.BufferPoolManager, catalog *common.FileID_t) *BPTree {
 	return &BPTree{
 		bufferPoolManager: bufferPoolManager,
+		catalog:           catalog,
 		rootPageID:        common.InvalidPageID,
 	}
 }
@@ -38,7 +40,7 @@ func (tree *BPTree) getPage(pageID common.PageID_t) *page.BTreePage {
 
 // createPage crea una nueva página usando el Buffer Pool Manager y la convierte a BTreePage
 func (tree *BPTree) createPage(pageType page.BTreePageType) *page.BTreePage {
-	p := tree.bufferPoolManager.NewPage()
+	p := tree.bufferPoolManager.NewPage(*tree.catalog)
 	if p == nil {
 		return nil
 	}

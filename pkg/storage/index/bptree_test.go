@@ -2,29 +2,31 @@ package storage
 
 import (
 	"fisi/elenadb/pkg/buffer"
-	storage_disk "fisi/elenadb/pkg/storage/disk"
+	"fisi/elenadb/pkg/catalog"
+	"fisi/elenadb/pkg/common"
 	"fmt"
+	"os"
 	"testing"
 )
 
 func TestRangeSearch(t *testing.T) {
 	// Inicializa el DiskManager
-	dbDir := "db.elena"
-	diskManager, err := storage_disk.NewDiskManager(dbDir)
-	if err != nil {
-		t.Fatalf("No se pudo inicializar el DiskManager: %v", err)
-	}
-	// defer diskManager.Shutdown()
+	db_dir := "db.elena/"
+	common.GloablDbDir = db_dir
+	buffer_pool_size := 10
+	k := 5
 
-	// Inicializa el Buffer Pool Manager
-	poolSize := uint32(10) // tamaño del buffer pool
-	k := 5                 // parámetro K para LRU-K
-	bufferPoolManager := buffer.NewBufferPoolManager(poolSize, diskManager, k)
+	os.MkdirAll(db_dir, os.ModePerm)
+	os.Create(db_dir + "elena_meta.table")
+	defer os.RemoveAll(db_dir)
+
+	bpm := buffer.NewBufferPoolManager(db_dir, uint32(buffer_pool_size), k, catalog.EmptyCatalog())
+	catalogFileId := common.FileID_t(0)
 
 	// Inicializa el B+ Tree con el Buffer Pool Manager
-	bptree := NewBPTree(bufferPoolManager)
+	bptree := NewBPTree(bpm, &catalogFileId)
 
-	const large = 10
+	const large = 1000
 	key := 1
 	for ; key < large; key++ {
 		bptree.Insert(key, uint64(key))
@@ -32,7 +34,7 @@ func TestRangeSearch(t *testing.T) {
 	}
 
 	bptree.PrintTree()
-	keys, values := bptree.RangeSearch(1, 9)
+	keys, values := bptree.RangeSearch(100, 500)
 
 	fmt.Printf("Keys: %v", keys)
 	fmt.Printf("Values: %v", values)
@@ -41,22 +43,22 @@ func TestRangeSearch(t *testing.T) {
 // IntegrationWithBufferpool es una prueba de integración del B+ Tree con el Buffer Pool Manager
 func TestIntegrationWithBufferpool(t *testing.T) {
 	// Inicializa el DiskManager
-	dbDir := "db.elena"
-	diskManager, err := storage_disk.NewDiskManager(dbDir)
-	if err != nil {
-		t.Fatalf("No se pudo inicializar el DiskManager: %v", err)
-	}
-	// defer diskManager.Shutdown()
+	db_dir := "db.elena/"
+	common.GloablDbDir = db_dir
+	buffer_pool_size := 10
+	k := 5
 
-	// Inicializa el Buffer Pool Manager
-	poolSize := uint32(19) // tamaño del buffer pool
-	k := 5                 // parámetro K para LRU-K
-	bufferPoolManager := buffer.NewBufferPoolManager(poolSize, diskManager, k)
+	os.MkdirAll(db_dir, os.ModePerm)
+	os.Create(db_dir + "elena_meta.table")
+	defer os.RemoveAll(db_dir)
+
+	bpm := buffer.NewBufferPoolManager(db_dir, uint32(buffer_pool_size), k, catalog.EmptyCatalog())
+	catalogFileId := common.FileID_t(0)
 
 	// Inicializa el B+ Tree con el Buffer Pool Manager
-	bptree := NewBPTree(bufferPoolManager)
+	bptree := NewBPTree(bpm, &catalogFileId)
 
-	const large = 30
+	const large = 500
 	key := 1
 	for ; key < large; key++ {
 		bptree.Insert(key, uint64(key))
