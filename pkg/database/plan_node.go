@@ -222,19 +222,22 @@ func (c *CreamePlanNode) Schema() *schema.Schema {
 }
 
 func (c *CreamePlanNode) ToString() string {
-	var fields strings.Builder
-	numFields := len(c.Query.Fields)
+	formattedFields := strings.Builder{}
+	fields := c.Query.Fields
+	numFields := len(fields)
 
-	for i, f := range c.Query.Fields {
-		fields.WriteString(f.Name)
-		fields.WriteString(": ")
-		fields.WriteString(strings.ToUpper(f.Type.AsString()))
+	for i, f := range fields {
+		formattedFields.WriteString("    ")
+		formattedFields.WriteString(f.Name)
+		formattedFields.WriteString(":")
+		formattedFields.WriteString(strings.ToUpper(string(f.Type)))
+
 		if i < numFields-1 {
-			fields.WriteString(", ")
+			formattedFields.WriteString(",\n")
 		}
 	}
 
-	return "CreamePlanNode { table=" + c.Table + " } | (" + fields.String() + ")"
+	return fmt.Sprintf("CreatePlanNode { table=%s } | (\n%s\n)\n", c.Table, formattedFields.String())
 }
 
 // ============== "mete" ==============
@@ -349,7 +352,22 @@ func (plan *MetePlanNode) Schema() *schema.Schema {
 }
 
 func (i *MetePlanNode) ToString() string {
-	return "InsertPlanNode(" + i.TableMetadata.Name + ")"
+	formattedFields := strings.Builder{}
+	fields := i.Query.Fields
+	numFields := len(fields)
+
+	for i, f := range fields {
+		formattedFields.WriteString("    ")
+		formattedFields.WriteString(f.Name)
+		formattedFields.WriteString(":")
+		formattedFields.WriteString(strings.ToUpper(string(f.Type)))
+
+		if i < numFields-1 {
+			formattedFields.WriteString(",\n")
+		}
+	}
+
+	return fmt.Sprintf("InsertPlanNode { table=%s } | (\n%s\n)\n", i.TableMetadata.Name, formattedFields.String())
 }
 
 // Static assertions for PlanNodeBase implementors.
