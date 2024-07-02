@@ -5,6 +5,7 @@ import (
 	"fisi/elenadb/pkg/common"
 	"fisi/elenadb/pkg/storage/page"
 	"fmt"
+	// "fmt"
 )
 
 const numberNodes = 250
@@ -33,7 +34,6 @@ func (tree *BPTree) getPage(pageID common.PageID_t) *page.BTreePage {
 	}
 	bTreePage, err := page.BTreePageFromRawData(p.Data)
 	if err != nil {
-		fmt.Printf("%v", p.Data)
 		panic(fmt.Sprintf("Error converting Page to BTreePage: %v", err))
 	}
 	return bTreePage
@@ -66,7 +66,7 @@ func (tree *BPTree) Insert(key int, value uint64) {
 	} else {
 		tree.insertIntoNode(tree.rootPageID, key, value)
 	}
-	fmt.Printf("Terminó la inserción de %v\n\n", key)
+	// fmt.Printf("Terminó la inserción de %v\n\n", key)
 }
 
 // initializeRootPage inicializa la página raíz
@@ -85,9 +85,9 @@ func (tree *BPTree) insertIntoNode(pageID common.PageID_t, key int, value uint64
 		panic("No se pudo obtener la página del nodo")
 	}
 
-	fmt.Printf("Looking at the node: %v\n", nodePage)
+	// fmt.Printf("Looking at the node: %v\n", nodePage)
 	if nodePage.PageType == page.InternalPage {
-		fmt.Print("Looking for the correct node to append....\n")
+		// fmt.Print("Looking for the correct node to append....\n")
 		childIndex := tree.findIndex(nodePage.Keys, key)
 		childPageID := nodePage.Children[childIndex]
 		tree.bufferPoolManager.UnpinPage(nodePage.PageID, false)
@@ -98,7 +98,7 @@ func (tree *BPTree) insertIntoNode(pageID common.PageID_t, key int, value uint64
 	if len(nodePage.Keys) < numberNodes {
 		tree.insertIntoLeaf(nodePage, key, value)
 	} else {
-		fmt.Print("Overflow....\n")
+		// fmt.Print("Overflow....\n")
 		tree.splitNode(nodePage, key, value)
 	}
 }
@@ -112,8 +112,8 @@ func (tree *BPTree) insertIntoLeaf(nodePage *page.BTreePage, key int, value uint
 	if err != nil {
 		panic(fmt.Sprintf("Error serializing BTreePage: %v", err))
 	}
-	fmt.Printf("Inserting to leaf.......\n")
-	fmt.Printf("Node: %v\n", nodePage)
+	// fmt.Printf("Inserting to leaf.......\n")
+	// fmt.Printf("Node: %v\n", nodePage)
 	tree.bufferPoolManager.WriteDataToPageNoPin(nodePage.PageID, data)
 	tree.bufferPoolManager.UnpinPage(nodePage.PageID, true)
 }
@@ -138,18 +138,18 @@ func (tree *BPTree) splitNode(nodePage *page.BTreePage, key int, value uint64) {
 	nodePage.Values = allValues[:midIndex]
 	nodePage.Children = append(nodePage.Children, newPage.PageID)
 
-	fmt.Printf("Splitting.......\n")
-	fmt.Printf("newpage: %v - nodepage: %v\n", newPage, nodePage)
+	// fmt.Printf("Splitting.......\n")
+	// fmt.Printf("newpage: %v - nodepage: %v\n", newPage, nodePage)
 
 	data1, _ := nodePage.Serialize()
 	data2, _ := newPage.Serialize()
+
+	tree.updateParentNode(nodePage, newPage, newPage.Keys[0])
 
 	tree.bufferPoolManager.WriteDataToPageNoPin(nodePage.PageID, data1)
 	tree.bufferPoolManager.WriteDataToPageNoPin(newPage.PageID, data2)
 	tree.bufferPoolManager.UnpinPage(nodePage.PageID, true)
 	tree.bufferPoolManager.UnpinPage(newPage.PageID, true)
-
-	tree.updateParentNode(nodePage, newPage, newPage.Keys[0])
 }
 
 // splitInternal divide el parent y ahonda el arbol un nivel más
@@ -172,9 +172,9 @@ func (tree *BPTree) splitInternal(oldNode *page.BTreePage) {
 	oldNode.Keys = oldNode.Keys[:midIndex]
 	oldNode.Children = oldNode.Children[:midIndex+1]
 
-	fmt.Printf("Splitting internal node.......\n")
-	fmt.Printf("newInternalPage: %v\n", newInternalPage)
-	fmt.Printf("oldNode: %v\n", oldNode)
+	// fmt.Printf("Splitting internal node.......\n")
+	// fmt.Printf("newInternalPage: %v\n", newInternalPage)
+	// fmt.Printf("oldNode: %v\n", oldNode)
 
 	// Serialize and write data to pages
 	data1, _ := oldNode.Serialize()
@@ -193,7 +193,7 @@ func (tree *BPTree) splitInternal(oldNode *page.BTreePage) {
 // updateParentNode actualiza el nodo padre después de una división
 func (tree *BPTree) updateParentNode(oldNode *page.BTreePage, newNode *page.BTreePage, promotedKey int) {
 	// promotedKey := newNode.Keys[0]
-	fmt.Printf("PROMOTED KEY: %v", promotedKey)
+	// fmt.Printf("PROMOTED KEY: %v", promotedKey)
 	if oldNode.PageID == tree.rootPageID {
 		newRootPage := tree.createPage(page.InternalPage)
 		if newRootPage == nil {
@@ -204,12 +204,12 @@ func (tree *BPTree) updateParentNode(oldNode *page.BTreePage, newNode *page.BTre
 		// newRootPage.Values = append(newRootPage.Values, oldNode.Values...)
 		newRootPage.Children = append(newRootPage.Children, oldNode.PageID, newNode.PageID)
 
-		fmt.Printf("TESTING THIS: %v", len(newRootPage.Keys))
+		// fmt.Printf("TESTING THIS: %v", len(newRootPage.Keys))
 		if len(newRootPage.Keys) > numberNodes {
 			tree.splitInternal(newRootPage)
 		}
 
-		fmt.Printf("newrootpage: %v\n", newRootPage)
+		// fmt.Printf("newrootpage: %v\n", newRootPage)
 
 		tree.rootPageID = newRootPage.PageID
 		data, err := newRootPage.Serialize()
@@ -221,12 +221,13 @@ func (tree *BPTree) updateParentNode(oldNode *page.BTreePage, newNode *page.BTre
 	} else {
 		parentPageID := tree.findParent(oldNode.PageID)
 		parentPage := tree.getPage(parentPageID)
+		// fmt.Printf("IDK why is this working:")
 		index := tree.findIndex(parentPage.Keys, promotedKey)
 
 		parentPage.Keys = append(parentPage.Keys[:index], append([]int{promotedKey}, parentPage.Keys[index:]...)...)
 		parentPage.Children = append(parentPage.Children[:index+1], append([]common.PageID_t{newNode.PageID}, parentPage.Children[index+1:]...)...)
 
-		fmt.Printf("TESTING THIS IN A PARENT NOT A ROOT: %v", len(parentPage.Keys))
+		// fmt.Printf("TESTING THIS IN A PARENT NOT A ROOT: %v", len(parentPage.Keys))
 		if len(parentPage.Keys) > numberNodes {
 			tree.splitInternal(parentPage)
 		}
@@ -235,15 +236,16 @@ func (tree *BPTree) updateParentNode(oldNode *page.BTreePage, newNode *page.BTre
 		if err != nil {
 			panic(fmt.Sprintf("Error serializing BTreePage: %v", err))
 		}
-		fmt.Printf("newpage: %v %v\n", parentPage.Keys, parentPage.Children)
-
-		tree.bufferPoolManager.WriteDataToPageNoPin(parentPage.PageID, data)
-		tree.bufferPoolManager.UnpinPage(parentPage.PageID, true)
+		// fmt.Printf("newpage: %v %v\n", parentPage.Keys, parentPage.Children)
 
 		// JEJEJEJEJEJEJJEEJJEJEJEJEJEJEJJEJEJEJEJEJEJEJEJEJJEJEJEJEJEJEJEJEJEJJEJEJEJEJEJEJEJJEJEJEJEJEJJEJEJEJEJJEJEJE
 		if len(parentPage.Keys) > numberNodes {
 			tree.splitNode(parentPage, parentPage.Keys[len(parentPage.Keys)/2], 0) // No value needed for internal split
 		}
+
+		tree.bufferPoolManager.WriteDataToPageNoPin(parentPage.PageID, data)
+		tree.bufferPoolManager.UnpinPage(parentPage.PageID, true)
+
 	}
 }
 
@@ -298,11 +300,11 @@ func (tree *BPTree) searchNode(pageID common.PageID_t, key int) (uint64, bool) {
 		}
 	}
 
-	fmt.Printf("Looking in the node %v at index %v\n\n", nodePage, index)
+	// fmt.Printf("Looking in the node %v at index %v\n\n", nodePage, index)
 
 	// Verificar si estamos en una hoja y si la clave está presente
 	if nodePage.PageType == page.LeafPage {
-		fmt.Printf("index: %v, nodePageKeys: %v\n", index, nodePage.Keys)
+		// fmt.Printf("index: %v, nodePageKeys: %v\n", index, nodePage.Keys)
 		if index < len(nodePage.Keys) && nodePage.Keys[index] == key {
 			return nodePage.Values[index], true
 		}
@@ -333,10 +335,10 @@ func (tree *BPTree) findIndex(keys []int, key int) int {
 
 // PrintTree imprime el árbol B+ a través de un recorrido BFS
 func (tree *BPTree) PrintTree() {
-	fmt.Println("Printing B+ Tree:")
+	// fmt.Println("Printing B+ Tree:")
 
 	if tree.rootPageID == common.InvalidPageID {
-		fmt.Println("Empty tree")
+		// fmt.Println("Empty tree")
 		return
 	}
 
@@ -357,7 +359,7 @@ func (tree *BPTree) PrintTree() {
 				continue
 			}
 
-			fmt.Printf("PageID: %d, Keys: %v, Values: %v, Ref: %v\n", nodePage.PageID, nodePage.Keys, nodePage.Values, nodePage.Children)
+			// fmt.Printf("PageID: %d, Keys: %v, Values: %v, Ref: %v\n", nodePage.PageID, nodePage.Keys, nodePage.Values, nodePage.Children)
 
 			if nodePage.PageType == page.InternalPage {
 				nextLevel = append(nextLevel, nodePage.Children...)
@@ -374,13 +376,13 @@ func (tree *BPTree) PrintTree() {
 }
 
 // RangeSearch busca un rango de claves en el B+ Tree
-func (tree *BPTree) RangeSearch(startKey int, endKey int) ([]int, []uint64) {
+func (tree *BPTree) RangeSearch(startKey int, endKey int, currentPageID common.PageID_t) ([]int, []uint64) {
 	var keys []int
 	var values []uint64
 	found := false
 
 	// Find the starting node
-	currentPageID := tree.rootPageID
+	// currentPageID := tree.rootPageID
 	for {
 		nodePage := tree.getPage(currentPageID)
 		if nodePage == nil {
@@ -391,7 +393,7 @@ func (tree *BPTree) RangeSearch(startKey int, endKey int) ([]int, []uint64) {
 			// Add all keys and values in range
 			for i, key := range nodePage.Keys {
 				if key >= startKey && key < endKey {
-					// fmt.Printf("Appending keys and values..... %v - %v\n", key, nodePage.Values[i])
+					fmt.Printf("Appending keys and values..... %v - %v\n", key, nodePage.Values[i])
 					keys = append(keys, key)
 					values = append(values, nodePage.Values[i])
 				} else if key == endKey {
@@ -403,28 +405,28 @@ func (tree *BPTree) RangeSearch(startKey int, endKey int) ([]int, []uint64) {
 			}
 
 			if found {
-				// fmt.Printf("FOUND IS TRUE\n")
+				fmt.Printf("FOUND IS TRUE\n")
 				break
 			}
 			// Move to the next leaf node
 			if len(nodePage.Children) != 0 {
-				// fmt.Printf("Going to next leaf node.... %v\n", nodePage.Children[0])
+				fmt.Printf("Going to next leaf node.... %v\n", nodePage.Children[0])
 				currentPageID = nodePage.Children[0]
 			} else {
 				break
 			}
 		} else {
 			// Find the appropriate child node
-			// fmt.Printf("Looking for the appropiate child node....\n")
+			fmt.Printf("Looking for the appropiate child node....\n")
 			index := 0
 			for index < len(nodePage.Keys) && startKey > nodePage.Keys[index] {
 				index++
 			}
 			if index < len(nodePage.Keys) && startKey <= nodePage.Keys[index] {
-				// fmt.Printf("Looking in: %v\n", nodePage.Children[index])
+				fmt.Printf("Looking in: %v\n", nodePage.Children[index])
 				currentPageID = nodePage.Children[index]
 			} else {
-				// fmt.Printf("Looking in: %v\n", nodePage.Children[len(nodePage.Children)-1])
+				fmt.Printf("Looking in: %v\n", nodePage.Children[len(nodePage.Children)-1])
 				currentPageID = nodePage.Children[len(nodePage.Children)-1]
 			}
 		}

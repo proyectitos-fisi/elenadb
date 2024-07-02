@@ -27,18 +27,18 @@ func TestRangeSearch(t *testing.T) {
 	// Inicializa el B+ Tree con el Buffer Pool Manager
 	bptree := NewBPTree(bpm, &catalogFileId)
 
-	const large = 1000
+	const large = 10000
 	key := 1
 	for ; key < large; key++ {
 		bptree.Insert(key, uint64(key))
-		bptree.PrintTree()
+		// bptree.PrintTree()
 	}
 
-	bptree.PrintTree()
-	keys, values := bptree.RangeSearch(100, 500)
+	// bptree.PrintTree()
+	// keys, values := bptree.RangeSearch(100, 500, 0)
 
-	fmt.Printf("Keys: %v", keys)
-	fmt.Printf("Values: %v", values)
+	// fmt.Printf("Keys: %v", keys)
+	// fmt.Printf("Values: %v", values)
 }
 
 // IntegrationWithBufferpool es una prueba de integración del B+ Tree con el Buffer Pool Manager
