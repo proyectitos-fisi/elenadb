@@ -353,12 +353,17 @@ func (tree *BPTree) searchNode(pageID common.PageID_t, key int) (uint64, bool) {
 
 // findIndex encuentra el índice donde debería estar la clave en un slice ordenado de claves
 func (tree *BPTree) findIndex(keys []int, key int) int {
-	for i, k := range keys {
-		if key < k {
-			return i
+	// Búsqueda binaria
+	low, high := 0, len(keys)
+	for low < high {
+		mid := low + (high-low)/2
+		if keys[mid] < key {
+			low = mid + 1
+		} else {
+			high = mid
 		}
 	}
-	return len(keys)
+	return low
 }
 
 // PrintTree imprime el árbol B+ a través de un recorrido BFS

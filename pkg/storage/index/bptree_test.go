@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestRangeSearch(t *testing.T) {
 	// Inicializa el DiskManager
 	db_dir := "db.elena/"
 	common.GloablDbDir = db_dir
-	common.DebugEnabled.Store(true)
+	// common.DebugEnabled.Store(true)
 	buffer_pool_size := 10
 	k := 5
 
@@ -34,11 +35,11 @@ func TestRangeSearch(t *testing.T) {
 		// bptree.PrintTree()
 	}
 
-	bptree.PrintTree()
-	// keys, values := bptree.RangeSearch(2576, 2576, 0)
+	// bptree.PrintTree()
+	keys, values := bptree.RangeSearch(2576, 2576, 0)
 
-	// fmt.Printf("Keys: %v", keys)
-	// fmt.Printf("Values: %v", values)
+	fmt.Printf("Keys: %v", keys)
+	fmt.Printf("Values: %v", values)
 }
 
 // IntegrationWithBufferpool es una prueba de integración del B+ Tree con el Buffer Pool Manager
@@ -80,4 +81,60 @@ func TestIntegrationWithBufferpool(t *testing.T) {
 		}
 	}
 	// bptree.PrintTree()
+}
+
+func TestEmpiricalAnalysis(t *testing.T) {
+	db_dir := "db.elena/"
+	common.GloablDbDir = db_dir
+	buffer_pool_size := 1000
+	k := 5
+
+	os.MkdirAll(db_dir, os.ModePerm)
+	os.Create(db_dir + "elena_meta.table")
+	defer os.RemoveAll(db_dir)
+
+	bpm := buffer.NewBufferPoolManager(db_dir, uint32(buffer_pool_size), k, catalog.EmptyCatalog())
+	catalogFileId := common.FileID_t(0)
+
+	dataSizes := []int{10, 100, 1000, 10000, 60000}
+
+	fmt.Println("Data Size,Insert Time (ms),Search Time (ms),Range Search Time (ms)")
+
+	for _, size := range dataSizes {
+		bptree := NewBPTree(bpm, catalogFileId)
+
+		// Measure insert time
+		startInsert := time.Now()
+		for i := 1; i <= size; i++ {
+			bptree.Insert(i, uint64(i))
+		}
+		insertTime := time.Since(startInsert)
+
+		// Measure search time
+		startSearch := time.Now()
+		for i := 1; i <= size; i++ {
+			_, found := bptree.Search(i)
+			if !found {
+				t.Errorf("Key %d not found in B+ Tree", i)
+			}
+		}
+		searchTime := time.Since(startSearch)
+
+		// Measure range search time
+		startRangeSearch := time.Now()
+		lowerBound := 1
+		upperBound := size
+		keys, _ := bptree.RangeSearch(lowerBound, upperBound, bptree.RootPageID)
+		rangeSearchTime := time.Since(startRangeSearch)
+
+		if len(keys) != upperBound-lowerBound+1 {
+			t.Errorf("Range search returned unexpected number of results. Expected %d, got %d", upperBound-lowerBound+1, len(keys))
+		}
+
+		fmt.Printf("%d,%.2f,%.2f,%.2f\n",
+			size,
+			float64(insertTime.Milliseconds()),
+			float64(searchTime.Milliseconds()),
+			float64(rangeSearchTime.Milliseconds()))
+	}
 }
