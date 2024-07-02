@@ -94,7 +94,22 @@ func (s *SeqScanPlanNode) Schema() *schema.Schema {
 }
 
 func (s *SeqScanPlanNode) ToString() string {
-	return "SeqScanPlanNode(" + s.Table + ")"
+	formattedFields := strings.Builder{}
+	fields := s.TableMetadata.Schema.GetColumns()
+	numFields := len(fields)
+
+	for i, f := range fields {
+		formattedFields.WriteString("\t")
+		formattedFields.WriteString(f.ColumnName)
+		formattedFields.WriteString(":")
+		formattedFields.WriteString(strings.ToUpper(string(f.ColumnType)))
+
+		if i < numFields-1 {
+			formattedFields.WriteString(",\n")
+		}
+	}
+
+	return fmt.Sprintf("SeqScanPlanNode { table=%s } | (\n    %s \n    )\n", s.Table, formattedFields.String())
 }
 
 // =========== projection ===========
@@ -135,15 +150,30 @@ func (p *ProjectionPlanNode) Schema() *schema.Schema {
 
 func (p *ProjectionPlanNode) ToString() string {
 	formattedFields := strings.Builder{}
+	fields := p.ProjectionQuery.Fields
+	numFields := len(fields)
 
-	for _, f := range p.ProjectionQuery.Fields {
+	for i, f := range fields {
+		formattedFields.WriteString("    ")
 		formattedFields.WriteString(f.Name)
-		formattedFields.WriteString(": ")
-		formattedFields.WriteString(f.Type.AsString())
-		formattedFields.WriteString(", ")
+		formattedFields.WriteString(":")
+		formattedFields.WriteString(strings.ToUpper(f.Type.AsString()))
+
+		if i < numFields-1 {
+			formattedFields.WriteString(",\n")
+		}
 	}
 
-	return fmt.Sprintf("ProjectionPlanNode{ %s }", formattedFields.String())
+	/*columnum := strings.Builder{}
+	for i := 0; i < numFields; i++ {
+		columnum.WriteString("#0.")
+		columnum.WriteString(strconv.Itoa(i))
+		if i < numFields-1 {
+			columnum.WriteString(", ")
+		}
+	}*/
+
+	return fmt.Sprintf("ProjectionPlanNode (\n%s\n)\n    %s", formattedFields.String(), p.PlanNodeBase.Children[0].ToString())
 }
 
 // =========== "creame" ===========
@@ -192,23 +222,26 @@ func (c *CreamePlanNode) Schema() *schema.Schema {
 }
 
 func (c *CreamePlanNode) ToString() string {
-	fields := strings.Builder{}
+	var fields strings.Builder
+	numFields := len(c.Query.Fields)
 
-	for _, f := range c.Query.Fields {
+	for i, f := range c.Query.Fields {
 		fields.WriteString(f.Name)
 		fields.WriteString(": ")
-		fields.WriteString(f.Type.AsString())
-		fields.WriteString(", ")
+		fields.WriteString(strings.ToUpper(f.Type.AsString()))
+		if i < numFields-1 {
+			fields.WriteString(", ")
+		}
 	}
 
-	return "CreamePlanNode(" + c.Table + "){ " + fields.String() + "}"
+	return "CreamePlanNode { table=" + c.Table + " } | (" + fields.String() + ")"
 }
 
 // ============== "mete" ==============
 
 type MetePlanNode struct {
 	PlanNodeBase
-	Table string
+	//Table string
 	// So we can get the values the user is passing
 	Query *query.Query
 	// So we can know how to insert the tuple
@@ -316,7 +349,7 @@ func (plan *MetePlanNode) Schema() *schema.Schema {
 }
 
 func (i *MetePlanNode) ToString() string {
-	return "InsertPlanNode(" + i.Table + ")"
+	return "InsertPlanNode(" + i.TableMetadata.Name + ")"
 }
 
 // Static assertions for PlanNodeBase implementors.

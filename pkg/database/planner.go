@@ -48,7 +48,7 @@ func InsertPlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
 			Children: nil,
 			Database: db,
 		},
-		Table:         query.QueryInstrName,
+		//Table:         query.QueryInstrName,
 		Query:         query,
 		TableMetadata: tableMetadata,
 		Inserted:      false,
