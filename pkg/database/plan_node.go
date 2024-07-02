@@ -4,6 +4,7 @@ import (
 	"container/heap"
 	"fisi/elenadb/internal/query"
 	"fisi/elenadb/pkg/catalog"
+	"fisi/elenadb/pkg/catalog/column"
 	"fisi/elenadb/pkg/catalog/schema"
 	"fisi/elenadb/pkg/common"
 	"fisi/elenadb/pkg/meta"
@@ -83,6 +84,16 @@ func (plan *SeqScanPlanNode) Next() (*tuple.Tuple, error) {
 				// deleted tuple
 				continue
 			}
+			// SeqScan allows us to have the RID column in the format (file_id,page_id,slot)
+			t.Values = append(
+				t.Values,
+				*value.NewVarCharValue(
+					fmt.Sprintf(
+						"(%d,%d,%d)",
+						plan.TableMetadata.FileID, plan.Cursor.PageId.GetActualPageId(), i,
+					), meta.ELENA_RID_GHOST_COLUMN_LEN,
+				),
+			)
 			return t, nil
 		}
 
@@ -93,7 +104,14 @@ func (plan *SeqScanPlanNode) Next() (*tuple.Tuple, error) {
 }
 
 func (s *SeqScanPlanNode) Schema() *schema.Schema {
-	return &s.TableMetadata.Schema
+	copiedSchema := s.TableMetadata.Schema
+	// We append the hidden RID column here (See meta.go)
+	copiedSchema.AppendColumn(column.Column{
+		ColumnName:  meta.ELENA_RID_GHOST_COLUMN_NAME,
+		ColumnType:  value.TypeVarChar,
+		StorageSize: meta.ELENA_RID_GHOST_COLUMN_LEN,
+	})
+	return &copiedSchema
 }
 
 func (s *SeqScanPlanNode) ToString() string {

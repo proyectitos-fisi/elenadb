@@ -37,4 +37,8 @@ const ELENA_META_CREATE_SQL = `creame tabla elena_meta {
 	sql     char(255),
 } pe`
 
-// " { type char(5), name char(255), table char(255), sql char(2048), } pe",
+// dame { rid } de elena_meta pe
+// The RID column is a ghost column, hidden by default.
+// The RID has the format (file_id,actual_page_id,slot_number), i.e. (4,1,1).
+const ELENA_RID_GHOST_COLUMN_NAME = "rid"
+const ELENA_RID_GHOST_COLUMN_LEN = 12

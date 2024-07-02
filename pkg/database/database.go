@@ -280,6 +280,19 @@ func (db *ElenaDB) sqlPipeline(input string) (*query.Query, error) {
 					}
 				}
 				if !exists {
+					if field.Name == meta.ELENA_RID_GHOST_COLUMN_NAME {
+						resolvedFields = append(resolvedFields, query.QueryField{
+							Foreign:     false,
+							Name:        meta.ELENA_RID_GHOST_COLUMN_NAME,
+							Type:        value.TypeVarChar,
+							Length:      meta.ELENA_RID_GHOST_COLUMN_LEN,
+							Value:       nil,
+							ForeignPath: "",
+							Nullable:    false,
+							Annotations: []string{},
+						})
+						continue
+					}
 					return nil, ColumnNotFoundError{field.Name, tableMetaData.Name}
 				}
 			}
