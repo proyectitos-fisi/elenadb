@@ -404,11 +404,16 @@ func (db *ElenaDB) sqlPipeline(input string) (*query.Query, error) {
 			if columnsSet[field.Name] {
 				return nil, fmt.Errorf("Column \"%s\" is duplicated", field.Name)
 			}
-			if field.HasAnnotation("id") {
+			if field.HasAnnotation(query.AnnotationId) {
 				if field.Nullable {
 					return nil, fmt.Errorf("Column \"%s\" is @id and cannot be nullable", field.Name)
 				}
 				identityCols++
+			}
+			if field.HasAnnotation(query.AnnotationUnique) {
+				if field.Nullable {
+					return nil, fmt.Errorf("Column \"%s\" is @unique and cannot be nullable", field.Name)
+				}
 			}
 			columnsSet[field.Name] = true
 		}

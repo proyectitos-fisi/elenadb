@@ -57,7 +57,6 @@ type IndexScanPlanNode struct {
 // Sequential Scan on table
 type SeqScanPlanNode struct {
 	PlanNodeBase
-	Table         string
 	Query         *query.Query
 	TableMetadata *catalog.TableMetadata
 	Cursor        *PagesCursor
@@ -78,7 +77,6 @@ func (plan *SeqScanPlanNode) Next() (*tuple.Tuple, error) {
 		}
 		slottedPage := page.NewSlottedPageFromRawPage(plan.CurrentPage)
 		for i := plan.Cursor.SlotNum; uint16(i) < slottedPage.GetNSlots(); i++ {
-			// plan.Database.log.Debug("iterating over slots (%d/%d)", i, slottedPage.GetNSlots())
 			t := slottedPage.ReadTuple(&plan.TableMetadata.Schema, i)
 			plan.Cursor.NextSlot()
 			if t == nil {
@@ -114,7 +112,7 @@ func (s *SeqScanPlanNode) ToString() string {
 		}
 	}
 
-	return fmt.Sprintf("SeqScanPlanNode { table=%s } | (\n    %s \n    )\n", s.Table, formattedFields.String())
+	return fmt.Sprintf("SeqScanPlanNode { table=%s } | (\n    %s \n    )\n", s.TableMetadata.Name, formattedFields.String())
 }
 
 // ========== ordenado por ==========
@@ -441,12 +439,48 @@ type MetePlanNode struct {
 	// So we can know how to insert the tuple
 	TableMetadata *catalog.TableMetadata
 	Inserted      bool
+	NeedsScan     bool
 }
 
 func (plan *MetePlanNode) Next() (*tuple.Tuple, error) {
 	if plan.Inserted {
 		return nil, nil
 	}
+
+	if plan.NeedsScan {
+		canBeInserted := true
+		repeatedColumn := ""
+		repeatedColumnValue := ""
+		for {
+			scannedTuple, err := plan.Children[0].Next()
+			if err != nil {
+				return nil, err
+			}
+			if scannedTuple == nil {
+				break
+			}
+			// We need to check if the tuple can be inserted
+		outerloop:
+			for _, field := range plan.Query.Fields {
+				for idx, col := range plan.TableMetadata.Schema.GetColumns() {
+					if col.IsUnique && schema.ExtractColumnName(field.Name) == col.ColumnName {
+						if field.IsEqualToValue(&scannedTuple.Values[idx]) {
+							canBeInserted = false
+							repeatedColumn = col.ColumnName
+							repeatedColumnValue = scannedTuple.Values[idx].FormatAsString()
+							break outerloop
+						}
+					}
+				}
+			}
+		}
+		if canBeInserted {
+			plan.NeedsScan = false
+		} else {
+			return nil, fmt.Errorf("@unique column \"%s\" has a repeated value \"%s\"", repeatedColumn, repeatedColumnValue)
+		}
+	}
+
 	nextId := int32(0)
 
 	fileId := plan.TableMetadata.FileID
@@ -462,7 +496,6 @@ func (plan *MetePlanNode) Next() (*tuple.Tuple, error) {
 	if pageToWrite == nil {
 		// file is empty. this page is zeroed
 		pageToWrite = plan.Database.bufferPool.NewPage(fileId)
-		// plan.Database.log.Debug("About to write into page %s", pageToWrite.PageId.ToString())
 		slottedPage = page.NewEmptySlottedPage(pageToWrite)
 	} else {
 		// file exists and it's a slotted page so we parse it

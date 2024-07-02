@@ -25,7 +25,6 @@ func SelectPlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
 			Children: nil,
 			Database: db,
 		},
-		Table:         query.QueryInstrName,
 		Query:         query,
 		TableMetadata: tableMetadata,
 		Cursor:        NewPagesCursorFromParts(tableMetadata.FileID, 0, 0),
@@ -107,17 +106,52 @@ func InsertPlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
 		return nil, TableDoesNotExistError{table: query.QueryInstrName}
 	}
 
+	needsScan := false
+	for _, col := range tableMetadata.Schema.GetColumns() {
+		if col.IsUnique {
+			needsScan = true
+			break
+		}
+	}
+
+	if !needsScan {
+		return &MetePlanNode{
+			PlanNodeBase: PlanNodeBase{
+				Type:     PlanNodeTypeInsert,
+				Children: nil,
+				Database: db,
+			},
+			Query:         query,
+			TableMetadata: tableMetadata,
+			Inserted:      false,
+			NeedsScan:     false,
+		}, nil
+	}
+
 	return &MetePlanNode{
 		PlanNodeBase: PlanNodeBase{
 			Type:     PlanNodeTypeInsert,
-			Children: nil,
 			Database: db,
+			Children: []PlanNode{
+				&SeqScanPlanNode{
+					PlanNodeBase: PlanNodeBase{
+						Type:     PlanNodeTypeSeqScan,
+						Database: db,
+						Children: nil,
+					},
+					Query:         query,
+					TableMetadata: tableMetadata,
+					Cursor:        NewPagesCursorFromParts(tableMetadata.FileID, 0, 0),
+					CurrentPage:   nil,
+				},
+			},
 		},
-		//Table:         query.QueryInstrName,
 		Query:         query,
 		TableMetadata: tableMetadata,
 		Inserted:      false,
+		NeedsScan:     true,
 	}, nil
+
 }
 func UpdatePlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
 	return nil, NonImplementedPlanError{planName: "cambia"}
@@ -169,7 +203,6 @@ func DeletePlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
 										Children: nil,
 										Database: db,
 									},
-									Table:         query.QueryInstrName,
 									Query:         query,
 									TableMetadata: tableMetadata,
 									Cursor:        NewPagesCursorFromParts(tableMetadata.FileID, 0, 0),
@@ -197,7 +230,6 @@ func DeletePlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
 						Children: nil,
 						Database: db,
 					},
-					Table:         query.QueryInstrName,
 					Query:         query,
 					TableMetadata: tableMetadata,
 					Cursor:        NewPagesCursorFromParts(tableMetadata.FileID, 0, 0),

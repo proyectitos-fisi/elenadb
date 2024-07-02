@@ -132,3 +132,18 @@ func (v *Value) AsVarchar() string {
 func (v *Value) SizeOnDisk() uint16 {
 	return uint16(len(v.Data))
 }
+
+func (v *Value) FormatAsString() string {
+	switch v.Type {
+	case TypeBoolean:
+		return strconv.FormatBool(v.AsBoolean())
+	case TypeInt32:
+		return strconv.FormatInt(int64(v.AsInt32()), 10)
+	case TypeFloat32:
+		return strconv.FormatFloat(float64(v.AsFloat32()), 'f', -1, 32)
+	case TypeVarChar:
+		return v.AsVarchar()
+	default:
+		panic("unreachable: unknown type")
+	}
+}

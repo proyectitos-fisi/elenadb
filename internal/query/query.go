@@ -209,3 +209,22 @@ func (q *Query) AsQueryText() string {
 	builder.WriteString("} pe")
 	return builder.String()
 }
+
+func (qf *QueryField) IsEqualToValue(val *value.Value) bool {
+	if qf.Value == nil {
+		return false
+	}
+
+	switch val.Type {
+	case value.TypeInt32:
+		return val.AsInt32() == qf.Value.(int32)
+	case value.TypeFloat32:
+		return val.AsFloat32() == qf.Value.(float32)
+	case value.TypeVarChar:
+		return val.AsVarchar() == qf.Value.(string)
+	case value.TypeBoolean:
+		return val.AsBoolean() == qf.Value.(bool)
+	default:
+		panic("unreachable: unknown type")
+	}
+}
