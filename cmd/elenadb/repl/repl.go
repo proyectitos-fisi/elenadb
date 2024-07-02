@@ -29,7 +29,8 @@ var (
 )
 
 func StartREPL(dbName string) error {
-	fmt.Println("🚄 Elena DB version", common.Version)
+	fmt.Print("🚄 Elena DB\nSolution Version: " + common.Version + "\nBuilt Date: " + common.BirthDate + "\n\nElenaDB es un sistema de gestión de bases de datos construido por estudiantes de la UNMSM para el proyecto final del curso Algoritmos y Estructuras de Datos. Este sistema fue desarrollado con fines educativos y no debe usarse en entornos de producción (a menos que nos yapees).\n\nUtilice 'ayuda' para conocer su uso. Utilice 'limpia' para limpiar la página.\nEsta es la solución de referencia de ElenaDB que se ejecuta en su navegador.\n\n")
+
 	elena, err := database.StartElenaBusiness(dbName)
 
 	if err != nil {
@@ -68,6 +69,12 @@ mainLoop:
 	for {
 		if input, err := repl.Prompt(prompt); err == nil {
 			if input == "" {
+				continue
+			}
+
+			// Comando para limpiar la pantalla
+			if strings.TrimSpace(input) == "limpia" {
+				clearScreen()
 				continue
 			}
 
@@ -144,6 +151,8 @@ func ExecuteAndDisplay(
 	}
 
 	if isExplain {
+		fmt.Print("\n===== Binding ======\n")
+		printQuery(bindedQuery)
 		fmt.Println("\n===== Binding ======\n")
 		err := printQuery(bindedQuery)
 		if err != nil {
@@ -151,7 +160,7 @@ func ExecuteAndDisplay(
 			return &elapsed, err
 		}
 
-		fmt.Println("\n==== Query plan ====\n")
+		fmt.Print("\n==== Query plan ====\n")
 		fmt.Println(plan.ToString())
 	}
 	count := 0
@@ -175,6 +184,10 @@ func ExecuteAndDisplay(
 	elapsed := time.Since(start)
 	fmt.Printf("🚄 %d row(s) (%s)\n\n", count, elapsed)
 	return &elapsed, nil
+}
+
+func clearScreen() {
+	fmt.Print("\033[H\033[2J")
 }
 
 func newFormatter() prettyjson.Formatter {

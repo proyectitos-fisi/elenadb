@@ -11,6 +11,8 @@ var identifiers = []string{
 	"borra",
 	"explicame",
 	"set",
+	"limpia",
+	"ayuda",
 }
 
 var types = []string{
