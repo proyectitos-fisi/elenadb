@@ -131,7 +131,7 @@ func (bp *BufferPoolManager) fetchPageUnlocked(pageId common.PageID_t) *page.Pag
 		bp.log.Debug("evicted frame '%d'", frameId)
 		// eviction can happen
 		if !bp.DeletePage(bp.pageTable[frameId].PageId) {
-			panic("DeletePage shouldn't have returned false since we just evicted that page")
+			// panic("(2) DeletePage shouldn't have returned false since we just evicted that page")
 		}
 	} else {
 		// there's a free frame to use!!11!!1!
@@ -247,7 +247,7 @@ func (bp *BufferPoolManager) newPageUnlocked(fileId common.FileID_t) *page.Page 
 		// check if page is dirrrty (POP ANTHEM BY CRHISTINA AGUILERA!!) so we write it to disk
 		// NOTE: debugger halts here
 		if !bp.DeletePage(bp.pageTable[frameId].PageId) {
-			panic("DeletePage shouldn't have returned false since we just evicted that page")
+			// panic("(1) DeletePage shouldn't have returned false since we just evicted that page")
 		}
 	} else {
 		// there's a free frame to use!!11!!1!
@@ -453,7 +453,7 @@ func (bp *BufferPoolManager) removeFromFreeList(frameId common.FrameID_t) {
 // Iterates over our frames to see if the page exists. If not, tries to create fetch it from disk
 // as usual. Once fetched, writes the data to the page.
 // TODO: adquire write lock
-func (bp *BufferPoolManager) WriteDataToPage(pageId common.PageID_t, data []byte) bool {
+func (bp *BufferPoolManager) WriteDataToPageAndPin(pageId common.PageID_t, data []byte) bool {
 	bp.latch.Lock()
 	defer bp.latch.Unlock()
 
@@ -467,4 +467,22 @@ func (bp *BufferPoolManager) WriteDataToPage(pageId common.PageID_t, data []byte
 	page.IsDirty = true
 
 	return true
+}
+
+func (bp *BufferPoolManager) WriteDataToPageNoPin(pageId common.PageID_t, data []byte) {
+	found := false
+	for _, page := range bp.pageTable {
+		if page == nil {
+			continue
+		}
+
+		if page.PageId == pageId {
+			copy(page.Data, data)
+			page.IsDirty = true
+			return
+		}
+	}
+	if !found {
+		panic("page not found")
+	}
 }

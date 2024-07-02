@@ -12,7 +12,7 @@ const numberNodes = 250
 // BPTree es la estructura principal del B+ Tree
 type BPTree struct {
 	bufferPoolManager *buffer.BufferPoolManager
-	catalog           *common.FileID_t
+	fileId            *common.FileID_t
 	rootPageID        common.PageID_t
 }
 
@@ -20,7 +20,7 @@ type BPTree struct {
 func NewBPTree(bufferPoolManager *buffer.BufferPoolManager, catalog *common.FileID_t) *BPTree {
 	return &BPTree{
 		bufferPoolManager: bufferPoolManager,
-		catalog:           catalog,
+		fileId:            catalog,
 		rootPageID:        common.InvalidPageID,
 	}
 }
@@ -33,6 +33,7 @@ func (tree *BPTree) getPage(pageID common.PageID_t) *page.BTreePage {
 	}
 	bTreePage, err := page.BTreePageFromRawData(p.Data)
 	if err != nil {
+		fmt.Printf("%v", p.Data)
 		panic(fmt.Sprintf("Error converting Page to BTreePage: %v", err))
 	}
 	return bTreePage
@@ -40,7 +41,7 @@ func (tree *BPTree) getPage(pageID common.PageID_t) *page.BTreePage {
 
 // createPage crea una nueva página usando el Buffer Pool Manager y la convierte a BTreePage
 func (tree *BPTree) createPage(pageType page.BTreePageType) *page.BTreePage {
-	p := tree.bufferPoolManager.NewPage(*tree.catalog)
+	p := tree.bufferPoolManager.NewPage(*tree.fileId)
 	if p == nil {
 		return nil
 	}
@@ -58,7 +59,7 @@ func (tree *BPTree) Insert(key int, value uint64) {
 	if tree.rootPageID == common.InvalidPageID {
 		newPage := tree.createPage(page.LeafPage)
 		if newPage == nil {
-			panic("No se pudo crear una nueva página")
+			panic("(1) No se pudo crear una nueva página")
 		}
 		tree.rootPageID = newPage.PageID
 		tree.initializeRootPage(newPage, key, value)
@@ -73,7 +74,7 @@ func (tree *BPTree) initializeRootPage(rootPage *page.BTreePage, key int, value 
 	rootPage.Keys = append(rootPage.Keys, key)
 	rootPage.Values = append(rootPage.Values, value)
 	data, _ := rootPage.Serialize()
-	tree.bufferPoolManager.WriteDataToPage(rootPage.PageID, data)
+	tree.bufferPoolManager.WriteDataToPageNoPin(rootPage.PageID, data)
 	tree.bufferPoolManager.UnpinPage(rootPage.PageID, true)
 }
 
@@ -113,7 +114,7 @@ func (tree *BPTree) insertIntoLeaf(nodePage *page.BTreePage, key int, value uint
 	}
 	fmt.Printf("Inserting to leaf.......\n")
 	fmt.Printf("Node: %v\n", nodePage)
-	tree.bufferPoolManager.WriteDataToPage(nodePage.PageID, data)
+	tree.bufferPoolManager.WriteDataToPageNoPin(nodePage.PageID, data)
 	tree.bufferPoolManager.UnpinPage(nodePage.PageID, true)
 }
 
@@ -121,7 +122,7 @@ func (tree *BPTree) insertIntoLeaf(nodePage *page.BTreePage, key int, value uint
 func (tree *BPTree) splitNode(nodePage *page.BTreePage, key int, value uint64) {
 	newPage := tree.createPage(nodePage.PageType)
 	if newPage == nil {
-		panic("No se pudo crear una nueva página")
+		panic("(2) No se pudo crear una nueva página")
 	}
 
 	index := tree.findIndex(nodePage.Keys, key)
@@ -143,8 +144,8 @@ func (tree *BPTree) splitNode(nodePage *page.BTreePage, key int, value uint64) {
 	data1, _ := nodePage.Serialize()
 	data2, _ := newPage.Serialize()
 
-	tree.bufferPoolManager.WriteDataToPage(nodePage.PageID, data1)
-	tree.bufferPoolManager.WriteDataToPage(newPage.PageID, data2)
+	tree.bufferPoolManager.WriteDataToPageNoPin(nodePage.PageID, data1)
+	tree.bufferPoolManager.WriteDataToPageNoPin(newPage.PageID, data2)
 	tree.bufferPoolManager.UnpinPage(nodePage.PageID, true)
 	tree.bufferPoolManager.UnpinPage(newPage.PageID, true)
 
@@ -179,8 +180,8 @@ func (tree *BPTree) splitInternal(oldNode *page.BTreePage) {
 	data1, _ := oldNode.Serialize()
 	data2, _ := newInternalPage.Serialize()
 
-	tree.bufferPoolManager.WriteDataToPage(oldNode.PageID, data1)
-	tree.bufferPoolManager.WriteDataToPage(newInternalPage.PageID, data2)
+	tree.bufferPoolManager.WriteDataToPageNoPin(oldNode.PageID, data1)
+	tree.bufferPoolManager.WriteDataToPageNoPin(newInternalPage.PageID, data2)
 
 	tree.bufferPoolManager.UnpinPage(oldNode.PageID, true)
 	tree.bufferPoolManager.UnpinPage(newInternalPage.PageID, true)
@@ -196,7 +197,7 @@ func (tree *BPTree) updateParentNode(oldNode *page.BTreePage, newNode *page.BTre
 	if oldNode.PageID == tree.rootPageID {
 		newRootPage := tree.createPage(page.InternalPage)
 		if newRootPage == nil {
-			panic("No se pudo crear una nueva página raíz")
+			panic("(3) No se pudo crear una nueva página raíz")
 		}
 
 		newRootPage.Keys = append(newRootPage.Keys, promotedKey)
@@ -215,7 +216,7 @@ func (tree *BPTree) updateParentNode(oldNode *page.BTreePage, newNode *page.BTre
 		if err != nil {
 			panic(fmt.Sprintf("Error serializing BTreePage: %v", err))
 		}
-		tree.bufferPoolManager.WriteDataToPage(newRootPage.PageID, data)
+		tree.bufferPoolManager.WriteDataToPageNoPin(newRootPage.PageID, data)
 		tree.bufferPoolManager.UnpinPage(newRootPage.PageID, true)
 	} else {
 		parentPageID := tree.findParent(oldNode.PageID)
@@ -236,7 +237,7 @@ func (tree *BPTree) updateParentNode(oldNode *page.BTreePage, newNode *page.BTre
 		}
 		fmt.Printf("newpage: %v %v\n", parentPage.Keys, parentPage.Children)
 
-		tree.bufferPoolManager.WriteDataToPage(parentPage.PageID, data)
+		tree.bufferPoolManager.WriteDataToPageNoPin(parentPage.PageID, data)
 		tree.bufferPoolManager.UnpinPage(parentPage.PageID, true)
 
 		// JEJEJEJEJEJEJJEEJJEJEJEJEJEJEJJEJEJEJEJEJEJEJEJEJJEJEJEJEJEJEJEJEJEJJEJEJEJEJEJEJEJJEJEJEJEJEJJEJEJEJEJJEJEJE
