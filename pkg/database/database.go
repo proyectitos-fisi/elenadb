@@ -295,22 +295,46 @@ func (db *ElenaDB) sqlPipeline(input string) (*query.Query, error) {
 		if tableMetaData == nil {
 			return nil, TableDoesNotExistError{table: parsedQuery.QueryInstrName}
 		}
+
+		// First we iterate over the query fields so we can check
+		// - if the field exists in the table, otherwise error
+		// - if the field is given the correct type, otherwise error
+		for _, field := range parsedQuery.Fields {
+			exists := false
+			for _, col := range tableMetaData.Schema.GetColumns() {
+				if field.Name == col.ColumnName {
+					exists = true
+					break
+				}
+			}
+			if !exists {
+				return nil, ColumnNotFoundError{field.Name, tableMetaData.Name}
+			}
+		}
+
 		resolvedFields := make([]query.QueryField, 0)
 
-		// First we iterate over the table columns since "mete" need to define ALL
+		// Then we iterate over the table columns since "mete" need to define ALL
 		// the columns or the row, and they MUST be ordered
+		// - if the len param exceeds the column's storage size, otherwise error
 		for _, col := range tableMetaData.Schema.GetColumns() {
 			exists := false
 			for _, field := range parsedQuery.Fields {
 				if field.Name == col.ColumnName {
 					if col.IsIdentity {
-						return nil, fmt.Errorf("Column \"%s\" is @id and cannot be inserted", col.ColumnName)
+						return nil, fmt.Errorf("column \"%s\" is @id and cannot be inserted", col.ColumnName)
 					}
-
 					// Parser parses all values as string, so we need to resolve them to their respective types
 					resolvedValue, err := resolveAnyValueFromType(col.ColumnType, field.Value)
 					if err != nil {
 						return nil, err
+					}
+
+					if col.ColumnType == value.TypeVarChar && len(field.Value.(string)) > int(col.StorageSize) {
+						return nil, fmt.Errorf(
+							"column \"%s\" is char(%d), but \"%s\" has length %d",
+							col.ColumnName, col.StorageSize, field.Value, len(field.Value.(string)),
+						)
 					}
 
 					resolvedFields = append(resolvedFields, query.QueryField{
@@ -330,7 +354,7 @@ func (db *ElenaDB) sqlPipeline(input string) (*query.Query, error) {
 			if !exists {
 				// Identity columns can't be passed on queries so that's ok
 				if !col.IsNullable && !col.IsIdentity {
-					return nil, fmt.Errorf("Non nullable column \"%s\" is missing", col.ColumnName)
+					return nil, fmt.Errorf("non nullable column \"%s\" is missing", col.ColumnName)
 				}
 				// If is nullable we insert it ourselves as NULL
 				resolvedFields = append(resolvedFields, query.QueryField{
@@ -346,22 +370,6 @@ func (db *ElenaDB) sqlPipeline(input string) (*query.Query, error) {
 			}
 		}
 		parsedQuery.Fields = resolvedFields
-
-		// Then we iterate over the query fields so we can check
-		// - if the field exists in the table, otherwise error
-		// - if the field is given the correct type, otherwise error
-		for _, field := range parsedQuery.Fields {
-			exists := false
-			for _, col := range tableMetaData.Schema.GetColumns() {
-				if field.Name == fmt.Sprintf("%s.%s", tableMetaData.Name, col.ColumnName) {
-					exists = true
-					break
-				}
-			}
-			if !exists {
-				return nil, ColumnNotFoundError{field.Name, tableMetaData.Name}
-			}
-		}
 
 		revisedReturning := make([]string, 0)
 		// The final check if to see if the fields defined in "retornando" exist in the table

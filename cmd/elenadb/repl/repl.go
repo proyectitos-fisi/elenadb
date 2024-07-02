@@ -154,10 +154,10 @@ func ExecuteAndDisplay(
 	}
 
 	if isExplain {
-		fmt.Print("\n===== Binding ======\n")
+		fmt.Print("\n==== Parsing & Binding ====\n")
 		printQuery(bindedQuery)
 
-		fmt.Print("\n==== Query plan ====\n")
+		fmt.Print("\n==== Query plan ====\n\n")
 		fmt.Println(plan.ToString())
 	}
 	count := 0

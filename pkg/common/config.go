@@ -34,6 +34,7 @@ var EnableLogging atomic.Value
 
 // If ENABLE_LOGGING is true, the log should be flushed to disk every LOG_TIMEOUT.
 var LogTimeout = time.Duration(1000) // en teoría esto es ajustable a lo que deseemos (?)
+const MaxVarCharLen = 255
 
 const (
 	InvalidPageID  = PageID_t(4294967295)

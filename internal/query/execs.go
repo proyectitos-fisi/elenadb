@@ -3,6 +3,7 @@ package query
 import (
 	"fisi/elenadb/internal/tokens"
 	"fisi/elenadb/pkg/storage/table/value"
+	"fmt"
 	"strconv"
 )
 
@@ -123,9 +124,11 @@ func parseCompositeTypeFn(qb *QueryBuilder, tk *tokens.Token) error {
 
 func parseNumberFn(qb *QueryBuilder, tk *tokens.Token) error {
     fields := qb.qu[len(qb.qu)-1].Fields
+    // char(len) has a max length of 255
     length, convErr := strconv.ParseUint(tk.Data, 10, 8)
+
     if convErr != nil {
-        return convErr
+        return fmt.Errorf("expected a number from [0, 255] but got \"%s\"", tk.Data)
     }
 
     fields[len(fields)-1].Length = uint8(length)

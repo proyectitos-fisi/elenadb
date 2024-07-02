@@ -62,7 +62,7 @@ func (q *Query) GetSchema() *schema.Schema {
 		cols = append(cols, column.Column{
 			ColumnName:  f.Name,
 			ColumnType:  f.Type,
-			StorageSize: uint16(f.Length),
+			StorageSize: f.Length,
 			IsUnique:    f.HasAnnotation(AnnotationUnique),
 			IsNullable:  f.Nullable,
 			IsForeign:   f.Foreign,

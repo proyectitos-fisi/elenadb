@@ -5,7 +5,7 @@ import "fisi/elenadb/pkg/storage/table/value"
 type Column struct {
 	ColumnType  value.ValueType
 	ColumnName  string
-	StorageSize uint16
+	StorageSize uint8
 	IsUnique    bool
 	IsNullable  bool
 	IsForeign   bool
@@ -31,7 +31,7 @@ func NewColumn(columnType value.ValueType, columnName string) Column {
 	}
 }
 
-func NewSizedColumn(columnType value.ValueType, columnName string, storageSize uint16) Column {
+func NewSizedColumn(columnType value.ValueType, columnName string, storageSize uint8) Column {
 	return Column{
 		ColumnType:  columnType,
 		ColumnName:  columnName,
