@@ -354,7 +354,7 @@ func (db *ElenaDB) sqlPipeline(input string) (*query.Query, error) {
 			if !exists {
 				// Identity columns can't be passed on queries so that's ok
 				if !col.IsNullable && !col.IsIdentity {
-					return nil, fmt.Errorf("non nullable column \"%s\" is missing", col.ColumnName)
+					return nil, fmt.Errorf("Non nullable column \"%s\" is missing", col.ColumnName)
 				}
 				// If is nullable we insert it ourselves as NULL
 				resolvedFields = append(resolvedFields, query.QueryField{

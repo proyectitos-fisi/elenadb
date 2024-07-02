@@ -365,6 +365,8 @@ func (plan *MetePlanNode) Next() (*tuple.Tuple, error) {
 		if col.IsIdentity {
 			// We assume the last slot contains the last id
 			values = append(values, *value.NewInt32Value(nextId))
+		} else if col.IsNullable && *&plan.Query.Fields[idx].Value == nil {
+			values = append(values, *plan.Query.Fields[idx].AsNullRepresentation())
 		} else {
 			// Otherwise, we just append the value
 			values = append(values, *plan.Query.Fields[idx].AsTupleValue())

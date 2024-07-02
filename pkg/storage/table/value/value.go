@@ -61,6 +61,21 @@ func (typeId *ValueType) TypeSize() uint16 {
 	}
 }
 
+func GetDefaultValueForType(typeId ValueType) any {
+	switch typeId {
+	case TypeBoolean:
+		return false
+	case TypeInt32:
+		return int32(0)
+	case TypeFloat32:
+		return float32(0)
+	case TypeVarChar:
+		return ""
+	default:
+		panic("unrechable. varchar should use Column.StorageSize")
+	}
+}
+
 func NewInt32Value(data int32) *Value {
 	buf := make([]byte, 4)
 	binary.LittleEndian.PutUint32(buf, uint32(data))
@@ -79,6 +94,7 @@ func NewBooleanValue(data bool) *Value {
 	}
 	return NewValue(TypeBoolean, []byte{0})
 }
+
 
 // varchars are encoded as: [len(u8)][data(len)]
 func NewVarCharValue(data string, maxBytes int) *Value {

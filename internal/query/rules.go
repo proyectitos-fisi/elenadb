@@ -598,6 +598,10 @@ func defaultParseFsm() *FsmNode {
         Children: map[StepType]*FsmNode{},
     }
 
+    meteCloseList := &FsmNode{
+        ExpectedString: "}",
+    }
+
     beginStep.
     AddRule(&FsmNode{
         ExpectedString: "mete",
@@ -621,9 +625,12 @@ func defaultParseFsm() *FsmNode {
         ExpectedString: ",",
     }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmListSeparator).
     AddRule(insertFieldKey, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmListSeparator, FsmFieldKey).
-    AddRule(&FsmNode{
-        ExpectedString: "}",
-    }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList).
+    AddRule(meteCloseList,
+        FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList,
+    ).
+    AddRule(meteCloseList,
+        FsmInsertStep, FsmOpenList, FsmCloseList,
+    ).
     AddRule(&FsmNode{
         ExpectedString: "en",
     }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt).

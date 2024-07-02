@@ -59,17 +59,17 @@ func GetMinimumSpacingForType(columnType value.ValueType) int {
 }
 
 func GetTableColSpacingFromColumn(column column.Column) int {
-	spacing := utils.Max(
-		len(ExtractColumnName(column.ColumnName)),
-		GetMinimumSpacingForType(column.ColumnType),
-	)
 	if column.ColumnType == value.TypeVarChar {
-		spacing = utils.Min(
-			spacing,
+		return utils.Max(
+			len(ExtractColumnName(column.ColumnName)),
 			int(column.StorageSize),
 		)
+	} else {
+		return utils.Max(
+			len(ExtractColumnName(column.ColumnName)),
+			GetMinimumSpacingForType(column.ColumnType),
+		)
 	}
-	return spacing
 }
 
 func (s *Schema) PrintTableDivisor() {

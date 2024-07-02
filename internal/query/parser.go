@@ -57,7 +57,7 @@ func (par *Parser) Test(tk *tokens.Token) error {
         expKeys = append(expKeys, par.fsm.Children[key].ExpectedString)
     }
 
-    return fmt.Errorf("expected one of %v, got %s instead", expKeys, tk.Data)
+    return fmt.Errorf("Expected one of %v, got %s instead", expKeys, tk.Data)
 }
 
 func (par *Parser) stepParseExec(qu *QueryBuilder, tk *tokens.Token) error {
@@ -105,7 +105,7 @@ func (par *Parser) Parse(rd io.Reader) ([]Query, error) {
                 expKeys = append(expKeys, par.fsm.Children[key].ExpectedString)
             }
 
-            return nil, fmt.Errorf("expected one of %v, got EOF instead", expKeys)
+            return nil, fmt.Errorf("Expected one of %v, got EOF instead", expKeys)
         }
 
         tkTestErr := par.Test(&tk)

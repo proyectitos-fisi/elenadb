@@ -139,6 +139,25 @@ func (qf *QueryField) AsTupleValueNillable() *value.Value {
 	return &newValue
 }
 
+// There is no concept of null for us. We just choose a reasonable default value
+func (qf *QueryField) AsNullRepresentation() *value.Value {
+	var newValue value.Value
+	switch qf.Type {
+	case value.TypeInt32:
+		newValue = *value.NewInt32Value(0)
+	case value.TypeFloat32:
+		newValue = *value.NewFloat32Value(0)
+	case value.TypeVarChar:
+		newValue = *value.NewVarCharValue("", 0)
+	case value.TypeBoolean:
+		newValue = *value.NewBooleanValue(false)
+	default:
+		panic("unreachable: unknown type")
+	}
+	return &newValue
+}
+
+
 func (qf *QueryField) AsString() string {
 	builder := strings.Builder{}
 	builder.WriteString(qf.Name)
@@ -161,6 +180,9 @@ func (qf *QueryField) AsString() string {
 		builder.WriteString("invalid")
 	}
 
+	if qf.Nullable {
+		builder.WriteString("?")
+	}
 	for _, annotation := range qf.Annotations {
 		builder.WriteString(" @")
 		builder.WriteString(annotation)
@@ -168,6 +190,8 @@ func (qf *QueryField) AsString() string {
 	return builder.String()
 }
 
+// Does the inverse process of parsing a query from a string. It tries to
+// return this parsed query to its original form.
 func (q *Query) AsQueryText() string {
 	if q.QueryType != QueryCreate {
 		panic("unreachable: AsQueryText() should be only used for 'creame' queries")
