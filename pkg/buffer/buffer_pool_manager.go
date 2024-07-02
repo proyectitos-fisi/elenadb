@@ -15,13 +15,14 @@ import (
 type BufferPoolManager struct {
 	poolSize      uint32
 	diskScheduler *storage_disk.DiskScheduler
-	pageTable     map[common.FrameID_t]*page.Page // relaciones GRACIAS!!!!!!!!!!!!!!!!!!!!!!!
-	replacer      LRUKReplacer
-	latch         sync.RWMutex
-	nextPageID    *atomic.Int32
-	dbName        string
-	freeList      []common.FrameID_t
-	log           *common.Logger
+	// FLAG_ESTRUCTURA: map
+	pageTable  map[common.FrameID_t]*page.Page // relaciones GRACIAS!!!!!!!!!!!!!!!!!!!!!!!
+	replacer   LRUKReplacer
+	latch      sync.RWMutex
+	nextPageID *atomic.Int32
+	dbName     string
+	freeList   []common.FrameID_t
+	log        *common.Logger
 }
 
 func NewBufferPoolManager(dbName string, poolSize uint32, k int, ctlg *catalog.Catalog) *BufferPoolManager {

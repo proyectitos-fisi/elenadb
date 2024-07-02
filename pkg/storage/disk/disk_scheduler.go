@@ -55,12 +55,14 @@ type DiskScheduler struct {
 // Don't forget to start worker threads.
 func NewScheduler(dm *DiskManager, catalog *catalog.Catalog) *DiskScheduler {
 	return &DiskScheduler{
-		diskManager:  dm,
+		diskManager: dm,
+		// FLAG_ESTRUCTURA: queue
 		RequestQueue: *common.NewChannel[*DiskRequest](),
 		Catalog:      catalog,
 	}
 }
 
+// FLAG_ALGORITMO: algoritmo FCFS (First-Come, First-Served) de planificación de disco.
 func (ds *DiskScheduler) Schedule(request *DiskRequest) {
 	filename := ds.Catalog.FilenameFromFileId(request.PageID.GetFileId())
 	request.filename = *filename

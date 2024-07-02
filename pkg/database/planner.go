@@ -31,7 +31,7 @@ func SelectPlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
 			}
 			return value.TypeInvalid
 		}
-
+		// FLAG_ ESTRUCTURA: tree
 		return &ProjectionPlanNode{
 			PlanNodeBase: PlanNodeBase{
 				Type:     PlanNodeTypeProject,
@@ -65,7 +65,7 @@ func SelectPlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
 			TableMetadata:   tableMetadata,
 		}, nil
 	}
-
+	// FLAG_ ESTRUCTURA: tree
 	return &ProjectionPlanNode{
 		PlanNodeBase: PlanNodeBase{
 			Type:     PlanNodeTypeProject,
@@ -114,7 +114,7 @@ func DeletePlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
 	if tableMetadata == nil {
 		return nil, TableDoesNotExistError{table: query.QueryInstrName}
 	}
-
+	// FLAG_ESRUCTURA:  Tabla hash (implícita)
 	query.Filter.Resolver = func(columnName string) value.ValueType {
 		cols := tableMetadata.Schema.GetColumns()
 		for idx, _ := range cols {

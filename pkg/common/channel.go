@@ -20,8 +20,9 @@ import (
 )
 
 type Channel[T any] struct {
-	cond  *sync.Cond // condition variable para manejar la sincronización
-	queue []T        // almacena los elementos
+	cond *sync.Cond // condition variable para manejar la sincronización
+	// FLAG_ESTRUCTURA: queue
+	queue []T // almacena los elementos
 }
 
 func NewChannel[T any]() *Channel[T] {

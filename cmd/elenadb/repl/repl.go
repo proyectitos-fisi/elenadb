@@ -253,6 +253,7 @@ func removeQuottedStrings(text string) string {
 	return quotesRegex.ReplaceAllString(text, "")
 }
 
+// FLAD_ESTRUCTURA: stack
 type stack []rune
 
 func (s stack) Empty() bool {

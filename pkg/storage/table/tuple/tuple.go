@@ -14,8 +14,10 @@ import (
 )
 
 // TOGRASP: is this tuple also used in table heaps? If so, it should have a valid RowId, right?
+// FLAG_ESTRUCTURA: tuple
 type Tuple struct {
-	RowId  common.RID // only valid if pointing to the table heap
+	RowId common.RID // only valid if pointing to the table heap
+	// FLAG_ESTRUCTURA
 	Values []value.Value
 	Size   uint16
 }
@@ -30,6 +32,7 @@ func New(values []value.Value, RowId common.RID) *Tuple {
 	}
 }
 
+// FLAG_ALGORITMO: data serialization
 func (t *Tuple) AsRawData() []byte {
 	bytesitos := make([]byte, t.Size)
 	offset := 0

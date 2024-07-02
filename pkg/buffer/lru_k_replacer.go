@@ -12,6 +12,7 @@ const infinity = int64(^uint64(0) >> 1)
 
 type FrameID = common.FrameID_t
 
+// FLAG_ALGORITMO: LRU-K
 // As part of the ElenaDB ® buffer replacement policy we use a LRU-K replacer.
 //
 // An LRU-K replacer is a generalization of the least recently used (LRU) policy, where
@@ -35,7 +36,8 @@ type LRUKReplacer struct {
 // middle of a transaction, for example. The BufferPoolManager is responsible for
 // marking a page as evictable calling the SetEvictable method.
 type LRUKNode struct {
-	K         int
+	K int
+	// FLAG_ESTRUCTURA: doubly linked list
 	accesses  list.List
 	frame_id  FrameID
 	evictable bool
@@ -46,8 +48,9 @@ func NewLRUK(n_frames uint32, k int) *LRUKReplacer {
 		K:          k,
 		max_frames: n_frames,
 		size:       atomic.Int32{},
-		nodes:      make(map[FrameID]*LRUKNode),
-		latch:      sync.RWMutex{},
+		// FLAG_ESTRUCTURA: map
+		nodes: make(map[FrameID]*LRUKNode),
+		latch: sync.RWMutex{},
 	}
 }
 

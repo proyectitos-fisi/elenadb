@@ -2,6 +2,7 @@ package utils
 
 import "golang.org/x/exp/constraints"
 
+// FLAG_ALGORITMO: Algoritmo: Búsqueda lineal del máximo
 func Max[K constraints.Ordered](orderedSlice ...K) K {
 	if len(orderedSlice) == 0 {
 		panic("received empty arguments. Can't calculate max.")
@@ -16,6 +17,7 @@ func Max[K constraints.Ordered](orderedSlice ...K) K {
 	return v
 }
 
+// FLAG_ALGORITMO: Algoritmo: Búsqueda lineal del min
 func Min[K constraints.Ordered](orderedSlice ...K) K {
 	if len(orderedSlice) == 0 {
 		panic("received empty arguments. Can't calculate min.")

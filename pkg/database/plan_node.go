@@ -37,6 +37,7 @@ const (
 	PlanNodeTypeGroupBy   PlanNodeType = "TopN"
 )
 
+// FLAG_ESTRUCTURA: tree (PlanNode y sus implementaciones(SeqScanPlanNode, FilterPlanNode, etc.))
 type PlanNodeBase struct {
 	Type     PlanNodeType
 	Children []PlanNode
@@ -60,6 +61,8 @@ type SeqScanPlanNode struct {
 	Cursor        *PagesCursor
 	CurrentPage   *page.Page
 }
+
+// FLAG_ALGORITMO: recorrido secuencial?? greedy??
 
 func (plan *SeqScanPlanNode) Next() (*tuple.Tuple, error) {
 	for {
