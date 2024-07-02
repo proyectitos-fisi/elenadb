@@ -1,0 +1,7 @@
+FROM tsl0922/ttyd AS BASE
+
+FROM paoloose/elenadb:latest
+
+COPY --from=BASE /usr/bin/ttyd /usr/bin/ttyd
+
+CMD ["ttyd", "--writable", "./elena", "test.elena"]

@@ -5,28 +5,15 @@ import (
 	"strconv"
 	"strings"
 
-    "fisi/elenadb/internal/tokens"
-    valuepkg "fisi/elenadb/pkg/storage/table/value"
+	"fisi/elenadb/internal/tokens"
+	valuepkg "fisi/elenadb/pkg/storage/table/value"
 )
-
-func FieldType(field string) valuepkg.ValueType {
-    switch field {
-    case "id":
-        return valuepkg.TypeInt32
-    case "name":
-        return valuepkg.TypeVarChar
-    case "isGerencial":
-        return valuepkg.TypeBoolean
-    default:
-        return valuepkg.TypeFloat32
-    }
-}
 
 type QueryFilter struct {
     Out *tokens.TkStack
     In  *tokens.TkStack
 
-    binder func(string)valuepkg.ValueType
+    Resolver func(string)valuepkg.ValueType
 }
 
 func NewQueryFilter() *QueryFilter {
@@ -126,8 +113,8 @@ func CompareString(field string, cmp string, value string, mapper map[string]int
     }
 }
 
-func CastAndCompare(field string, cmp string, value string, mapper map[string]interface{}) (bool, error) {
-    switch FieldType(field) {
+func (qf *QueryFilter) CastAndCompare(field string, cmp string, value string, mapper map[string]interface{}) (bool, error) {
+    switch qf.Resolver(field) {
         case valuepkg.TypeBoolean:
             return CompareBool(field, cmp, value, mapper)
         case valuepkg.TypeInt32:
@@ -217,7 +204,7 @@ func (qf *QueryFilter) execrec(mapper map[string]interface{}) (string, bool, err
         return "", (leftbool || rightbool), nil
     }
 
-    cmpBool, cmpErr := CastAndCompare(leftstr, tk.Data, rightstr, mapper)
+    cmpBool, cmpErr := qf.CastAndCompare(leftstr, tk.Data, rightstr, mapper)
     if cmpErr != nil {
         return "", false, cmpErr
     }

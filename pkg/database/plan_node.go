@@ -372,8 +372,67 @@ func (i *MetePlanNode) ToString() string {
 	return fmt.Sprintf("InsertPlanNode { table=%s } | (\n%s\n)\n", i.TableMetadata.Name, formattedFields.String())
 }
 
+// ======== "delete" ========
+type DeletePlanNode struct {
+	PlanNodeBase
+	TableMetadata *catalog.TableMetadata
+	Query         *query.Query
+	CurrentPage   *page.Page
+	Cursor        *PagesCursor
+}
+
+func (plan *DeletePlanNode) Next() *tuple.Tuple {
+	for _, child := range plan.Children {
+		for {
+			// For each child until exhausted (generally we only have one child)
+			tupleToFilter := child.Next()
+			if tupleToFilter == nil {
+				break
+			}
+
+			valuesMap := make(map[string]interface{})
+			for idx, col := range child.Schema().GetColumns() {
+				switch tupleToFilter.Values[idx].Type {
+				case value.TypeInt32:
+					valuesMap[col.ColumnName] = tupleToFilter.Values[idx].AsInt32()
+				case value.TypeFloat32:
+					valuesMap[col.ColumnName] = tupleToFilter.Values[idx].AsFloat32()
+				case value.TypeBoolean:
+					valuesMap[col.ColumnName] = tupleToFilter.Values[idx].AsBoolean()
+				case value.TypeVarChar:
+					valuesMap[col.ColumnName] = tupleToFilter.Values[idx].AsVarchar()
+				default:
+					panic("unreachable")
+				}
+			}
+			fmt.Printf("%v\n\n", valuesMap)
+
+			// filter o no filter
+			matches, err := plan.Query.Filter.Exec(valuesMap)
+			fmt.Printf("%v\n", plan.Query.Filter.Out.GetAll())
+			if err != nil {
+				panic(err)
+			}
+
+			if matches {
+				return tupleToFilter
+			}
+		}
+	}
+	return nil
+}
+
+func (plan *DeletePlanNode) Schema() *schema.Schema {
+	return schema.EmptySchema()
+}
+
+func (plan *DeletePlanNode) ToString() string {
+	return "DeletePlanNode(" + plan.TableMetadata.Name + ")"
+}
+
 // Static assertions for PlanNodeBase implementors.
 var _ PlanNode = (*SeqScanPlanNode)(nil)
 var _ PlanNode = (*CreamePlanNode)(nil)
 var _ PlanNode = (*MetePlanNode)(nil)
 var _ PlanNode = (*ProjectionPlanNode)(nil)
+var _ PlanNode = (*DeletePlanNode)(nil)

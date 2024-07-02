@@ -3,6 +3,7 @@ package database
 import (
 	"fisi/elenadb/internal/query"
 	"fisi/elenadb/pkg/meta"
+	"fisi/elenadb/pkg/storage/table/value"
 )
 
 func SelectPlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
@@ -58,7 +59,45 @@ func UpdatePlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
 	return nil, NonImplementedPlanError{planName: "cambia"}
 }
 func DeletePlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
-	return nil, NonImplementedPlanError{planName: "borra"}
+	tableMetadata := db.Catalog.GetTableMetadata(query.QueryInstrName)
+	if tableMetadata == nil {
+		return nil, TableDoesNotExistError{table: query.QueryInstrName}
+	}
+
+	query.Filter.Resolver = func (columnName string) value.ValueType  {
+		cols := tableMetadata.Schema.GetColumns()
+		for idx, _ := range cols {
+			col := cols[idx]
+
+			if col.ColumnName == columnName {
+				return col.ColumnType
+			}
+		}
+		return value.TypeInvalid
+	}
+
+	return &DeletePlanNode{
+		PlanNodeBase: PlanNodeBase{
+			Type: PlanNodeTypeDelete,
+			Children: []PlanNode{
+				&SeqScanPlanNode{
+					PlanNodeBase: PlanNodeBase{
+						Type:     PlanNodeTypeSeqScan,
+						Children: nil,
+						Database: db,
+					},
+					Table:         query.QueryInstrName,
+					Query:         query,
+					TableMetadata: tableMetadata,
+					Cursor:        NewPagesCursorFromParts(tableMetadata.FileID, 0, 0),
+				},
+			},
+			Database: db,
+		},
+		TableMetadata: tableMetadata,
+		Query:         query,
+		Cursor:        NewPagesCursorFromParts(tableMetadata.FileID, 0, 0),
+	}, nil
 }
 func CreatePlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
 	tableMetadata := db.Catalog.GetTableMetadata(query.QueryInstrName)

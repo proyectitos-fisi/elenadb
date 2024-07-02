@@ -41,7 +41,7 @@ type Query struct {
 	QueryInstrName string
 	QueryDbInstr   bool
 	Fields         []QueryField
-	Filter         *QueryFilter
+	Filter         *QueryFilter `json:"-"`
 	Returning      []string
 }
 

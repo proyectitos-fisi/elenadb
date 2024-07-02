@@ -145,7 +145,11 @@ func ExecuteAndDisplay(
 
 	if isExplain {
 		fmt.Println("\n===== Binding ======\n")
-		printQuery(bindedQuery)
+		err := printQuery(bindedQuery)
+		if err != nil {
+			elapsed := time.Since(start)
+			return &elapsed, err
+		}
 
 		fmt.Println("\n==== Query plan ====\n")
 		fmt.Println(plan.ToString())
