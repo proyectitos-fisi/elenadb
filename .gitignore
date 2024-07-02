@@ -6,3 +6,7 @@ build/
 log/
 
 /*test*
+
+/.venv/
+
+/demo/demo.db/

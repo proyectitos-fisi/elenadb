@@ -123,6 +123,10 @@ func (sp *SlottedPage) SetLastInsertedId(lastInsertedId int32) {
 	copy(sp.PageData[8:], (*(*[4]byte)(unsafe.Pointer(&lastInsertedId)))[:])
 }
 
+func (sp *SlottedPage) HasSpaceForThisTupleSize(size uint16) bool {
+	return sp.Header.FreeSpace >= size+SLOT_SIZE
+}
+
 func (sp *SlottedPage) AppendTuple(t *tuple.Tuple) error {
 	if sp.Header.FreeSpace < t.Size {
 		return NoSpaceLeft{

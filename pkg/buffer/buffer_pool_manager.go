@@ -91,11 +91,34 @@ func (bp *BufferPoolManager) FetchLastPage(fileId common.FileID_t) *page.Page {
 		panic(err)
 	}
 
+	emptyFile := false
+	isInMemory := false
 	if size == 0 {
+		emptyFile = true
+	}
+
+	apidOffset := common.APageID_t(utils.Max(size/common.ElenaPageSize-1, 0))
+
+	// apidOffset is the last page based on disk, but we need to check our frames to see if there's
+	// a higher apid in memory
+
+	for _, page := range bp.pageTable {
+		if page == nil {
+			continue
+		}
+
+		if fileId == page.PageId.GetFileId() {
+			if page.PageId.GetActualPageId() >= apidOffset {
+				isInMemory = true
+				apidOffset = page.PageId.GetActualPageId()
+			}
+		}
+	}
+
+	if apidOffset == 0 && emptyFile && !isInMemory {
 		return nil
 	}
 
-	apidOffset := utils.Max(size/common.ElenaPageSize-1, 0)
 	pageId := common.NewPageIdFromParts(fileId, common.APageID_t(apidOffset))
 	return bp.fetchPageUnlocked(pageId)
 }

@@ -530,10 +530,9 @@ func (plan *MetePlanNode) Next() (*tuple.Tuple, error) {
 		// file exists and it's a slotted page so we parse it
 		slottedPage = page.NewSlottedPageFromRawPage(pageToWrite)
 		nextId = int32(slottedPage.Header.LastInsertedId) + 1
-		if slottedPage.Header.FreeSpace < tupleSize {
+		if slottedPage.HasSpaceForThisTupleSize(tupleSize) {
 			// We need to create a new page
-			nextId = int32(slottedPage.Header.LastInsertedId) + 1
-			plan.Database.bufferPool.UnpinPage(pageToWrite.PageId, true)
+			plan.Database.bufferPool.UnpinPage(pageToWrite.PageId, false)
 			pageToWrite = plan.Database.bufferPool.NewPage(fileId)
 			slottedPage = page.NewEmptySlottedPage(pageToWrite)
 		}
@@ -569,7 +568,7 @@ func (plan *MetePlanNode) Next() (*tuple.Tuple, error) {
 	// Write the page back to disk
 	plan.Database.bufferPool.UnpinPage(pageToWrite.PageId, true)
 
-	plan.Database.bufferPool.FlushPage(pageToWrite.PageId) // FIXME: don't flush
+	// plan.Database.bufferPool.FlushPage(pageToWrite.PageId) // FIXME: don't flush
 	plan.Inserted = true
 
 	if len(plan.Query.Returning) == 0 {

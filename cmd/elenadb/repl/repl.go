@@ -40,6 +40,7 @@ func StartREPL(dbName string) error {
 	)
 
 	elena, err := database.StartElenaBusiness(dbName)
+	defer elena.RestInPeace()
 
 	if err != nil {
 		return err

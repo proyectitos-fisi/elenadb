@@ -73,7 +73,7 @@ func NewFromRawData(schema *schema.Schema, reader *bytes.Reader) *Tuple {
 			debugutils.NotErr(reader.Read(b))
 			size := b[0]
 			if size > byte(col.StorageSize) {
-				panic(fmt.Sprintf("Size mismatch in varchar: %d != %d", size, col.StorageSize))
+				panic(fmt.Sprintf("Size mismatch in char: %d != %d for column %s", size, col.StorageSize, col.ColumnName))
 			}
 			data := make([]byte, size)
 			debugutils.NotErr(reader.Read(data))
