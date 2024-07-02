@@ -468,19 +468,11 @@ func (bp *BufferPoolManager) WriteDataToPageAndPin(pageId common.PageID_t, data 
 }
 
 func (bp *BufferPoolManager) WriteDataToPageNoPin(pageId common.PageID_t, data []byte) {
-	found := false
-	for _, page := range bp.pageTable {
-		if page == nil {
-			continue
-		}
-
-		if page.PageId == pageId {
-			copy(page.Data, data)
-			page.IsDirty = true
-			return
-		}
-	}
-	if !found {
+	page := bp.fetchPageUnlocked(pageId)
+	if page == nil {
 		panic("page not found")
 	}
+	copy(page.Data, data)
+	page.IsDirty = true
+	bp.UnpinPage(pageId, true)
 }
