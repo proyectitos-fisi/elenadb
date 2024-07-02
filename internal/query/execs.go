@@ -177,10 +177,19 @@ func parseBeginStepFn(qb *QueryBuilder, tk *tokens.Token) error {
 }
 
 func parseOrderingKey(qb *QueryBuilder, tk *tokens.Token) error {
-    qb.qu[len(qb.qu)-1].OrderedBy = tk.Data
+    qb.qu[len(qb.qu)-1].OrderedBy = &tk.Data
     return nil
 }
 
+func parseOrderingAsc(qb *QueryBuilder, tk *tokens.Token) error {
+    qb.qu[len(qb.qu)-1].IsAscending = true
+    return nil
+}
+
+func parseOrderingDesc(qb *QueryBuilder, tk *tokens.Token) error {
+    qb.qu[len(qb.qu)-1].IsAscending = false
+    return nil
+}
 
 var defaultParseFnTable map[StepType]ParseFn = map[StepType]ParseFn{
     FsmBeginStep: parseBeginStepFn,
@@ -210,8 +219,10 @@ var defaultParseFnTable map[StepType]ParseFn = map[StepType]ParseFn{
     FsmSelectorCloseBranch: selectorPushTokenFn,
     FsmErase: parseEraseFn,
     FsmOrderingKey: parseOrderingKey,
-
+    FsmOrderingDirectionAsc: parseOrderingAsc,
+    FsmOrderingDirectionDesc: parseOrderingDesc,
     FsmChange: parseChangeFn,
+    FsmOrdering: parseOrderingAsc,
 }
 
 

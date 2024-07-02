@@ -43,7 +43,8 @@ type Query struct {
 	Fields         []QueryField
 	Filter         *QueryFilter `json:"-"`
 	Returning      []string
-    OrderedBy      string
+    OrderedBy      *string
+	IsAscending    bool
 }
 
 // WARNING: This function may lose information if your query is one of: ["meta", "borra", "cambia"]

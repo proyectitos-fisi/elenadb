@@ -5,7 +5,7 @@ import (
 )
 
 var identifiers = []string{
-	"dame", "de", "donde", "pe",
+	"dame", "de", "donde", "pe", "ordenado", "por", "asc", "desc",
 	"creame", "tabla",
 	"mete", "en", "retornando",
 	"borra",

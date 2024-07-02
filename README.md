@@ -78,6 +78,9 @@ ElenaDB internal workflow (spanish)
 - [x] [Greedy optimization](pkg/database/planner.go): By generating all the possible plans to fulfill a query,
   we can choose the best one. <https://en.wikipedia.org/wiki/Greedy_algorithm>
 
+- [x] [Heap Sort](pkg/database/plan_node.go): Used to sort the results of a query as they are being
+  iterated through the query plan. <https://en.wikipedia.org/wiki/Heapsort>
+
 ## Data structures used
 
 - [x] Bloom filters. A probabilistic data structure to test whether an element is on a set.

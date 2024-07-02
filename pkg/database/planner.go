@@ -11,12 +11,25 @@ func SelectPlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
 
 	// TODO: query for available indexes
 	// index := db.Catalog.IndexMetadata(query.QueryInstrName)
-	// if index != nil {
-	// 	return
-	// }
 
 	if tableMetadata == nil {
 		return nil, TableDoesNotExistError{table: query.QueryInstrName}
+	}
+
+	var selectPlan PlanNode
+
+	// FLAG_ ESTRUCTURA: tree
+	selectPlan = &SeqScanPlanNode{
+		PlanNodeBase: PlanNodeBase{
+			Type:     PlanNodeTypeSeqScan,
+			Children: nil,
+			Database: db,
+		},
+		Table:         query.QueryInstrName,
+		Query:         query,
+		TableMetadata: tableMetadata,
+		Cursor:        NewPagesCursorFromParts(tableMetadata.FileID, 0, 0),
+		CurrentPage:   nil,
 	}
 
 	if query.Filter != nil {
@@ -31,57 +44,57 @@ func SelectPlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
 			}
 			return value.TypeInvalid
 		}
-		// FLAG_ ESTRUCTURA: tree
-		return &ProjectionPlanNode{
+		selectPlan = &FilterPlanNode{
 			PlanNodeBase: PlanNodeBase{
-				Type:     PlanNodeTypeProject,
+				Type:     PlanNodeTypeFilter,
 				Database: db,
 				Children: []PlanNode{
-					&FilterPlanNode{
-						PlanNodeBase: PlanNodeBase{
-							Type:     PlanNodeTypeFilter,
-							Database: db,
-							Children: []PlanNode{
-								&SeqScanPlanNode{
-									PlanNodeBase: PlanNodeBase{
-										Type:     PlanNodeTypeSeqScan,
-										Children: nil,
-										Database: db,
-									},
-									Table:         query.QueryInstrName,
-									Query:         query,
-									TableMetadata: tableMetadata,
-									Cursor:        NewPagesCursorFromParts(tableMetadata.FileID, 0, 0),
-									CurrentPage:   nil,
-								},
-							},
-						},
-						FilterQuery:   query,
-						TableMetadata: tableMetadata,
-					},
+					selectPlan,
 				},
 			},
-			ProjectionQuery: query,
-			TableMetadata:   tableMetadata,
-		}, nil
+			FilterQuery:   query,
+			TableMetadata: tableMetadata,
+		}
 	}
+
+	// FLAG_ALGORITMO: heap sort
+	if query.OrderedBy != nil {
+		sortedColIdx := -1
+		for idx, col := range tableMetadata.Schema.GetColumns() {
+			if col.ColumnName == *query.OrderedBy {
+				sortedColIdx = idx
+				break
+			}
+		}
+		if sortedColIdx == -1 {
+			return nil, ColumnNotFoundError{column: *query.OrderedBy, table: query.QueryInstrName}
+		}
+
+		selectPlan = &SortPlanNode{
+			PlanNodeBase: PlanNodeBase{
+				Type:     PlanNodeTypeSort,
+				Database: db,
+				Children: []PlanNode{
+					selectPlan,
+				},
+			},
+			SortByQuery:     query,
+			TableMetadata:   tableMetadata,
+			SortedColIdx:    sortedColIdx,
+			IsOrderAsc:      query.IsAscending,
+			TuplesHeapAccum: nil,
+			Sorted:          false, // initially
+		}
+		// TODO: order asc?
+	}
+
 	// FLAG_ ESTRUCTURA: tree
 	return &ProjectionPlanNode{
 		PlanNodeBase: PlanNodeBase{
 			Type:     PlanNodeTypeProject,
 			Database: db,
 			Children: []PlanNode{
-				&SeqScanPlanNode{
-					PlanNodeBase: PlanNodeBase{
-						Type:     PlanNodeTypeSeqScan,
-						Children: nil,
-						Database: db,
-					},
-					Table:         query.QueryInstrName,
-					Query:         query,
-					TableMetadata: tableMetadata,
-					Cursor:        NewPagesCursorFromParts(tableMetadata.FileID, 0, 0),
-				},
+				selectPlan,
 			},
 		},
 		ProjectionQuery: query,

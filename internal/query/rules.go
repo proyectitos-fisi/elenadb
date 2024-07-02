@@ -43,6 +43,8 @@ const (
     FsmOrdering
     FsmOrderingBy
     FsmOrderingKey
+    FsmOrderingDirectionAsc
+    FsmOrderingDirectionDesc
 
     FsmChange
     FsmChangeAt
@@ -435,7 +437,7 @@ func defaultParseFsm() *FsmNode {
     }
 
     retrieveOrdering := &FsmNode{
-        ExpectedString: "ordenando",
+        ExpectedString: "ordenado",
         Children: map[StepType]*FsmNode{},
     }
 
@@ -477,6 +479,16 @@ func defaultParseFsm() *FsmNode {
     AddRule(retrieveOrdering, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering).
     AddRule(retrieveOrderingBy, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy).
     AddRule(retrieveOrderingKey, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey).
+    // expect "asc" or "desc"
+    AddRule(&FsmNode{
+        ExpectedString: "desc",
+    }, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmOrderingDirectionDesc).
+    AddRule(&FsmNode{
+        ExpectedString: "asc",
+    }, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmOrderingDirectionAsc).
+    AddRule(beginStep, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmOrderingDirectionAsc, FsmBeginStep).
+    AddRule(beginStep, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmOrderingDirectionDesc, FsmBeginStep).
+    AddRule(beginStep, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmBeginStep).
     AddRule(selector, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmSelector)
 
     // fsm cambia-specific rules

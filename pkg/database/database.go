@@ -405,6 +405,9 @@ func (db *ElenaDB) sqlPipeline(input string) (*query.Query, error) {
 				return nil, fmt.Errorf("Column \"%s\" is duplicated", field.Name)
 			}
 			if field.HasAnnotation("id") {
+				if field.Nullable {
+					return nil, fmt.Errorf("Column \"%s\" is @id and cannot be nullable", field.Name)
+				}
 				identityCols++
 			}
 			columnsSet[field.Name] = true

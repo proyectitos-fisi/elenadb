@@ -1,6 +1,7 @@
 package database
 
 import (
+	"container/heap"
 	"fisi/elenadb/internal/query"
 	"fisi/elenadb/pkg/catalog"
 	"fisi/elenadb/pkg/catalog/schema"
@@ -114,6 +115,127 @@ func (s *SeqScanPlanNode) ToString() string {
 	}
 
 	return fmt.Sprintf("SeqScanPlanNode { table=%s } | (\n    %s \n    )\n", s.Table, formattedFields.String())
+}
+
+// ========== ordenado por ==========
+
+// FLAG_ESTRUCTURA: priority queue (heap)
+type TuplesHeap struct {
+	tuples   []*tuple.Tuple
+	byColIdx int
+	colType  value.ValueType
+	asc      bool
+}
+
+func (h *TuplesHeap) Len() int { return len(h.tuples) }
+func (h *TuplesHeap) Less(i, j int) bool {
+	switch h.colType {
+	case value.TypeInt32:
+		if h.asc {
+			return h.tuples[i].Values[h.byColIdx].AsInt32() < h.tuples[j].Values[h.byColIdx].AsInt32()
+		} else {
+			return h.tuples[i].Values[h.byColIdx].AsInt32() > h.tuples[j].Values[h.byColIdx].AsInt32()
+		}
+	case value.TypeFloat32:
+		if h.asc {
+			return h.tuples[i].Values[h.byColIdx].AsFloat32() < h.tuples[j].Values[h.byColIdx].AsFloat32()
+		} else {
+			return h.tuples[i].Values[h.byColIdx].AsFloat32() > h.tuples[j].Values[h.byColIdx].AsFloat32()
+		}
+	case value.TypeVarChar:
+		if h.asc {
+			return h.tuples[i].Values[h.byColIdx].AsVarchar() < h.tuples[j].Values[h.byColIdx].AsVarchar()
+		} else {
+			return h.tuples[i].Values[h.byColIdx].AsVarchar() > h.tuples[j].Values[h.byColIdx].AsVarchar()
+		}
+	case value.TypeBoolean:
+		if h.asc {
+			return h.tuples[i].Values[h.byColIdx].AsBoolean() && !h.tuples[j].Values[h.byColIdx].AsBoolean()
+		} else {
+			return !h.tuples[i].Values[h.byColIdx].AsBoolean() && h.tuples[j].Values[h.byColIdx].AsBoolean()
+		}
+	default:
+		panic("unhandled type")
+	}
+}
+func (h *TuplesHeap) Swap(i, j int) { h.tuples[i], h.tuples[j] = h.tuples[j], h.tuples[i] }
+
+func (h *TuplesHeap) Push(x interface{}) {
+	h.tuples = append(h.tuples, x.(*tuple.Tuple))
+}
+
+var _ heap.Interface = &TuplesHeap{}
+
+func (h *TuplesHeap) Pop() interface{} {
+	old := h.tuples
+	n := len(old)
+	x := old[n-1]
+	h.tuples = old[0 : n-1]
+	return x
+}
+
+type SortPlanNode struct {
+	PlanNodeBase
+	SortByQuery     *query.Query
+	SortedColIdx    int
+	TableMetadata   *catalog.TableMetadata
+	IsOrderAsc      bool
+	TuplesHeapAccum *TuplesHeap
+	Sorted          bool
+}
+
+func (plan *SortPlanNode) Next() (*tuple.Tuple, error) {
+	// We need to load all the tuples into memory, sort them and return them one by one
+
+	if !plan.Sorted {
+		plan.TuplesHeapAccum = &TuplesHeap{
+			tuples:   make([]*tuple.Tuple, 0, 4),
+			byColIdx: plan.SortedColIdx,
+			colType:  plan.TableMetadata.Schema.GetColumns()[plan.SortedColIdx].ColumnType,
+			asc:      plan.IsOrderAsc,
+		}
+		for {
+			tupleToSort, err := plan.Children[0].Next()
+			if err != nil {
+				return nil, err
+			}
+			if tupleToSort == nil {
+				break
+			}
+			heap.Push(plan.TuplesHeapAccum, tupleToSort)
+		}
+		plan.Sorted = true
+	}
+	// Now we have all the tuples in the heap, let's return them on-demand
+
+	if plan.TuplesHeapAccum.Len() == 0 {
+		return nil, nil
+	}
+
+	t := heap.Pop(plan.TuplesHeapAccum).(*tuple.Tuple)
+	return t, nil
+}
+
+func (plan *SortPlanNode) Schema() *schema.Schema {
+	return &plan.TableMetadata.Schema
+}
+
+func (plan *SortPlanNode) ToString() string {
+	formattedFields := strings.Builder{}
+	fields := plan.SortByQuery.Fields
+	numFields := len(fields)
+
+	for i, f := range fields {
+		formattedFields.WriteString("    ")
+		formattedFields.WriteString(f.Name)
+		formattedFields.WriteString(":")
+		formattedFields.WriteString(strings.ToUpper(f.Type.AsString()))
+
+		if i < numFields-1 {
+			formattedFields.WriteString(",\n")
+		}
+	}
+	return fmt.Sprintf("SortPlanNode (\n%s\n)\n    %s", formattedFields.String(), plan.PlanNodeBase.Children[0].ToString())
 }
 
 // ============= filter =============
@@ -483,3 +605,4 @@ var _ PlanNode = (*MetePlanNode)(nil)
 var _ PlanNode = (*ProjectionPlanNode)(nil)
 var _ PlanNode = (*DeletePlanNode)(nil)
 var _ PlanNode = (*FilterPlanNode)(nil)
+var _ PlanNode = (*SortPlanNode)(nil)
