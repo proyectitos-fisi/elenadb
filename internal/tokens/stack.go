@@ -62,6 +62,11 @@ func (stck *TkStack) NdPop() (Token, error) {
     return tk, nil
 }
 
+
+func (stck *TkStack) ResetAux() {
+    stck.aux = stck.tail
+}
+
 func (stck *TkStack) Peek() (Token, error) {
     if stck.Len() == 0 {
         return Token{}, fmt.Errorf("tkstack: empty stack")
