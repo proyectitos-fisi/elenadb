@@ -46,6 +46,9 @@ const (
     FsmOrderingDirectionAsc
     FsmOrderingDirectionDesc
 
+    FsmRetrieveLimit
+    FsmRetrieveLimitValue
+
     FsmChange
     FsmChangeAt
 
@@ -486,6 +489,12 @@ func defaultParseFsm() *FsmNode {
     AddRule(&FsmNode{
         ExpectedString: "asc",
     }, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmOrderingDirectionAsc).
+    AddRule(&FsmNode{
+        ExpectedString: "asc",
+    }, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmOrderingDirectionAsc).
+    AddRule(&FsmNode{
+        ExpectedString: "limite",
+    }, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmOrderingDirectionAsc, FsmRetrieveLimit).
     AddRule(beginStep, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmOrderingDirectionAsc, FsmBeginStep).
     AddRule(beginStep, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmOrderingDirectionDesc, FsmBeginStep).
     AddRule(beginStep, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmBeginStep).

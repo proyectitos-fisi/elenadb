@@ -32,7 +32,7 @@ func tokenize(input []rune) chan Token {
 				ch <- token(walker.WalkWhile(unicode.IsSpace), Whitespace)
 
 			} else if unicode.IsSymbol(walker.Peek()) {
-				ch <- token(walker.WalkWhile(unicode.IsSymbol), Operator)
+				ch <- token(walker.WalkWhile(isOperator), Operator)
 
 			} else {
 				ch <- token(walker.WalkN(1), Unknown)
@@ -61,4 +61,8 @@ var numberOrDot = func(r rune) bool {
 
 var isAlphanumeric = func(r rune) bool {
 	return unicode.IsLetter(r) || unicode.IsNumber(r)
+}
+
+var isOperator = func(r rune) bool {
+	return unicode.IsSymbol(r) || r == '!'
 }

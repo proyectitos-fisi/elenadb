@@ -4,6 +4,7 @@ import (
 	"fisi/elenadb/internal/query"
 	"fisi/elenadb/pkg/meta"
 	"fisi/elenadb/pkg/storage/table/value"
+	"fmt"
 )
 
 func SelectPlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
@@ -174,71 +175,53 @@ func DeletePlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
 		return value.TypeInvalid
 	}
 
-	if query.Filter != nil {
-		query.Filter.Resolver = func(columnName string) value.ValueType {
-			cols := tableMetadata.Schema.GetColumns()
-			for idx, _ := range cols {
-				col := cols[idx]
+	if query.Filter == nil {
+		return nil, fmt.Errorf("\"borra\" query must have a filter like: borra de <table> donde (...) pe")
+	}
 
-				if col.ColumnName == columnName {
-					return col.ColumnType
-				}
+	query.Filter.Resolver = func(columnName string) value.ValueType {
+		cols := tableMetadata.Schema.GetColumns()
+		for idx, _ := range cols {
+			col := cols[idx]
+
+			if col.ColumnName == columnName {
+				return col.ColumnType
 			}
-			return value.TypeInvalid
 		}
-
-		return &DeletePlanNode{
-			PlanNodeBase: PlanNodeBase{
-				Type:     PlanNodeTypeProject,
-				Database: db,
-				Children: []PlanNode{
-					&FilterPlanNode{
-						PlanNodeBase: PlanNodeBase{
-							Type:     PlanNodeTypeFilter,
-							Database: db,
-							Children: []PlanNode{
-								&SeqScanPlanNode{
-									PlanNodeBase: PlanNodeBase{
-										Type:     PlanNodeTypeSeqScan,
-										Children: nil,
-										Database: db,
-									},
-									Query:         query,
-									TableMetadata: tableMetadata,
-									Cursor:        NewPagesCursorFromParts(tableMetadata.FileID, 0, 0),
-									CurrentPage:   nil,
-								},
-							},
-						},
-						FilterQuery:   query,
-						TableMetadata: tableMetadata,
-					},
-				},
-			},
-			Query:         query,
-			TableMetadata: tableMetadata,
-		}, nil
+		return value.TypeInvalid
 	}
 
 	return &DeletePlanNode{
 		PlanNodeBase: PlanNodeBase{
-			Type: PlanNodeTypeDelete,
+			Type:     PlanNodeTypeProject,
+			Database: db,
 			Children: []PlanNode{
-				&SeqScanPlanNode{
+				&FilterPlanNode{
 					PlanNodeBase: PlanNodeBase{
-						Type:     PlanNodeTypeSeqScan,
-						Children: nil,
+						Type:     PlanNodeTypeFilter,
 						Database: db,
+						Children: []PlanNode{
+							&SeqScanPlanNode{
+								PlanNodeBase: PlanNodeBase{
+									Type:     PlanNodeTypeSeqScan,
+									Children: nil,
+									Database: db,
+								},
+								Query:         query,
+								TableMetadata: tableMetadata,
+								Cursor:        NewPagesCursorFromParts(tableMetadata.FileID, 0, 0),
+								CurrentPage:   nil,
+							},
+						},
 					},
-					Query:         query,
+					FilterQuery:   query,
 					TableMetadata: tableMetadata,
-					Cursor:        NewPagesCursorFromParts(tableMetadata.FileID, 0, 0),
+					IsBorra:       true,
 				},
 			},
-			Database: db,
 		},
-		TableMetadata: tableMetadata,
 		Query:         query,
+		TableMetadata: tableMetadata,
 	}, nil
 }
 func CreatePlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {

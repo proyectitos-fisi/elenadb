@@ -13,6 +13,7 @@ import (
 	"fisi/elenadb/pkg/storage/table/value"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -260,6 +261,7 @@ type FilterPlanNode struct {
 	PlanNodeBase
 	FilterQuery   *query.Query
 	TableMetadata *catalog.TableMetadata
+	IsBorra       bool // borra queries need the RID column
 }
 
 func (plan *FilterPlanNode) Next() (*tuple.Tuple, error) {
@@ -304,6 +306,9 @@ func (plan *FilterPlanNode) Next() (*tuple.Tuple, error) {
 }
 
 func (plan *FilterPlanNode) Schema() *schema.Schema {
+	if plan.IsBorra {
+		return plan.Children[0].Schema()
+	}
 	return plan.FilterQuery.GetSchema()
 }
 
@@ -562,7 +567,7 @@ func (plan *MetePlanNode) Next() (*tuple.Tuple, error) {
 	plan.Inserted = true
 
 	if len(plan.Query.Returning) == 0 {
-		return nil, nil
+		return tupleToInsert, nil
 	}
 
 	// Map the tuple to match the "retornando" fields
@@ -624,16 +629,40 @@ type DeletePlanNode struct {
 }
 
 func (plan *DeletePlanNode) Next() (*tuple.Tuple, error) {
-	for _, child := range plan.Children {
-		for {
-			// For each child until exhausted (generally we only have one child)
-			tupleToDelete, err := child.Next()
-			if err != nil {
-				return nil, err
+	child := plan.Children[0]
+	// For each child until exhausted (generally we only have one child)
+	tupleToDelete, err := child.Next()
+	if err != nil {
+		return nil, err
+	}
+	if tupleToDelete == nil {
+		return nil, nil
+	}
+
+	// search for the RID column to get the page_id and slot to delete
+	for idx, col := range child.Schema().GetColumns() {
+		if col.ColumnName == meta.ELENA_RID_GHOST_COLUMN_NAME {
+			rid := tupleToDelete.Values[idx].AsVarchar()
+			// RID is in the format "(file_id,actual_page_id,slot)"
+			ridParts := strings.Split(rid[1:len(rid)-1], ",")
+			if len(ridParts) != 3 {
+				return nil, fmt.Errorf("invalid RID format: %s", rid)
 			}
-			if tupleToDelete == nil {
-				break
+			fileId, _ := strconv.Atoi(ridParts[0])
+			aPageId, _ := strconv.Atoi(ridParts[1])
+			tupleSlot, _ := strconv.Atoi(ridParts[2])
+
+			pageId := common.NewPageIdFromParts(common.FileID_t(fileId), common.APageID_t(aPageId))
+
+			rawPage := plan.Database.bufferPool.FetchPage(pageId)
+			if rawPage == nil {
+				return nil, fmt.Errorf("page %s not found", pageId)
 			}
+
+			slottedPage := page.NewSlottedPageFromRawPage(rawPage)
+			slottedPage.DeleteTuple(common.SlotNumber_t(tupleSlot))
+			plan.Database.bufferPool.UnpinPage(pageId, true)
+			plan.Database.bufferPool.FlushPage(pageId) // FIXME: don't flush
 
 			return tupleToDelete, nil
 		}
