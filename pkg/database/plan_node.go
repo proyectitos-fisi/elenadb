@@ -8,6 +8,7 @@ import (
 	"fisi/elenadb/pkg/catalog/schema"
 	"fisi/elenadb/pkg/common"
 	"fisi/elenadb/pkg/meta"
+	storage "fisi/elenadb/pkg/storage/index"
 	"fisi/elenadb/pkg/storage/page"
 	"fisi/elenadb/pkg/storage/table/tuple"
 	"fisi/elenadb/pkg/storage/table/value"
@@ -430,6 +431,14 @@ func (plan *CreamePlanNode) Next() (*tuple.Tuple, error) {
 		FileID:    common.FileID_t(fileId),
 		SqlCreate: queryText,
 	})
+
+	bptree := storage.NewBPTree(plan.Database.bufferPool, common.FileID_t(fileId))
+	plan.Database.ExecuteThisBaby(
+		fmt.Sprintf(
+			"mete { type: \"table\", name: \"%s\", root: \"%s\", sql: \"%s\" } en %s retornando { file_id } pe",
+			plan.Table, "index", bptree.RootPageID.ToString(), meta.ELENA_META_TABLE_NAME,
+		), false)
+
 	plan.Created = true
 	return nil, nil
 }

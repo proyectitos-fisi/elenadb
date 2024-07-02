@@ -14,6 +14,38 @@ func TestRangeSearch(t *testing.T) {
 	db_dir := "db.elena/"
 	common.GloablDbDir = db_dir
 	common.DebugEnabled.Store(true)
+	buffer_pool_size := 10
+	k := 5
+
+	os.MkdirAll(db_dir, os.ModePerm)
+	os.Create(db_dir + "elena_meta.table")
+	// defer os.RemoveAll(db_dir)
+
+	bpm := buffer.NewBufferPoolManager(db_dir, uint32(buffer_pool_size), k, catalog.EmptyCatalog())
+	catalogFileId := common.FileID_t(0)
+
+	// Inicializa el B+ Tree con el Buffer Pool Manager
+	bptree := NewBPTree(bpm, catalogFileId)
+
+	const large = 60000
+	key := 1
+	for ; key < large; key++ {
+		bptree.Insert(key, uint64(key))
+		// bptree.PrintTree()
+	}
+
+	bptree.PrintTree()
+	// keys, values := bptree.RangeSearch(2576, 2576, 0)
+
+	// fmt.Printf("Keys: %v", keys)
+	// fmt.Printf("Values: %v", values)
+}
+
+// IntegrationWithBufferpool es una prueba de integración del B+ Tree con el Buffer Pool Manager
+func TestIntegrationWithBufferpool(t *testing.T) {
+	// Inicializa el DiskManager
+	db_dir := "db.elena/"
+	common.GloablDbDir = db_dir
 	buffer_pool_size := 3
 	k := 5
 
@@ -25,45 +57,13 @@ func TestRangeSearch(t *testing.T) {
 	catalogFileId := common.FileID_t(0)
 
 	// Inicializa el B+ Tree con el Buffer Pool Manager
-	bptree := NewBPTree(bpm, &catalogFileId)
+	bptree := NewBPTree(bpm, catalogFileId)
 
-	const large = 10000
+	const large = 60000
 	key := 1
 	for ; key < large; key++ {
 		bptree.Insert(key, uint64(key))
 		// bptree.PrintTree()
-	}
-
-	// bptree.PrintTree()
-	// keys, values := bptree.RangeSearch(100, 500, 0)
-
-	// fmt.Printf("Keys: %v", keys)
-	// fmt.Printf("Values: %v", values)
-}
-
-// IntegrationWithBufferpool es una prueba de integración del B+ Tree con el Buffer Pool Manager
-func TestIntegrationWithBufferpool(t *testing.T) {
-	// Inicializa el DiskManager
-	db_dir := "db.elena/"
-	common.GloablDbDir = db_dir
-	buffer_pool_size := 10
-	k := 5
-
-	os.MkdirAll(db_dir, os.ModePerm)
-	os.Create(db_dir + "elena_meta.table")
-	defer os.RemoveAll(db_dir)
-
-	bpm := buffer.NewBufferPoolManager(db_dir, uint32(buffer_pool_size), k, catalog.EmptyCatalog())
-	catalogFileId := common.FileID_t(0)
-
-	// Inicializa el B+ Tree con el Buffer Pool Manager
-	bptree := NewBPTree(bpm, &catalogFileId)
-
-	const large = 2000
-	key := 1
-	for ; key < large; key++ {
-		bptree.Insert(key, uint64(key))
-		bptree.PrintTree()
 	}
 	// bufferPoolManager.FlushEntirePool()
 
