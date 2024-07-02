@@ -8,6 +8,7 @@ type tkNode struct {
     paren *tkNode
 }
 
+// FLAG_ESTRUCTURA: token stack based on linked lists
 type TkStack struct {
     tail *tkNode
     size int

@@ -9,6 +9,7 @@ import (
 
 type Parser struct {
     parseFnMap map[StepType]ParseFn
+    // FLAG_ESTRUCTURA: finite state machine
     fsm        *FsmNode
     resetter   *FsmNode
 }
@@ -33,13 +34,14 @@ func (par *Parser) Test(tk *tokens.Token) error {
 
     expKeys := []string{}
     for key := range par.fsm.Children {
+        // FLAG_ALGORITMO: branch table-based lexical analysis
         if defaultEvalFnTable[key] != nil {
-            if defaultEvalFnTable[key](tk) {
-                par.fsm = par.fsm.Children[key]
-                return nil
+            if !defaultEvalFnTable[key](tk) {
+                continue
             }
 
-            continue
+            par.fsm = par.fsm.Children[key]
+            return nil
         }
 
         if par.fsm.Children[key].Eval(tk) {
@@ -63,6 +65,7 @@ func (par *Parser) stepParseExec(qu *QueryBuilder, tk *tokens.Token) error {
         return nil
     }
 
+    // FLAG_ALGORITMO: branch table-based parsing
     err := par.parseFnMap[par.fsm.Step](qu, tk)
     if err != nil {
         return err

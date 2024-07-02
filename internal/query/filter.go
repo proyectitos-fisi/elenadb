@@ -145,6 +145,7 @@ func (qf *QueryFilter) CastAndCompare(field string, cmp string, value string, ma
     }
 }
 
+// FLAG_ALGORITMO: incremental shunting yard algorithm -> stack-based abstract syntax tree
 func (qf *QueryFilter) Push(tk *tokens.Token) error {
     if tk.Type == tokens.TkParenOpen {
         qf.In.Push(*tk)

@@ -58,6 +58,7 @@ const (
     FsmEraseFrom
 )
 
+
 type FsmNode struct {
     Step           StepType
     ExpectByTypes   bool
