@@ -72,9 +72,12 @@ mainLoop:
 				continue
 			}
 
-			// Comando para limpiar la pantalla
-			if strings.TrimSpace(input) == "limpia" {
+			switch strings.TrimSpace(input) {
+			case "limpia":
 				clearScreen()
+				continue
+			case "ayuda":
+				displayHelp()
 				continue
 			}
 
@@ -153,12 +156,6 @@ func ExecuteAndDisplay(
 	if isExplain {
 		fmt.Print("\n===== Binding ======\n")
 		printQuery(bindedQuery)
-		fmt.Println("\n===== Binding ======\n")
-		err := printQuery(bindedQuery)
-		if err != nil {
-			elapsed := time.Since(start)
-			return &elapsed, err
-		}
 
 		fmt.Print("\n==== Query plan ====\n")
 		fmt.Println(plan.ToString())
@@ -188,6 +185,19 @@ func ExecuteAndDisplay(
 
 func clearScreen() {
 	fmt.Print("\033[H\033[2J")
+}
+
+func displayHelp() {
+	fmt.Println(`Bienvenido a la shell de ElenaDB!
+
+Comandos disponibles:
+- todas las queries terminan con pe, a excepción de limpia y ayuda
+- 'creame tabla <nombre de tabla> { <atributo>:<tipo> @id/unique } pe' -> Crea una tabla con los atributos especificados.
+- 'dame { <atributo>: <valor>, ... } de <nombre de tabla> pe' -> Muestra los registros que cumplan con las condiciones especificadas.
+- 'dame todo de <nombre de tabla> pe' -> Muestra toda la información de la tabla especificada.
+- mete { <atributo>: <valor>, ... } en <nombre de tabla> pe' -> Inserta un nuevo registro en la tabla especificada.
+- 'explica ...' antes de la query para ver su plan de ejecución.
+`)
 }
 
 func newFormatter() prettyjson.Formatter {
