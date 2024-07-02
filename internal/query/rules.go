@@ -40,6 +40,10 @@ const (
     FsmRetrieveTableName
     FsmRetrieveAll
 
+    FsmOrdering
+    FsmOrderingBy
+    FsmOrderingKey
+
     FsmChange
     FsmChangeAt
 
@@ -413,7 +417,34 @@ func defaultParseFsm() *FsmNode {
         Children: map[StepType]*FsmNode{},
     }
 
+    retrieveTableName := &FsmNode{
+        ExpectByTypes: true,
+        ExpectedTypes: []tokens.TkType{
+            tokens.TkWord,
+        },
+        ExpectedString: "",
+    }
+
     retrieveFieldKey := &FsmNode{
+        ExpectByTypes: true,
+        ExpectedTypes: []tokens.TkType{
+            tokens.TkWord,
+        },
+        ExpectedString: "",
+        Children: map[StepType]*FsmNode{},
+    }
+
+    retrieveOrdering := &FsmNode{
+        ExpectedString: "ordenando",
+        Children: map[StepType]*FsmNode{},
+    }
+
+    retrieveOrderingBy := &FsmNode{
+        ExpectedString: "por",
+        Children: map[StepType]*FsmNode{},
+    }
+
+    retrieveOrderingKey := &FsmNode{
         ExpectByTypes: true,
         ExpectedTypes: []tokens.TkType{
             tokens.TkWord,
@@ -428,13 +459,7 @@ func defaultParseFsm() *FsmNode {
         ExpectedString: "todo",
     }, FsmRetrieve, FsmRetrieveAll).
     AddRule(retrieveFrom, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom).
-    AddRule(&FsmNode{
-        ExpectByTypes: true,
-        ExpectedTypes: []tokens.TkType{
-            tokens.TkWord,
-        },
-        ExpectedString: "",
-    }, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName).
+    AddRule(retrieveTableName, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName).
     AddRule(beginStep, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmBeginStep).
     AddRule(selector, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmSelector).
     AddRule(&FsmNode{
@@ -448,7 +473,11 @@ func defaultParseFsm() *FsmNode {
     AddRule(&FsmNode{
         ExpectedString: "}",
     }, FsmRetrieve, FsmOpenList, FsmFieldKey, FsmCloseList).
-    AddRule(retrieveFrom, FsmRetrieve, FsmOpenList, FsmFieldKey, FsmCloseList, FsmRetrieveFrom)
+    AddRule(retrieveFrom, FsmRetrieve, FsmOpenList, FsmFieldKey, FsmCloseList, FsmRetrieveFrom).
+    AddRule(retrieveOrdering, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering).
+    AddRule(retrieveOrderingBy, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy).
+    AddRule(retrieveOrderingKey, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey).
+    AddRule(selector, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmSelector)
 
     // fsm cambia-specific rules
     change := &FsmNode{

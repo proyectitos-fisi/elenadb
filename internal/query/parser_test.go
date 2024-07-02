@@ -95,4 +95,24 @@ func TestBorra(t *testing.T) {
 	assert.Nil(t, result.Returning)
 }
 
+func TestOrderingBy(t *testing.T) {
+	input := "dame todo de some_table ordenando por columna donde (id == 5 y name == andrius) pe"
+
+	parser := query.NewParser()
+	results, err := parser.Parse(strings.NewReader(input))
+
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	result := results[0]
+	if result.QueryType != query.QueryRetrieve {
+		t.Fatalf("unexpected query type: %s", result.QueryType)
+	}
+
+	assert.Equal(t, "columna", result.OrderedBy)
+    t.Log(result.Filter.Out.GetAll())
+	assert.Nil(t, result.Returning)
+}
+
 
