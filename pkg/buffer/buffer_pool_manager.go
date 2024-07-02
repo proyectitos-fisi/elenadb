@@ -6,7 +6,6 @@ import (
 	storage_disk "fisi/elenadb/pkg/storage/disk"
 	"fisi/elenadb/pkg/storage/page"
 	"fisi/elenadb/pkg/utils"
-	"log"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
@@ -15,14 +14,13 @@ import (
 type BufferPoolManager struct {
 	poolSize      uint32
 	diskScheduler *storage_disk.DiskScheduler
-	// FLAG_ESTRUCTURA: map
-	pageTable  map[common.FrameID_t]*page.Page // relaciones GRACIAS!!!!!!!!!!!!!!!!!!!!!!!
-	replacer   LRUKReplacer
-	latch      sync.RWMutex
-	nextPageID *atomic.Int32
-	dbName     string
-	freeList   []common.FrameID_t
-	log        *common.Logger
+	pageTable     map[common.FrameID_t]*page.Page // relaciones GRACIAS!!!!!!!!!!!!!!!!!!!!!!!
+	replacer      LRUKReplacer
+	latch         sync.RWMutex
+	nextPageID    *atomic.Int32
+	dbName        string
+	freeList      []common.FrameID_t
+	Log           *common.Logger
 }
 
 func NewBufferPoolManager(dbName string, poolSize uint32, k int, ctlg *catalog.Catalog) *BufferPoolManager {
@@ -54,7 +52,7 @@ func NewBufferPoolManager(dbName string, poolSize uint32, k int, ctlg *catalog.C
 		freeList:      freeList,
 		dbName:        dbName,
 		latch:         sync.RWMutex{},
-		log:           common.NewLogger('💾'),
+		Log:           common.NewLogger('💾'),
 	}
 }
 
@@ -112,7 +110,7 @@ func (bp *BufferPoolManager) fetchPageUnlocked(pageId common.PageID_t) *page.Pag
 		if page.PageId == pageId {
 			// if found, returneas la page pues, but you pin it
 			page.PinCount.Add(1)
-			bp.log.Debug("fetch page %s from frame '%d' (pins=%d)", pageId.ToString(), frameId, page.PinCount.Load())
+			bp.Log.Debug("fetch page %s from frame '%d' (pins=%d)", pageId.ToString(), frameId, page.PinCount.Load())
 			return page
 		}
 	}
@@ -121,15 +119,14 @@ func (bp *BufferPoolManager) fetchPageUnlocked(pageId common.PageID_t) *page.Pag
 
 	// before fetching from disk, we check whether if there's a free frame
 	if len(bp.freeList) == 0 {
-		bp.log.Debug("no frames available, trying to evict")
+		bp.Log.Debug("no frames available while fetching page %s, trying to evict", pageId.ToString())
 
 		frameId = bp.replacer.Evict() // obtain the next evictable frame
 		if frameId == common.InvalidFrameID {
-			bp.log.Error("unable to allocate page %s: no free frames available", pageId.ToString())
-			log.Println("MAYBE ERR: No free frames available")
+			bp.Log.Error("unable to allocate page %s: no free frames available", pageId.ToString())
 			return nil
 		}
-		bp.log.Debug("evicted frame '%d'", frameId)
+		bp.Log.Debug("evicted frame '%d'", frameId)
 		// eviction can happen
 		if !bp.DeletePage(bp.pageTable[frameId].PageId) {
 			// panic("(2) DeletePage shouldn't have returned false since we just evicted that page")
@@ -157,7 +154,7 @@ func (bp *BufferPoolManager) fetchPageUnlocked(pageId common.PageID_t) *page.Pag
 	}
 
 	newPage := page.NewPageWithData(pageId, data, 1)
-	bp.log.Debug("cache page %s to frame '%d'", pageId.ToString(), frameId)
+	bp.Log.Debug("cache page %s to frame '%d'", pageId.ToString(), frameId)
 	bp.pageTable[frameId] = newPage
 	bp.removeFromFreeList(frameId)
 
