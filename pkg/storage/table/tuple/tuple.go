@@ -16,8 +16,7 @@ import (
 // TOGRASP: is this tuple also used in table heaps? If so, it should have a valid RowId, right?
 // FLAG_ESTRUCTURA: tuple
 type Tuple struct {
-	RowId common.RID // only valid if pointing to the table heap
-	// FLAG_ESTRUCTURA
+	RowId  common.RID // only valid if pointing to the table heap
 	Values []value.Value
 	Size   uint16
 }

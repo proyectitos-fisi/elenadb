@@ -48,9 +48,8 @@ func NewLRUK(n_frames uint32, k int) *LRUKReplacer {
 		K:          k,
 		max_frames: n_frames,
 		size:       atomic.Int32{},
-		// FLAG_ESTRUCTURA: map
-		nodes: make(map[FrameID]*LRUKNode),
-		latch: sync.RWMutex{},
+		nodes:      make(map[FrameID]*LRUKNode),
+		latch:      sync.RWMutex{},
 	}
 }
 

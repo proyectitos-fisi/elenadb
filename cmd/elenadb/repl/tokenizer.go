@@ -4,7 +4,6 @@ import (
 	"github.com/fatih/color"
 )
 
-// FLAG_ESTRUCTURA: array
 var identifiers = []string{
 	"dame", "de", "donde", "pe",
 	"creame", "tabla",

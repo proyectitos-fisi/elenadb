@@ -15,6 +15,7 @@ import (
 )
 
 type PlanNode interface {
+	// FLAG_ALGORITMO: Volcano model (iterator model) for query processing
 	Next() (*tuple.Tuple, error)
 	Schema() *schema.Schema
 	ToString() string
