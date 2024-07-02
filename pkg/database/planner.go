@@ -15,6 +15,57 @@ func SelectPlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
 	// 	return
 	// }
 
+	if tableMetadata == nil {
+		return nil, TableDoesNotExistError{table: query.QueryInstrName}
+	}
+
+	if query.Filter != nil {
+		query.Filter.Resolver = func(columnName string) value.ValueType {
+			cols := tableMetadata.Schema.GetColumns()
+			for idx, _ := range cols {
+				col := cols[idx]
+
+				if col.ColumnName == columnName {
+					return col.ColumnType
+				}
+			}
+			return value.TypeInvalid
+		}
+
+		return &ProjectionPlanNode{
+			PlanNodeBase: PlanNodeBase{
+				Type:     PlanNodeTypeProject,
+				Database: db,
+				Children: []PlanNode{
+					&FilterPlanNode{
+						PlanNodeBase: PlanNodeBase{
+							Type:     PlanNodeTypeFilter,
+							Database: db,
+							Children: []PlanNode{
+								&SeqScanPlanNode{
+									PlanNodeBase: PlanNodeBase{
+										Type:     PlanNodeTypeSeqScan,
+										Children: nil,
+										Database: db,
+									},
+									Table:         query.QueryInstrName,
+									Query:         query,
+									TableMetadata: tableMetadata,
+									Cursor:        NewPagesCursorFromParts(tableMetadata.FileID, 0, 0),
+									CurrentPage:   nil,
+								},
+							},
+						},
+						FilterQuery:   query,
+						TableMetadata: tableMetadata,
+					},
+				},
+			},
+			ProjectionQuery: query,
+			TableMetadata:   tableMetadata,
+		}, nil
+	}
+
 	return &ProjectionPlanNode{
 		PlanNodeBase: PlanNodeBase{
 			Type:     PlanNodeTypeProject,
@@ -64,7 +115,7 @@ func DeletePlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
 		return nil, TableDoesNotExistError{table: query.QueryInstrName}
 	}
 
-	query.Filter.Resolver = func (columnName string) value.ValueType  {
+	query.Filter.Resolver = func(columnName string) value.ValueType {
 		cols := tableMetadata.Schema.GetColumns()
 		for idx, _ := range cols {
 			col := cols[idx]
@@ -74,6 +125,53 @@ func DeletePlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
 			}
 		}
 		return value.TypeInvalid
+	}
+
+	if query.Filter != nil {
+		query.Filter.Resolver = func(columnName string) value.ValueType {
+			cols := tableMetadata.Schema.GetColumns()
+			for idx, _ := range cols {
+				col := cols[idx]
+
+				if col.ColumnName == columnName {
+					return col.ColumnType
+				}
+			}
+			return value.TypeInvalid
+		}
+
+		return &DeletePlanNode{
+			PlanNodeBase: PlanNodeBase{
+				Type:     PlanNodeTypeProject,
+				Database: db,
+				Children: []PlanNode{
+					&FilterPlanNode{
+						PlanNodeBase: PlanNodeBase{
+							Type:     PlanNodeTypeFilter,
+							Database: db,
+							Children: []PlanNode{
+								&SeqScanPlanNode{
+									PlanNodeBase: PlanNodeBase{
+										Type:     PlanNodeTypeSeqScan,
+										Children: nil,
+										Database: db,
+									},
+									Table:         query.QueryInstrName,
+									Query:         query,
+									TableMetadata: tableMetadata,
+									Cursor:        NewPagesCursorFromParts(tableMetadata.FileID, 0, 0),
+									CurrentPage:   nil,
+								},
+							},
+						},
+						FilterQuery:   query,
+						TableMetadata: tableMetadata,
+					},
+				},
+			},
+			Query:         query,
+			TableMetadata: tableMetadata,
+		}, nil
 	}
 
 	return &DeletePlanNode{
@@ -96,7 +194,6 @@ func DeletePlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
 		},
 		TableMetadata: tableMetadata,
 		Query:         query,
-		Cursor:        NewPagesCursorFromParts(tableMetadata.FileID, 0, 0),
 	}, nil
 }
 func CreatePlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {

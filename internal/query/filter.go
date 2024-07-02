@@ -23,6 +23,14 @@ func NewQueryFilter() *QueryFilter {
     }
 }
 
+func NewQueryFilterWithResolver(resolver func(string)valuepkg.ValueType) *QueryFilter {
+    return &QueryFilter{
+        Out: &tokens.TkStack{},
+        In: &tokens.TkStack{},
+        Resolver: resolver,
+    }
+}
+
 func CompareBool(field string, cmp string, value string, mapper map[string]interface{}) (bool, error) {
     boolTypes := map[string]bool {
         "true": true,
@@ -53,17 +61,17 @@ func CompareInt32(field string, cmp string, value string, mapper map[string]inte
     actuali32 := int32(actuali64)
     switch cmp {
     case "<=":
-        return (int32(mapper[field].(int)) <= actuali32), nil
+        return (mapper[field].(int32) <= actuali32), nil
     case "<":
-        return (int32(mapper[field].(int)) < actuali32), nil
+        return (mapper[field].(int32) < actuali32), nil
     case ">=":
-        return (int32(mapper[field].(int)) >= actuali32), nil
+        return (mapper[field].(int32) >= actuali32), nil
     case ">":
-        return (int32(mapper[field].(int)) > actuali32), nil
+        return (mapper[field].(int32) > actuali32), nil
     case "!=":
-        return (int32(mapper[field].(int)) != actuali32), nil
+        return (mapper[field].(int32) != actuali32), nil
     case "==":
-        return (int32(mapper[field].(int)) == actuali32), nil
+        return (mapper[field].(int32) == actuali32), nil
     default:
         return false, fmt.Errorf("invalid boolean operation %s", cmp)
     }
@@ -78,17 +86,17 @@ func CompareFloat32(field string, cmp string, value string, mapper map[string]in
     actualf32 := float32(actualf64)
     switch cmp {
     case "<=":
-        return (float32(mapper[field].(float64)) <= actualf32), nil
+        return (mapper[field].(float32) <= actualf32), nil
     case "<":
-        return (float32(mapper[field].(float64)) < actualf32), nil
+        return (mapper[field].(float32) < actualf32), nil
     case ">=":
-        return (float32(mapper[field].(float64)) >= actualf32), nil
+        return (mapper[field].(float32) >= actualf32), nil
     case ">":
-        return (float32(mapper[field].(float64)) > actualf32), nil
+        return (mapper[field].(float32) > actualf32), nil
     case "!=":
-        return (float32(mapper[field].(float64)) != actualf32), nil
+        return (mapper[field].(float32) != actualf32), nil
     case "==":
-        return (float32(mapper[field].(float64)) == actualf32), nil
+        return (mapper[field].(float32) == actualf32), nil
     default:
         return false, fmt.Errorf("invalid boolean operation %s", cmp)
     }

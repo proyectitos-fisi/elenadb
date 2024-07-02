@@ -112,6 +112,61 @@ func (s *SeqScanPlanNode) ToString() string {
 	return fmt.Sprintf("SeqScanPlanNode { table=%s } | (\n    %s \n    )\n", s.Table, formattedFields.String())
 }
 
+// ============= filter =============
+
+type FilterPlanNode struct {
+	PlanNodeBase
+	FilterQuery   *query.Query
+	TableMetadata *catalog.TableMetadata
+}
+
+func (plan *FilterPlanNode) Next() *tuple.Tuple {
+	for _, child := range plan.Children {
+		for {
+			// For each child until exhausted (generally we only have one child)
+			tupleToFilter := child.Next()
+			if tupleToFilter == nil {
+				break
+			}
+
+			valuesMap := make(map[string]interface{})
+			for idx, col := range child.Schema().GetColumns() {
+				switch tupleToFilter.Values[idx].Type {
+				case value.TypeInt32:
+					valuesMap[col.ColumnName] = tupleToFilter.Values[idx].AsInt32()
+				case value.TypeFloat32:
+					valuesMap[col.ColumnName] = tupleToFilter.Values[idx].AsFloat32()
+				case value.TypeBoolean:
+					valuesMap[col.ColumnName] = tupleToFilter.Values[idx].AsBoolean()
+				case value.TypeVarChar:
+					valuesMap[col.ColumnName] = tupleToFilter.Values[idx].AsVarchar()
+				default:
+					panic("unreachable")
+				}
+			}
+
+			matches, err := plan.FilterQuery.Filter.Exec(valuesMap)
+			if err != nil {
+				panic(err)
+			}
+
+			if matches {
+				return tupleToFilter
+			}
+		}
+	}
+	return nil
+}
+
+func (plan *FilterPlanNode) Schema() *schema.Schema {
+	return plan.FilterQuery.GetSchema()
+}
+
+func (plan *FilterPlanNode) ToString() string {
+	// TODO(@damaris): format nicely
+	return "FilterPlanNode(" + plan.TableMetadata.Name + ")"
+}
+
 // =========== projection ===========
 
 type ProjectionPlanNode struct {
@@ -132,7 +187,7 @@ func (p *ProjectionPlanNode) Next() *tuple.Tuple {
 			values := make([]value.Value, 0, len(p.ProjectionQuery.Fields))
 			for _, field := range p.ProjectionQuery.Fields {
 				for idx, col := range child.Schema().GetColumns() {
-					if schema.ExtractColumnName(field.Name) == col.ColumnName {
+					if schema.ExtractColumnName(field.Name) == schema.ExtractColumnName(col.ColumnName) {
 						values = append(values, tupleToProject.Values[idx])
 						break
 					}
@@ -372,51 +427,23 @@ func (i *MetePlanNode) ToString() string {
 	return fmt.Sprintf("InsertPlanNode { table=%s } | (\n%s\n)\n", i.TableMetadata.Name, formattedFields.String())
 }
 
-// ======== "delete" ========
+// ======== "borra" ========
 type DeletePlanNode struct {
 	PlanNodeBase
 	TableMetadata *catalog.TableMetadata
 	Query         *query.Query
-	CurrentPage   *page.Page
-	Cursor        *PagesCursor
 }
 
 func (plan *DeletePlanNode) Next() *tuple.Tuple {
 	for _, child := range plan.Children {
 		for {
 			// For each child until exhausted (generally we only have one child)
-			tupleToFilter := child.Next()
-			if tupleToFilter == nil {
+			tupleToDelete := child.Next()
+			if tupleToDelete == nil {
 				break
 			}
 
-			valuesMap := make(map[string]interface{})
-			for idx, col := range child.Schema().GetColumns() {
-				switch tupleToFilter.Values[idx].Type {
-				case value.TypeInt32:
-					valuesMap[col.ColumnName] = tupleToFilter.Values[idx].AsInt32()
-				case value.TypeFloat32:
-					valuesMap[col.ColumnName] = tupleToFilter.Values[idx].AsFloat32()
-				case value.TypeBoolean:
-					valuesMap[col.ColumnName] = tupleToFilter.Values[idx].AsBoolean()
-				case value.TypeVarChar:
-					valuesMap[col.ColumnName] = tupleToFilter.Values[idx].AsVarchar()
-				default:
-					panic("unreachable")
-				}
-			}
-			fmt.Printf("%v\n\n", valuesMap)
-
-			// filter o no filter
-			matches, err := plan.Query.Filter.Exec(valuesMap)
-			fmt.Printf("%v\n", plan.Query.Filter.Out.GetAll())
-			if err != nil {
-				panic(err)
-			}
-
-			if matches {
-				return tupleToFilter
-			}
+			return tupleToDelete
 		}
 	}
 	return nil
@@ -436,3 +463,4 @@ var _ PlanNode = (*CreamePlanNode)(nil)
 var _ PlanNode = (*MetePlanNode)(nil)
 var _ PlanNode = (*ProjectionPlanNode)(nil)
 var _ PlanNode = (*DeletePlanNode)(nil)
+var _ PlanNode = (*FilterPlanNode)(nil)

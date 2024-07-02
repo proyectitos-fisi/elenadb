@@ -1,87 +1,96 @@
 package query_test
 
 import (
-    "bufio"
-    "fisi/elenadb/internal/query"
-    "fisi/elenadb/internal/tokens"
-    "strings"
-    "testing"
+	"bufio"
+	"fisi/elenadb/internal/query"
+	"fisi/elenadb/internal/tokens"
+	"fisi/elenadb/pkg/storage/table/value"
+	"strings"
+	"testing"
 )
 
-
 func TestExec(t *testing.T) {
-    tests := []struct{
-        query  string
-        mapper map[string]interface{}
-        expect    bool
-    }{
-        {
-            query: `(id >= 5)`,
-            mapper: map[string]interface{}{
-                "id": 32,
-                "name": "ramirez",
-                "loqsea": 6.0,
-            },
-            expect: true,
-        },
-        {
-            query: "(id >= 5 y loqsea == 6) o name <= ramirez",
-            mapper: map[string]interface{}{
-                "id": 0,
-                "name": "pamirez",
-                "loqsea": 50.0,
-            },
-            expect: true,
-        },
-        {
-            query: "(id >= 5 y loqsea == 5) o (name == ramirez y isGerencial == true)",
-            mapper: map[string]interface{}{
-                "id": 0,
-                "name": "hola",
-                "loqsea": 4.0,
-                "isGerencial": true,
-            },
-            expect: false,
-        },
-    }
+	resolver := func(field string) value.ValueType {
+		switch field {
+		case "id":
+			return value.TypeInt32
+		case "name":
+			return value.TypeVarChar
+		case "isGerencial":
+			return value.TypeBoolean
+		default:
+			return value.TypeFloat32
+		}
+	}
 
-    for index := range tests {
-        filter := query.NewQueryFilter()
-        read := bufio.NewReader(strings.NewReader(tests[index].query))
-        tks, tksE := tokens.Tokenize(read)
+	tests := []struct {
+		query  string
+		mapper map[string]interface{}
+		expect bool
+	}{
+		{
+			query: `(id >= 5)`,
+			mapper: map[string]interface{}{
+				"id":     32,
+				"name":   "ramirez",
+				"loqsea": 6.0,
+			},
+			expect: true,
+		},
+		{
+			query: "(id >= 5 y loqsea == 6) o name <= ramirez",
+			mapper: map[string]interface{}{
+				"id":     0,
+				"name":   "pamirez",
+				"loqsea": 50.0,
+			},
+			expect: true,
+		},
+		{
+			query: "(id >= 5 y loqsea == 5) o (name == ramirez y isGerencial == true)",
+			mapper: map[string]interface{}{
+				"id":          0,
+				"name":        "hola",
+				"loqsea":      4.0,
+				"isGerencial": true,
+			},
+			expect: false,
+		},
+	}
 
-        if tksE != nil {
-            t.Log("error on tokenizer:", tksE)
-            t.FailNow()
-        }
+	for index := range tests {
+		filter := query.NewQueryFilterWithResolver(resolver)
+		read := bufio.NewReader(strings.NewReader(tests[index].query))
+		tks, tksE := tokens.Tokenize(read)
 
-        for {
-            tk, err := tks.Next()
-            if err != nil {
-                break
-            }
+		if tksE != nil {
+			t.Log("error on tokenizer:", tksE)
+			t.FailNow()
+		}
 
-            filter.Push(&tk)
-        }
+		for {
+			tk, err := tks.Next()
+			if err != nil {
+				break
+			}
 
-        loaderr := filter.Load()
-        if loaderr != nil {
-            t.Fatal(loaderr)
-        }
+			filter.Push(&tk)
+		}
 
-        resCmp, err := filter.Exec(tests[index].mapper)
-        if err != nil {
-            t.Fatal(err)
-        }
+		loaderr := filter.Load()
+		if loaderr != nil {
+			t.Fatal(loaderr)
+		}
 
-        if resCmp != tests[index].expect {
-            t.Fatalf("result on %s is wrong: expected %v got %v\n", tests[index].query, tests[index].expect, resCmp)
-        }
+		resCmp, err := filter.Exec(tests[index].mapper)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-        t.Logf("result on %s is correct: expected %v got %v", tests[index].query, tests[index].expect, resCmp)
-    }
+		if resCmp != tests[index].expect {
+			t.Fatalf("result on %s is wrong: expected %v got %v\n", tests[index].query, tests[index].expect, resCmp)
+		}
+
+		t.Logf("result on %s is correct: expected %v got %v", tests[index].query, tests[index].expect, resCmp)
+	}
 }
-
-
-
-
