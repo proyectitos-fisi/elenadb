@@ -424,6 +424,12 @@ func (plan *CreamePlanNode) Next() (*tuple.Tuple, error) {
 		FileID:    common.FileID_t(fileId),
 		SqlCreate: queryText,
 	})
+	plan.Database.Catalog.RegisterIndexMetadata(fmt.Sprintf("%s.id", plan.Table), &catalog.IndexMetadata{
+		Name:      plan.Table,
+		Root:      common.NewPageIdFromParts(common.FileID_t(fileId), common.APageID_t(0)),
+		FileID:    common.FileID_t(fileId),
+		SqlCreate: queryText,
+	})
 	plan.Created = true
 	return nil, nil
 }

@@ -231,6 +231,8 @@ func displayHelp() {
 	fmt.Printf(`
    🚄🌫🌫  Bienvenido a la shell de ElenaDB!
 
+   Lista las tablas existentes utilizando %v
+
    Creación de tablas
    %v
 
@@ -252,6 +254,7 @@ func displayHelp() {
    - utiliza %s para mostrar esta ayuda
 
 `,
+		color.YellowString("tablas"),
 		Highlight("creame tabla <nombre> { <atributo>:<tipo> @id/@unique } pe"),
 		Highlight("dame todo de <tabla> pe"),
 		Highlight("dame { <atributo>, ... } de <tabla> pe"),

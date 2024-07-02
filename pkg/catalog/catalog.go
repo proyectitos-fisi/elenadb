@@ -120,6 +120,10 @@ func (c *Catalog) RegisterTableMetadata(table string, metadata *TableMetadata) {
 	c.TableMetadataMap[table] = metadata
 }
 
+func (c *Catalog) RegisterIndexMetadata(index string, metadata *IndexMetadata) {
+	c.IndexMetadataMap[index] = metadata
+}
+
 func (c *Catalog) GetTableMetadata(table string) *TableMetadata {
 	if table == meta.ELENA_META_TABLE_NAME {
 		return &TableMetadata{
