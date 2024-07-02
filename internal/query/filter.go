@@ -231,6 +231,7 @@ func (qf *QueryFilter) Load() (error) {
 
 func (qf *QueryFilter) Exec(mapper map[string]interface{}) (bool, error) {
     _, execbool, execerr := qf.execrec(mapper)
+    qf.Out.ResetAux()
     return execbool, execerr
 }
 
