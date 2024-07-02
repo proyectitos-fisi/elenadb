@@ -11,6 +11,7 @@ type tkNode struct {
 type TkStack struct {
     tail *tkNode
     size int
+    aux  *tkNode
 }
 
 func (stck *TkStack) Push(tk Token) error {
@@ -28,6 +29,7 @@ func (stck *TkStack) Push(tk Token) error {
 
     stck.tail.child = node
     stck.tail = node
+    stck.aux = stck.tail
 
     stck.size++
     return nil
@@ -47,6 +49,16 @@ func (stck *TkStack) Pop() (Token, error) {
     }
 
     stck.size--
+    return tk, nil
+}
+
+func (stck *TkStack) NdPop() (Token, error) {
+    if stck.aux == nil {
+        return Token{}, fmt.Errorf("tkstack: empty stack")
+    }
+
+    tk := stck.aux.data
+    stck.aux = stck.aux.paren
     return tk, nil
 }
 

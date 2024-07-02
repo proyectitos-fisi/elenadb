@@ -311,25 +311,96 @@ func defaultParseFsm() *FsmNode {
         ExpectByTypes: true,
         Children: map[StepType]*FsmNode{},
     }
-
-    // fsm mete-specific rules
-    insertFieldKey := &FsmNode{
+    // fsm create-specific rules
+    beginStep.
+    AddRule(&FsmNode{
+        ExpectedString: "creame",
+    }, FsmCreate).
+    AddRule(&FsmNode{
+        ExpectedString: "db",
+    }, FsmCreate, FsmDb).
+    AddRule(&FsmNode{
+        ExpectByTypes: true,
+        ExpectedString: "",
+        ExpectedTypes: []tokens.TkType{
+            tokens.TkWord,
+        },
+    }, FsmCreate, FsmDb, FsmTableName).
+    AddRule(beginStep, FsmCreate, FsmDb, FsmTableName, FsmBeginStep).
+    // creame tabla
+    AddRule(&FsmNode{
+        ExpectedString: "tabla",
+    }, FsmCreate, FsmTable).
+    AddRule(&FsmNode{
         ExpectByTypes: true,
         ExpectedTypes: []tokens.TkType{
             tokens.TkWord,
         },
         ExpectedString: "",
-        Children: map[StepType]*FsmNode{},
-    }
-
-    insertReturningFieldKey := &FsmNode{
+    }, FsmCreate, FsmTable, FsmTableName).
+    AddRule(&FsmNode{
+        ExpectedString: "{",
+    }, FsmCreate, FsmTable, FsmTableName, FsmOpenList).
+    AddRule(createTableFieldKey, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey).
+    // composite types
+    AddRule(createTableFieldCompositeType, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType).
+    AddRule(createTableFieldCompositeType, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType).
+    AddRule(createTableNullable, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmFieldNullable).
+    AddRule(createTableAnnotation, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmFieldAnnotation).
+    AddRule(createTableEos, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmEos).
+    AddRule(&FsmNode{
+        ExpectByTypes: true,
+        ExpectedTypes: []tokens.TkType{
+            tokens.TkParenOpen,
+        },
+    }, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector).
+    AddRule(&FsmNode{
         ExpectByTypes: true,
         ExpectedTypes: []tokens.TkType{
             tokens.TkWord,
         },
         ExpectedString: "",
-        Children: map[StepType]*FsmNode{},
-    }
+    }, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber).
+    AddRule(&FsmNode{
+        ExpectByTypes: true,
+        ExpectedTypes: []tokens.TkType{
+            tokens.TkParenClosed,
+        },
+    }, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber, FsmCloseSelector).
+    AddRule(createTableNullable, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber, FsmCloseSelector, FsmFieldNullable).
+    AddRule(createTableAnnotation, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber, FsmCloseSelector, FsmFieldAnnotation).
+    AddRule(createTableEos, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber, FsmCloseSelector, FsmEos).
+    // regular/basic types
+    AddRule(createTableFieldType, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType).
+    AddRule(createTableNullable, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmFieldNullable).
+    AddRule(createTableAnnotation, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmFieldAnnotation).
+    AddRule(createTableAnnotation, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmFieldNullable, FsmFieldAnnotation).
+    AddRule(createTableEos, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmFieldNullable, FsmEos).
+    AddRule(createTableEos, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmFieldAnnotation, FsmEos).
+    AddRule(createTableAnnotation, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmFieldAnnotation, FsmFieldAnnotation).
+    AddRule(createTableEos, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmEos).
+    AddRule(createTableFieldKey, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmEos, FsmFieldKey).
+    AddRule(createTableCloseList, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmEos, FsmCloseList).
+    AddRule(beginStep, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmEos, FsmCloseList, FsmBeginStep).
+    AddRule(&FsmNode{
+        ExpectedString: "fkey",
+    }, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey).
+    AddRule(&FsmNode{
+        ExpectedString: "(",
+    }, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey, FsmOpenSelector).
+    AddRule(&FsmNode{
+        ExpectByTypes: true,
+        ExpectedTypes: []tokens.TkType{
+            tokens.TkWord,
+        },
+        ExpectedString: "",
+    }, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey, FsmOpenSelector, FsmFieldFkeyPath).
+    AddRule(&FsmNode{
+        ExpectedString: ")",
+    }, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey, FsmOpenSelector, FsmFieldFkeyPath, FsmCloseSelector).
+    AddRule(createTableNullable, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey, FsmOpenSelector, FsmFieldFkeyPath, FsmCloseSelector, FsmFieldNullable).
+    AddRule(createTableAnnotation, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey, FsmOpenSelector, FsmFieldFkeyPath, FsmCloseSelector, FsmFieldAnnotation).
+    AddRule(createTableEos, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey, FsmOpenSelector, FsmFieldFkeyPath, FsmCloseSelector, FsmEos)
 
     // fsm dame-specific rules
     retrieve := &FsmNode{
@@ -478,184 +549,84 @@ func defaultParseFsm() *FsmNode {
     AddRule(eraseTableName, FsmErase, FsmEraseFrom, FsmTableName).
     AddRule(selector, FsmErase, FsmEraseFrom, FsmTableName, FsmSelector)
 
-    // fsm create-specific rules
+    // fsm mete-specific rules
+    insertFieldKey := &FsmNode{
+        ExpectByTypes: true,
+        ExpectedTypes: []tokens.TkType{
+            tokens.TkWord,
+        },
+        ExpectedString: "",
+        Children: map[StepType]*FsmNode{},
+    }
+
+    insertReturningFieldKey := &FsmNode{
+        ExpectByTypes: true,
+        ExpectedTypes: []tokens.TkType{
+            tokens.TkWord,
+        },
+        ExpectedString: "",
+        Children: map[StepType]*FsmNode{},
+    }
+
     beginStep.
-        // creame db
-        AddRule(&FsmNode{
-            ExpectedString: "creame",
-        }, FsmCreate).
-        AddRule(&FsmNode{
-            ExpectedString: "db",
-        }, FsmCreate, FsmDb).
-        AddRule(&FsmNode{
-            ExpectByTypes: true,
-            ExpectedString: "",
-            ExpectedTypes: []tokens.TkType{
-                tokens.TkWord,
-            },
-        }, FsmCreate, FsmDb, FsmTableName).
-        AddRule(beginStep,
-            FsmCreate, FsmDb, FsmTableName, FsmBeginStep).
-        // creame tabla
-        AddRule(&FsmNode{
-            ExpectedString: "tabla",
-        }, FsmCreate, FsmTable).
-        AddRule(&FsmNode{
-            ExpectByTypes: true,
-            ExpectedTypes: []tokens.TkType{
-                tokens.TkWord,
-            },
-            ExpectedString: "",
-        }, FsmCreate, FsmTable, FsmTableName).
-        AddRule(&FsmNode{
-            ExpectedString: "{",
-        }, FsmCreate, FsmTable, FsmTableName, FsmOpenList).
-        AddRule(createTableFieldKey,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey).
-        // composite types
-        AddRule(createTableFieldCompositeType,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType).
-        AddRule(createTableFieldCompositeType,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType).
-        AddRule(createTableNullable,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmFieldNullable).
-        AddRule(createTableAnnotation,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmFieldAnnotation).
-        AddRule(createTableEos,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmEos).
-        AddRule(&FsmNode{
-            ExpectByTypes: true,
-            ExpectedTypes: []tokens.TkType{
-                tokens.TkParenOpen,
-            },
-        }, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector).
-        AddRule(&FsmNode{
-            ExpectByTypes: true,
-            ExpectedTypes: []tokens.TkType{
-                tokens.TkWord,
-            },
-            ExpectedString: "",
-        }, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber).
-        AddRule(&FsmNode{
-            ExpectByTypes: true,
-            ExpectedTypes: []tokens.TkType{
-                tokens.TkParenClosed,
-            },
-        }, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber, FsmCloseSelector).
-        AddRule(createTableNullable,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber, FsmCloseSelector, FsmFieldNullable).
-        AddRule(createTableAnnotation,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber, FsmCloseSelector, FsmFieldAnnotation).
-        AddRule(createTableEos,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber, FsmCloseSelector, FsmEos).
-        // regular/basic types
-        AddRule(createTableFieldType,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType).
-        AddRule(createTableNullable,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmFieldNullable).
-        AddRule(createTableAnnotation,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmFieldAnnotation).
-        AddRule(createTableAnnotation,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmFieldNullable, FsmFieldAnnotation).
-        AddRule(createTableEos,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmFieldNullable, FsmEos).
-        AddRule(createTableEos,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmFieldAnnotation, FsmEos).
-        AddRule(createTableAnnotation,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmFieldAnnotation, FsmFieldAnnotation).
-        AddRule(createTableEos,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmEos).
-        AddRule(createTableFieldKey,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmEos, FsmFieldKey).
-        AddRule(createTableCloseList,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmEos, FsmCloseList).
-        AddRule(beginStep,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmEos, FsmCloseList, FsmBeginStep).
-        AddRule(&FsmNode{
-            ExpectedString: "fkey",
-        }, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey).
-        AddRule(&FsmNode{
-            ExpectedString: "(",
-        }, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey, FsmOpenSelector).
-        AddRule(&FsmNode{
-            ExpectByTypes: true,
-            ExpectedTypes: []tokens.TkType{
-                tokens.TkWord,
-            },
-            ExpectedString: "",
-        }, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey, FsmOpenSelector, FsmFieldFkeyPath).
-        AddRule(&FsmNode{
-            ExpectedString: ")",
-        }, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey, FsmOpenSelector, FsmFieldFkeyPath, FsmCloseSelector).
-        AddRule(createTableNullable,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey, FsmOpenSelector, FsmFieldFkeyPath, FsmCloseSelector, FsmFieldNullable).
-        AddRule(createTableAnnotation,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey, FsmOpenSelector, FsmFieldFkeyPath, FsmCloseSelector, FsmFieldAnnotation).
-        AddRule(createTableEos,
-            FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey, FsmOpenSelector, FsmFieldFkeyPath, FsmCloseSelector, FsmEos).
-        // 'dame'
-        // 'mete' instruction
-        AddRule(&FsmNode{
-            ExpectedString: "mete",
-        }, FsmInsertStep).
-        AddRule(&FsmNode{
-            ExpectedString: "{",
-        }, FsmInsertStep, FsmOpenList).
-        AddRule(insertFieldKey,
-            FsmInsertStep, FsmOpenList, FsmFieldKey).
-        AddRule(&FsmNode{
-            ExpectedString: ":",
-        }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign).
-        AddRule(&FsmNode{
-            ExpectByTypes: true,
-            ExpectedTypes: []tokens.TkType{
-                tokens.TkWord,
-                tokens.TkString,
-            },
-            ExpectedString: "",
-        }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue).
-        AddRule(&FsmNode{
-            ExpectedString: ",",
-        }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmListSeparator).
-        AddRule(insertFieldKey,
-            FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmListSeparator, FsmFieldKey).
-        AddRule(&FsmNode{
-            ExpectedString: "}",
-        }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList).
-        AddRule(&FsmNode{
-            ExpectedString: "en",
-        }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt).
-        AddRule(&FsmNode{
-            ExpectByTypes: true,
-            ExpectedTypes: []tokens.TkType{
-                tokens.TkWord,
-            },
-            ExpectedString: "",
-            }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName).
-        AddRule(beginStep, // "mete" queries without "retornando" ends here
-            FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmBeginStep).
-        // has the syntax: retornando {a,b,c} pe
-        AddRule(&FsmNode{
-            ExpectedString: "retornando",
-        }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey).
-        AddRule(&FsmNode{
-            ExpectedString: "{",
-        }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey, FsmOpenList).
-        AddRule(insertReturningFieldKey, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey).
-        AddRule(&FsmNode{
-            ExpectedString: ",",
-        }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmListSeparator).
-        AddRule(insertReturningFieldKey, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmListSeparator, FsmReturningFieldKey).
-        AddRule(&FsmNode{
-            ExpectedString: "}",
-        }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmCloseList).
-        AddRule(&FsmNode{
-            ExpectedString: "}",
-        }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmListSeparator, FsmReturningFieldKey, FsmCloseList).
-        AddRule(beginStep,
-           FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmListSeparator, FsmReturningFieldKey, FsmCloseList, FsmBeginStep).
-        AddRule(beginStep, // "mete" queries with "retornando" ends here
-           FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmCloseList, FsmBeginStep)
+    AddRule(&FsmNode{
+        ExpectedString: "mete",
+    }, FsmInsertStep).
+    AddRule(&FsmNode{
+        ExpectedString: "{",
+    }, FsmInsertStep, FsmOpenList).
+    AddRule(insertFieldKey, FsmInsertStep, FsmOpenList, FsmFieldKey).
+    AddRule(&FsmNode{
+        ExpectedString: ":",
+    }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign).
+    AddRule(&FsmNode{
+        ExpectByTypes: true,
+        ExpectedTypes: []tokens.TkType{
+            tokens.TkWord,
+            tokens.TkString,
+        },
+        ExpectedString: "",
+    }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue).
+    AddRule(&FsmNode{
+        ExpectedString: ",",
+    }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmListSeparator).
+    AddRule(insertFieldKey, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmListSeparator, FsmFieldKey).
+    AddRule(&FsmNode{
+        ExpectedString: "}",
+    }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList).
+    AddRule(&FsmNode{
+        ExpectedString: "en",
+    }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt).
+    AddRule(&FsmNode{
+        ExpectByTypes: true,
+        ExpectedTypes: []tokens.TkType{
+            tokens.TkWord,
+        },
+        ExpectedString: "",
+    }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName).
+    // "mete" queries without "retornando" end here
+    AddRule(beginStep, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmBeginStep).
+    // has the syntax: retornando {a,b,c} pe
+    AddRule(&FsmNode{
+        ExpectedString: "retornando",
+    }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey).
+    AddRule(&FsmNode{
+        ExpectedString: "{",
+    }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey, FsmOpenList).
+    AddRule(insertReturningFieldKey, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey).
+    AddRule(&FsmNode{
+        ExpectedString: ",",
+    }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmListSeparator).
+    AddRule(insertReturningFieldKey, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmListSeparator, FsmReturningFieldKey).
+    AddRule(&FsmNode{
+        ExpectedString: "}",
+    }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmCloseList).
+    AddRule(&FsmNode{
+        ExpectedString: "}",
+    }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmListSeparator, FsmReturningFieldKey, FsmCloseList).
+    AddRule(beginStep, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmListSeparator, FsmReturningFieldKey, FsmCloseList, FsmBeginStep).
+    AddRule(beginStep, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmCloseList, FsmBeginStep)
+    // "mete" queries with "retornando" ends here
 
     return beginStep
 }

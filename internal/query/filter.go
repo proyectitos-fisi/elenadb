@@ -10,9 +10,9 @@ import (
 )
 
 type QueryFilter struct {
-    Out *tokens.TkStack
-    In  *tokens.TkStack
-
+    Out      *tokens.TkStack
+    In       *tokens.TkStack
+    offset   int
     Resolver func(string)valuepkg.ValueType
 }
 
@@ -178,7 +178,7 @@ func (qf *QueryFilter) Push(tk *tokens.Token) error {
 }
 
 func (qf *QueryFilter) execrec(mapper map[string]interface{}) (string, bool, error) {
-    tk, err := qf.Out.Pop()
+    tk, err := qf.Out.NdPop()
     if err != nil {
         return "", false, err
     }
