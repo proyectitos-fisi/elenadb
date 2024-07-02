@@ -13,12 +13,13 @@ func TestRangeSearch(t *testing.T) {
 	// Inicializa el DiskManager
 	db_dir := "db.elena/"
 	common.GloablDbDir = db_dir
-	buffer_pool_size := 10
+	common.DebugEnabled.Store(true)
+	buffer_pool_size := 3
 	k := 5
 
 	os.MkdirAll(db_dir, os.ModePerm)
 	os.Create(db_dir + "elena_meta.table")
-	defer os.RemoveAll(db_dir)
+	// defer os.RemoveAll(db_dir)
 
 	bpm := buffer.NewBufferPoolManager(db_dir, uint32(buffer_pool_size), k, catalog.EmptyCatalog())
 	catalogFileId := common.FileID_t(0)
@@ -58,7 +59,7 @@ func TestIntegrationWithBufferpool(t *testing.T) {
 	// Inicializa el B+ Tree con el Buffer Pool Manager
 	bptree := NewBPTree(bpm, &catalogFileId)
 
-	const large = 500
+	const large = 2000
 	key := 1
 	for ; key < large; key++ {
 		bptree.Insert(key, uint64(key))
