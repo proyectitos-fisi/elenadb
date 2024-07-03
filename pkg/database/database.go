@@ -46,7 +46,7 @@ type ElenaDB struct {
 func StartElenaBusiness(dbPath string) (*ElenaDB, error) {
 	dbPath = utils.WithTrailingSlash(dbPath)
 	common.GloablDbDir = dbPath
-	common.DebugEnabled.Store(true)
+	common.DebugEnabled.Store(false)
 
 	ctlg := catalog.EmptyCatalog()
 	bpm := buffer.NewBufferPoolManager(dbPath, common.BufferPoolSize, common.LRUKReplacerK, ctlg)
