@@ -238,20 +238,29 @@ func displayHelp() {
 
    Hemos preparado la tabla %s para que puedas utilizar a Elena
 
-   Obten todos los registros de la tabla
-   %v
+   Obten algunos registros de la tabla
 
-   Creación de tablas
-   %v
+     %v
 
-   Puedes utilizar filtro para obtener solo los atributos que desees
-   %v
+   Puedes utilizar filtros y seleccionar solo las columnas que desees
 
-   Insertar un nuevo registro
-   %v
+     %v
 
-   Añade "explica" al inicio de tu consulta para ver el plan de ejecución
-   %v
+   Prueba obteniendo el top 3 de estudiantes
+
+     %v
+
+   También puedes crear tus propias tablas
+
+     %v
+
+   E insertar nuevos registro
+
+     %v
+
+   Añade "explicame" al inicio de tu consulta para ver el plan de ejecución
+
+     %v
 
    Notas importantes:
    - todas las queries terminan con %s
@@ -261,17 +270,17 @@ func displayHelp() {
 
 `,
 		color.GreenString("estudiantes"),
-		Highlight("dame todo de estudiantes pe"),
-		Highlight("creame tabla <nombre> { <atributo>:<tipo> @id/@unique } pe"),
-		Highlight("dame { <atributo>, ... } de <tabla> pe"),
-		Highlight("mete { <atributo>: <valor>, ... } en <tabla> pe"),
+		Highlight("dame todo de estudiantes limite 5 pe"),
+		Highlight("dame { codigo, nombre, correo, creditos } de estudiantes donde (creditos > 212 y es_tercio == false) pe"),
+		Highlight("dame { correo, creditos } de estudiantes ordenado por creditos desc limite 3 pe"),
+		Highlight("creame tabla cursos { id int @id, codigo char(3) @unique, nombre char(24) } pe"),
+		Highlight("mete { codigo: \"123\", nombre: \"Programacion\" } en cursos pe"),
 		Highlight("explicame <consulta> pe"),
 		color.YellowString("pe"),
 		color.YellowString("tablas"),
 		color.YellowString("limpia"),
 		color.YellowString("ayuda"),
 	)
-
 }
 
 func newFormatter() prettyjson.Formatter {
