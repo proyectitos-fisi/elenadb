@@ -32,7 +32,8 @@ var (
 func StartREPL(dbName string) error {
 	fmt.Printf(
 		"🚄 Elena DB v"+common.Version+"\n"+
-			"   Built Date: "+common.BirthDate+"\n\n"+
+			"   Built Date: "+common.BirthDate+"\n"+
+			"   GitHub: "+common.GitHub+"\n\n"+
 			"   ElenaDB es una DBMS construida por estudiantes de la UNMSM como proyecto final\n"+
 			"   de Algoritmos y Estructuras de Datos. Este sistema fue desarrollado con fines\n"+
 			"   educativos y no debe usarse en entornos de producción (todavía).\n\n"+

@@ -24,6 +24,7 @@ const (
 	Description = "🚄 The Elena Database"
 	Version     = "0.0.69-alpha"
 	BirthDate   = "2024/07/02"
+	GitHub      = "https://github.com/fisirc/elenadb"
 )
 
 // Cycle detection is performed every CYCLE_DETECTION_INTERVAL milliseconds.
