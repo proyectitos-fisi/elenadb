@@ -11,6 +11,7 @@ var identifiers = []string{
 	"borra",
 	"explicame",
 	"set",
+	"limite",
 	"limpia",
 	"ayuda",
 	"tablas",

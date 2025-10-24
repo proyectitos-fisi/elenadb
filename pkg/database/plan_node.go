@@ -255,6 +255,46 @@ func (plan *SortPlanNode) ToString() string {
 	return fmt.Sprintf("SortPlanNode (\n%s\n)\n    %s", formattedFields.String(), plan.PlanNodeBase.Children[0].ToString())
 }
 
+// ============= limit =============
+
+type LimitPlanNode struct {
+	PlanNodeBase
+	LimitQuery    *query.Query
+	TableMetadata *catalog.TableMetadata
+	LimitValue    int
+	RowsReturned  int
+}
+
+func (plan *LimitPlanNode) Next() (*tuple.Tuple, error) {
+	if plan.RowsReturned >= plan.LimitValue {
+		return nil, nil
+	}
+
+	if len(plan.Children) == 0 {
+		return nil, nil
+	}
+
+	t, err := plan.Children[0].Next()
+	if err != nil {
+		return nil, err
+	}
+
+	if t == nil {
+		return nil, nil
+	}
+
+	plan.RowsReturned++
+	return t, nil
+}
+
+func (plan *LimitPlanNode) Schema() *schema.Schema {
+	return &plan.TableMetadata.Schema
+}
+
+func (plan *LimitPlanNode) ToString() string {
+	return fmt.Sprintf("LimitPlanNode { limit=%d }\n    %s", plan.LimitValue, plan.PlanNodeBase.Children[0].ToString())
+}
+
 // ============= filter =============
 
 type FilterPlanNode struct {

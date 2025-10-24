@@ -88,6 +88,23 @@ func SelectPlanBuilder(query *query.Query, db *ElenaDB) (PlanNode, error) {
 		// TODO: order asc?
 	}
 
+	// FLAG_ALGORITMO: simple counter-based limit
+	if query.Limit != nil {
+		selectPlan = &LimitPlanNode{
+			PlanNodeBase: PlanNodeBase{
+				Type:     PlanNodeTypeLimit,
+				Database: db,
+				Children: []PlanNode{
+					selectPlan,
+				},
+			},
+			LimitQuery:    query,
+			TableMetadata: tableMetadata,
+			LimitValue:    *query.Limit,
+			RowsReturned:  0,
+		}
+	}
+
 	// FLAG_ ESTRUCTURA: tree
 	return &ProjectionPlanNode{
 		PlanNodeBase: PlanNodeBase{

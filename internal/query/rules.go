@@ -466,6 +466,16 @@ func defaultParseFsm() *FsmNode {
     AddRule(retrieveFrom, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom).
     AddRule(retrieveTableName, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName).
     AddRule(beginStep, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmBeginStep).
+    AddRule(&FsmNode{
+        ExpectedString: "limite",
+    }, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmRetrieveLimit).
+    AddRule(&FsmNode{
+        ExpectByTypes: true,
+        ExpectedTypes: []tokens.TkType{
+            tokens.TkWord,
+        },
+    }, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmRetrieveLimit, FsmRetrieveLimitValue).
+    AddRule(beginStep, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmRetrieveLimit, FsmRetrieveLimitValue, FsmBeginStep).
     AddRule(selector, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmSelector).
     AddRule(&FsmNode{
         ExpectedString: "{",
@@ -495,6 +505,24 @@ func defaultParseFsm() *FsmNode {
     AddRule(&FsmNode{
         ExpectedString: "limite",
     }, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmOrderingDirectionAsc, FsmRetrieveLimit).
+    AddRule(&FsmNode{
+        ExpectByTypes: true,
+        ExpectedTypes: []tokens.TkType{
+            tokens.TkWord,
+        },
+    }, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmOrderingDirectionAsc, FsmRetrieveLimit, FsmRetrieveLimitValue).
+    AddRule(beginStep, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmOrderingDirectionAsc, FsmRetrieveLimit, FsmRetrieveLimitValue, FsmBeginStep).
+    AddRule(&FsmNode{
+        ExpectedString: "limite",
+    }, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmOrderingDirectionDesc, FsmRetrieveLimit).
+    AddRule(&FsmNode{
+        ExpectByTypes: true,
+        ExpectedTypes: []tokens.TkType{
+            tokens.TkWord,
+        },
+    }, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmOrderingDirectionDesc, FsmRetrieveLimit, FsmRetrieveLimitValue).
+    AddRule(beginStep, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmOrderingDirectionDesc, FsmRetrieveLimit, FsmRetrieveLimitValue, FsmBeginStep).
+    AddRule(beginStep, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmOrderingDirectionAsc, FsmRetrieveLimit, FsmRetrieveLimitValue, FsmBeginStep).
     AddRule(beginStep, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmOrderingDirectionAsc, FsmBeginStep).
     AddRule(beginStep, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmOrderingDirectionDesc, FsmBeginStep).
     AddRule(beginStep, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy, FsmOrderingKey, FsmBeginStep).

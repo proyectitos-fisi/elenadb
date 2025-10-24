@@ -45,6 +45,7 @@ type Query struct {
 	Returning      []string
     OrderedBy      *string
 	IsAscending    bool
+	Limit          *int
 }
 
 // WARNING: This function may lose information if your query is one of: ["meta", "borra", "cambia"]

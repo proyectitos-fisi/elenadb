@@ -191,6 +191,18 @@ func parseOrderingDesc(qb *QueryBuilder, tk *tokens.Token) error {
     return nil
 }
 
+func parseLimitValueFn(qb *QueryBuilder, tk *tokens.Token) error {
+    limitValue, convErr := strconv.Atoi(tk.Data)
+    if convErr != nil {
+        return fmt.Errorf("expected a number for limit but got \"%s\"", tk.Data)
+    }
+    if limitValue < 0 {
+        return fmt.Errorf("limit value must be non-negative, got %d", limitValue)
+    }
+    qb.qu[len(qb.qu)-1].Limit = &limitValue
+    return nil
+}
+
 var defaultParseFnTable map[StepType]ParseFn = map[StepType]ParseFn{
     FsmBeginStep: parseBeginStepFn,
     FsmCreate: parseCreateFn,
@@ -223,6 +235,7 @@ var defaultParseFnTable map[StepType]ParseFn = map[StepType]ParseFn{
     FsmOrderingDirectionDesc: parseOrderingDesc,
     FsmChange: parseChangeFn,
     FsmOrdering: parseOrderingAsc,
+    FsmRetrieveLimitValue: parseLimitValueFn,
 }
 
 
