@@ -358,6 +358,7 @@ func defaultParseFsm() *FsmNode {
     AddRule(createTableNullable, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmFieldNullable).
     AddRule(createTableAnnotation, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmFieldAnnotation).
     AddRule(createTableEos, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmEos).
+    AddRule(createTableCloseList, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmCloseList).
     AddRule(&FsmNode{
         ExpectByTypes: true,
         ExpectedTypes: []tokens.TkType{
@@ -380,18 +381,23 @@ func defaultParseFsm() *FsmNode {
     AddRule(createTableNullable, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber, FsmCloseSelector, FsmFieldNullable).
     AddRule(createTableAnnotation, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber, FsmCloseSelector, FsmFieldAnnotation).
     AddRule(createTableEos, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber, FsmCloseSelector, FsmEos).
+    AddRule(createTableCloseList, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldCompositeType, FsmOpenSelector, FsmNumber, FsmCloseSelector, FsmCloseList).
     // regular/basic types
     AddRule(createTableFieldType, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType).
     AddRule(createTableNullable, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmFieldNullable).
     AddRule(createTableAnnotation, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmFieldAnnotation).
     AddRule(createTableAnnotation, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmFieldNullable, FsmFieldAnnotation).
     AddRule(createTableEos, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmFieldNullable, FsmEos).
+    AddRule(createTableCloseList, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmFieldNullable, FsmCloseList).
     AddRule(createTableEos, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmFieldAnnotation, FsmEos).
+    AddRule(createTableCloseList, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmFieldAnnotation, FsmCloseList).
     AddRule(createTableAnnotation, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmFieldAnnotation, FsmFieldAnnotation).
     AddRule(createTableEos, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmEos).
+    AddRule(createTableCloseList, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmCloseList).
     AddRule(createTableFieldKey, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmEos, FsmFieldKey).
     AddRule(createTableCloseList, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmEos, FsmCloseList).
     AddRule(beginStep, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmEos, FsmCloseList, FsmBeginStep).
+    AddRule(beginStep, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldType, FsmCloseList, FsmBeginStep).
     AddRule(&FsmNode{
         ExpectedString: "fkey",
     }, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey).
@@ -410,7 +416,8 @@ func defaultParseFsm() *FsmNode {
     }, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey, FsmOpenSelector, FsmFieldFkeyPath, FsmCloseSelector).
     AddRule(createTableNullable, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey, FsmOpenSelector, FsmFieldFkeyPath, FsmCloseSelector, FsmFieldNullable).
     AddRule(createTableAnnotation, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey, FsmOpenSelector, FsmFieldFkeyPath, FsmCloseSelector, FsmFieldAnnotation).
-    AddRule(createTableEos, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey, FsmOpenSelector, FsmFieldFkeyPath, FsmCloseSelector, FsmEos)
+    AddRule(createTableEos, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey, FsmOpenSelector, FsmFieldFkeyPath, FsmCloseSelector, FsmEos).
+    AddRule(createTableCloseList, FsmCreate, FsmTable, FsmTableName, FsmOpenList, FsmFieldKey, FsmFieldFkey, FsmOpenSelector, FsmFieldFkeyPath, FsmCloseSelector, FsmCloseList)
 
     // fsm dame-specific rules
     retrieve := &FsmNode{
@@ -488,6 +495,9 @@ func defaultParseFsm() *FsmNode {
     AddRule(&FsmNode{
         ExpectedString: "}",
     }, FsmRetrieve, FsmOpenList, FsmFieldKey, FsmCloseList).
+    AddRule(&FsmNode{
+        ExpectedString: "}",
+    }, FsmRetrieve, FsmOpenList, FsmFieldKey, FsmListSeparator, FsmCloseList).
     AddRule(retrieveFrom, FsmRetrieve, FsmOpenList, FsmFieldKey, FsmCloseList, FsmRetrieveFrom).
     AddRule(retrieveOrdering, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering).
     AddRule(retrieveOrderingBy, FsmRetrieve, FsmRetrieveAll, FsmRetrieveFrom, FsmRetrieveTableName, FsmOrdering, FsmOrderingBy).
@@ -600,6 +610,7 @@ func defaultParseFsm() *FsmNode {
     AddRule(changeSeparator, FsmChange, FsmChangeAt, FsmTableName, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmListSeparator).
     AddRule(changeFieldKey, FsmChange, FsmChangeAt, FsmTableName, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmListSeparator, FsmFieldKey).
     AddRule(changeCloseList, FsmChange, FsmChangeAt, FsmTableName, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList).
+    AddRule(changeCloseList, FsmChange, FsmChangeAt, FsmTableName, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmListSeparator, FsmCloseList).
     AddRule(selector, FsmChange, FsmChangeAt, FsmTableName, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmSelector)
 
     // fsm borra-specific rules
@@ -678,6 +689,9 @@ func defaultParseFsm() *FsmNode {
         FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList,
     ).
     AddRule(meteCloseList,
+        FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmListSeparator, FsmCloseList,
+    ).
+    AddRule(meteCloseList,
         FsmInsertStep, FsmOpenList, FsmCloseList,
     ).
     AddRule(&FsmNode{
@@ -707,6 +721,9 @@ func defaultParseFsm() *FsmNode {
     AddRule(&FsmNode{
         ExpectedString: "}",
     }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmCloseList).
+    AddRule(&FsmNode{
+        ExpectedString: "}",
+    }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmListSeparator, FsmCloseList).
     AddRule(&FsmNode{
         ExpectedString: "}",
     }, FsmInsertStep, FsmOpenList, FsmFieldKey, FsmValueAssign, FsmFieldValue, FsmCloseList, FsmInsertAt, FsmTableName, FsmReturningKey, FsmOpenList, FsmReturningFieldKey, FsmListSeparator, FsmReturningFieldKey, FsmCloseList).
