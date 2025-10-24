@@ -263,7 +263,7 @@ func displayHelp() {
      %v
 
    Notas importantes:
-   - todas las queries terminan con %s
+   - todas las queries terminan con %s 🇵🇪
    - utiliza %s para ver todas las tablas
    - utiliza %s para limpiar la pantalla
    - utiliza %s para mostrar esta ayuda
