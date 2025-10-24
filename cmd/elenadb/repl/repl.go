@@ -34,8 +34,8 @@ func StartREPL(dbName string) error {
 		"🚄 Elena DB v"+common.Version+"\n"+
 			"   Built Date: "+common.BirthDate+"\n\n"+
 			"   ElenaDB es una DBMS construida por estudiantes de la UNMSM como proyecto final\n"+
-			"   del Algoritmos y Estructuras de Datos. Este sistema fue desarrollado con fines\n"+
-			"   educativos y no debe usarse en entornos de producción (a menos que nos yapees).\n\n"+
+			"   de Algoritmos y Estructuras de Datos. Este sistema fue desarrollado con fines\n"+
+			"   educativos y no debe usarse en entornos de producción (todavía).\n\n"+
 			"   Utilice %v para conocer su uso.\n\n",
 		color.YellowString("ayuda"),
 	)
@@ -236,12 +236,12 @@ func displayHelp() {
 	fmt.Printf(`
    🚄🌫🌫  Bienvenido a la shell de ElenaDB!
 
-   Lista las tablas existentes utilizando %v
+   Hemos preparado la tabla %s para que puedas utilizar a Elena
 
-   Creación de tablas
+   Obten todos los registros de la tabla
    %v
 
-   Obten todos los registros de una tabla
+   Creación de tablas
    %v
 
    Puedes utilizar filtro para obtener solo los atributos que desees
@@ -254,17 +254,20 @@ func displayHelp() {
    %v
 
    Notas importantes:
-   - todas las queries terminan con pe
+   - todas las queries terminan con %s
+   - utiliza %s para ver todas las tablas
    - utiliza %s para limpiar la pantalla
    - utiliza %s para mostrar esta ayuda
 
 `,
-		color.YellowString("tablas"),
+		color.GreenString("estudiantes"),
+		Highlight("dame todo de estudiantes pe"),
 		Highlight("creame tabla <nombre> { <atributo>:<tipo> @id/@unique } pe"),
-		Highlight("dame todo de <tabla> pe"),
 		Highlight("dame { <atributo>, ... } de <tabla> pe"),
 		Highlight("mete { <atributo>: <valor>, ... } en <tabla> pe"),
 		Highlight("explicame <consulta> pe"),
+		color.YellowString("pe"),
+		color.YellowString("tablas"),
 		color.YellowString("limpia"),
 		color.YellowString("ayuda"),
 	)

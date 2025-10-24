@@ -610,7 +610,7 @@ func (plan *MetePlanNode) Next() (*tuple.Tuple, error) {
 		if col.IsIdentity {
 			// We assume the last slot contains the last id
 			values = append(values, *value.NewInt32Value(nextId))
-		} else if col.IsNullable && *&plan.Query.Fields[idx].Value == nil {
+		} else if col.IsNullable && plan.Query.Fields[idx].Value == nil {
 			values = append(values, *plan.Query.Fields[idx].AsNullRepresentation())
 		} else {
 			// Otherwise, we just append the value
@@ -723,7 +723,7 @@ func (plan *DeletePlanNode) Next() (*tuple.Tuple, error) {
 
 			rawPage := plan.Database.bufferPool.FetchPage(pageId)
 			if rawPage == nil {
-				return nil, fmt.Errorf("page %s not found", pageId)
+				return nil, fmt.Errorf("page %d not found", pageId)
 			}
 
 			slottedPage := page.NewSlottedPageFromRawPage(rawPage)

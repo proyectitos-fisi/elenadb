@@ -96,7 +96,8 @@ func (elena *ElenaDB) PopulateCatalog() error {
 		root := tuple.Value.Values[3].AsInt32()
 		sql := tuple.Value.Values[4].AsVarchar()
 
-		if fileType == "table" {
+		switch fileType {
+		case "table":
 			parser := query.NewParser()
 			tableSchema, err := parser.Parse(strings.NewReader(sql))
 			if err != nil {
@@ -108,7 +109,7 @@ func (elena *ElenaDB) PopulateCatalog() error {
 				SqlCreate: sql,
 				Schema:    *tableSchema[0].GetSchema(),
 			}
-		} else if fileType == "index" {
+		case "index":
 			indexMetadataMap[name] = &catalog.IndexMetadata{
 				Name:      name,
 				FileID:    common.FileID_t(fileId),
@@ -335,7 +336,7 @@ func (db *ElenaDB) sqlPipeline(input string) (*query.Query, error) {
 			for _, field := range parsedQuery.Fields {
 				if field.Name == col.ColumnName {
 					if col.IsIdentity {
-						return nil, fmt.Errorf("column \"%s\" is @id and cannot be inserted", col.ColumnName)
+						return nil, fmt.Errorf("uolumn \"%s\" is @id and cannot be inserted", col.ColumnName)
 					}
 					// Parser parses all values as string, so we need to resolve them to their respective types
 					resolvedValue, err := resolveAnyValueFromType(col.ColumnType, field.Value)
@@ -367,7 +368,7 @@ func (db *ElenaDB) sqlPipeline(input string) (*query.Query, error) {
 			if !exists {
 				// Identity columns can't be passed on queries so that's ok
 				if !col.IsNullable && !col.IsIdentity {
-					return nil, fmt.Errorf("Non nullable column \"%s\" is missing", col.ColumnName)
+					return nil, fmt.Errorf("uon nullable column \"%s\" is missing", col.ColumnName)
 				}
 				// If is nullable we insert it ourselves as NULL
 				resolvedFields = append(resolvedFields, query.QueryField{
@@ -415,23 +416,23 @@ func (db *ElenaDB) sqlPipeline(input string) (*query.Query, error) {
 		identityCols := 0
 		for _, field := range parsedQuery.Fields {
 			if columnsSet[field.Name] {
-				return nil, fmt.Errorf("Column \"%s\" is duplicated", field.Name)
+				return nil, fmt.Errorf("uolumn \"%s\" is duplicated", field.Name)
 			}
 			if field.HasAnnotation(query.AnnotationId) {
 				if field.Nullable {
-					return nil, fmt.Errorf("Column \"%s\" is @id and cannot be nullable", field.Name)
+					return nil, fmt.Errorf("uolumn \"%s\" is @id and cannot be nullable", field.Name)
 				}
 				identityCols++
 			}
 			if field.HasAnnotation(query.AnnotationUnique) {
 				if field.Nullable {
-					return nil, fmt.Errorf("Column \"%s\" is @unique and cannot be nullable", field.Name)
+					return nil, fmt.Errorf("uolumn \"%s\" is @unique and cannot be nullable", field.Name)
 				}
 			}
 			columnsSet[field.Name] = true
 		}
 		if identityCols != 1 {
-			return nil, fmt.Errorf("Table must have exactly one @id column")
+			return nil, fmt.Errorf("uable must have exactly one @id column")
 		}
 	}
 
@@ -466,7 +467,7 @@ func resolveAnyValueFromType(vType value.ValueType, val any) (any, error) {
 		}
 		return v, nil
 	default:
-		return nil, fmt.Errorf("Unknown value type: %s", vType)
+		return nil, fmt.Errorf("unknown value type: %s", vType)
 	}
 }
 
